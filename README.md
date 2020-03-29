@@ -1,11 +1,14 @@
 # koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt)
 Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
-Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images.
+Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html)
+
+**Why the name Koneko?** Koneko (こねこ) means kitten, which is icat is, a kitty +kitten
 
 Uses [pixivpy](https://github.com/upbit/pixivpy/), install with `pip install pixivpy`
 
 Right now it's slow because it adapts [lsix](https://github.com/hackerb9/lsix/), which relies on ImageMagick. I started with lsix, using libsixel. But it used too much memory and switching around was slow. Plus I didn't want to switch away from kitty. Eventually there will be a rewrite of lsix (now [lscat](https://github.com/twenty5151/koneko/blob/master/lscat)) to remove dependency on ImageMagick and speed it up a lot.
+
 
 # Usage
 0. Install requirements (just see list of imports)
