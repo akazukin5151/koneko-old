@@ -11,7 +11,7 @@ Right now it's slow because it adapts [lsix](https://github.com/hackerb9/lsix/),
 
 
 # Usage
-0. Install requirements (just see list of imports)
+0. Install [kitty](https://github.com/kovidgoyal/kitty) and all requirements (just see list of imports)
 1. Create a file called `config.ini` in `~/.config/koneko/`
 2. Fill it out with your pixiv username and password like this:
 
