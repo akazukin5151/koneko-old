@@ -47,15 +47,15 @@ Non interactive functions:
 * Not visible to user (backend):
     * `setup()`
     * `download_illusts()`   (only if 'downloading img' messages are disabled)
-    * `download_large()`, download_large_vp()`
+    * `download_large()`, `download_large_vp()`
         * `make_path_and_download()`
     * `download_full()`
         * `download_full_core()`
         * `get_url_and_filename()`
 
 * Visible to user. Non-interactive function leads to (--->) an interactive prompt:
-    * `show_artist_illusts()` ---> gallery_prompt()`
-    * `open_image()` ---> image_prompt()`
+    * `show_artist_illusts()` ---> `gallery_prompt()`
+    * `open_image()` ---> `image_prompt()`
     * `open_image_vp()` ---^
 
 Misc functions:
