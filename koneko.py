@@ -1,15 +1,15 @@
 """
-TODO: accept pixiv link via command line argument
-    eg https://www.pixiv.net/en/artworks/72642560 --> image view
-    https://www.pixiv.net/en/users/34931 --> artist view
 TODO: handle posts with multiple images:
     Need an indicator in gallery view (need to rewrite lscat first)
 
-Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
+Browse pixiv in the terminal using kitty's icat to display images (in the
+terminal!)
 
-Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images.
+Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the
+magical `kitty +kitten icat` 'kitten' to display images.
 
-Uses [pixivpy](https://github.com/upbit/pixivpy/), install with `pip install pixivpy`
+Uses [pixivpy](https://github.com/upbit/pixivpy/), install with
+`pip install pixivpy`
 """
 
 import os
@@ -214,8 +214,8 @@ def download_large_vp(api, image_id):
 
 
 def get_url_and_filename(url):
-    url = re.sub("_p0_master\d+", "_p0", url)
-    url = re.sub("c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
+    url = re.sub(r"_p0_master\d+", "_p0", url)
+    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
     filename = url.split("/")[-1]
     return url, filename
 
@@ -274,9 +274,13 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
     q -- quit (with confirmation)
 
     """
-    page_urls = kwargs['page_urls']
-    current_page_num = kwargs['current_page_num']
-    number_of_pages = kwargs['number_of_pages']
+    # FIXME: doesn't work when accessed from mode 1 and gallery
+    try:
+        page_urls = kwargs['page_urls']
+        current_page_num = kwargs['current_page_num']
+        number_of_pages = kwargs['number_of_pages']
+    except KeyError:
+        single_image = True
 
     while True:
         image_prompt_command = input("Enter an image view command: ")
@@ -307,7 +311,7 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
             else:
                 current_page_num += 1 # Be careful of 0 index
                 # TODO: download first pic, display, then
-                # download the rest in the background
+                # download the rest in the background asynchronously
                 list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
                 open_image_vp(artist_user_id,
                         f"{image_id}/{list_of_names[current_page_num]}")
@@ -333,7 +337,7 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
 
 
 def gallery_prompt(
-    api, current_page_illusts, current_page, current_page_num, artist_user_id, urls
+    api, current_page_illusts, current_page, current_page_num, artist_user_id
 ):
     # TODO: artist_user_id is only used to pass to other functions
     """
@@ -386,7 +390,7 @@ def gallery_prompt(
 
         elif gallery_command == "p":
             if current_page_num > 1:
-                matched = re.findall("\&offset=\d+", next_url)[0]
+                matched = re.findall(r"\&offset=\d+", next_url)[0]
                 new_offset = int(matched.split("=")[1]) - 30
                 assert new_offset >= 0
                 prev_url = f"{next_url.split('&offset')[0]}&offset={new_offset}"
@@ -437,7 +441,6 @@ def artist_illusts_mode(api, artist_user_id):
         current_page,
         current_page_num,
         artist_user_id,
-        urls,
     )
 
 
@@ -480,7 +483,7 @@ def main():
             image_id = url.split("/")[-1].split("\\")[0]
             main_command = "2"
 
-        prompted=False
+        prompted = False
     elif len(sys.argv) > 3:
         print("Too many arguments!")
     else:
@@ -520,4 +523,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
