@@ -215,7 +215,7 @@ def get_url_and_filename(url):
     return url, filename
 
 
-def download_full_core(api):
+def download_full_core(api, url):
     url, filename = get_url_and_filename(url)
     make_path_and_download(
         api,
@@ -224,22 +224,22 @@ def download_full_core(api):
         filename,
         try_make_dir=False
     )
+    return filename
 
 
-def download_full(api, current_page_illusts=None, number=None, post_id=None):
-    # TODO: use **kwargs
-    # and the next function
-    if current_page_illusts and number:
-        currentImage = current_page_illusts[number]
+def download_full(api, **kwargs):
+    if ("current_page_illusts" and "number") in kwargs.keys():
+        currentImage = kwargs['current_page_illusts'][kwargs['number']]
         url = currentImage["image_urls"]["large"]
-    elif post_id:
-        current_image = api.illust_detail(post_id)
+    elif "post_id" in kwargs.keys():
+        current_image = api.illust_detail(kwargs['post_id'])
         url = current_image['illust']['image_urls']['large']
 
-    download_full_core(api)
+    filename = download_full_core(api, url)
     return f"/home/twenty/Downloads/{filename}" # Filepath
 
 def image_prompt(api, image_id=None, current_page_illusts=None, number=None, post_id=None):
+    # TODO: use **kwargs
     """
     Image view commands:
     b -- go back to the gallery
@@ -270,7 +270,7 @@ def image_prompt(api, image_id=None, current_page_illusts=None, number=None, pos
             print(f"Opened {link} in browser")
         elif image_prompt_command == "d":
             if current_page_illusts and number:
-                filepath = download_full(api, current_page_illusts, number)
+                filepath = download_full(api, current_page_illusts=current_page_illusts, number=number)
             elif post_id:
                 filepath = download_full(api, post_id=post_id)
             print(f"Image downloaded at {filepath}\n")
@@ -318,8 +318,8 @@ def gallery_prompt(
         elif gallery_command[0] == "d":
             filepath = download_full(
                             api,
-                            current_page_illusts,
-                            int(gallery_command[1:])
+                            current_page_illusts=current_page_illusts,
+                            number=int(gallery_command[1:])
                         )
             print(f"Image downloaded at {filepath}\n")
 
@@ -363,7 +363,7 @@ def gallery_prompt(
                     current_page_num,
                 )
 
-                image_prompt(api, image_id, current_page_illusts)
+                image_prompt(api, post_id=image_id)
             except ValueError:
                 print("Invalid command")
                 print(gallery_prompt.__doc__)
@@ -436,3 +436,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
