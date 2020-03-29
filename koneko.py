@@ -1,5 +1,4 @@
 """
-NOTE: on release, also release source for lsix as it's GPL licensed
 
 Frontend, interactive functions (with input()); has 'prompt' or 'command':
     begin_prompt()
