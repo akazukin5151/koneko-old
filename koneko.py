@@ -85,8 +85,9 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
         urls.append(current_page_illusts[i]["image_urls"]["medium"])  # or square_medium
         file_names.append(current_page_illusts[i]["title"])
 
-    os.makedirs(f"/tmp/pixivTUI/{artist_user_id}/{current_page_num}/", exist_ok=True)
-    os.chdir(f"/tmp/pixivTUI/{artist_user_id}/{current_page_num}/")
+    os.makedirs(f"/tmp/koneko/{artist_user_id}/{current_page_num}/", exist_ok=True)
+    # TODO: use a context manager?
+    os.chdir(f"/tmp/koneko/{artist_user_id}/{current_page_num}/")
 
     for i in range(len(urls)):
         url = urls[i]
@@ -137,7 +138,7 @@ def open_image(api, current_page_illusts, artist_user_id, number, current_page_n
     # display the large-res
     os.system("clear")
     os.system(
-        f"kitty +kitten icat --silent /tmp/pixivTUI/{artist_user_id}/{current_page_num}/{search_string}*"
+        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/{search_string}*"
     )
 
     image_id, image_filename, _ = download_large(
@@ -158,14 +159,14 @@ def open_image(api, current_page_illusts, artist_user_id, number, current_page_n
     #    image_id, image_filename = largequeue.get()
 
     os.system(
-        f"kitty +kitten icat --silent /tmp/pixivTUI/{artist_user_id}/{current_page_num}/large/{image_filename}"
+        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{image_filename}"
     )
 
     return image_id
 
 def open_image_vp(artist_user_id, filename):
     os.system(
-        f"kitty +kitten icat --silent /tmp/pixivTUI/{artist_user_id}/individual/{filename}"
+        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/individual/{filename}"
     )
 
 
@@ -179,7 +180,7 @@ def download_large(
     url = currentImage["image_urls"]["large"]
     filename = url.split("/")[-1]
 
-    large_dir = f"/tmp/pixivTUI/{artist_user_id}/{current_page_num}/large/"
+    large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
     filepath = f"{large_dir}{filename}"
     make_path_and_download(api, large_dir, url, filename)
     #   if out_queue:
@@ -203,7 +204,7 @@ def download_large_vp(api, image_id):
     filename = url.split("/")[-1]
     artist_user_id = post_json['user']['id']
 
-    large_dir = f"/tmp/pixivTUI/{artist_user_id}/individual/"
+    large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
     make_path_and_download(api, large_dir, url, filename)
     return artist_user_id, filename
 
@@ -219,7 +220,7 @@ def download_full_core(api, url):
     url, filename = get_url_and_filename(url)
     make_path_and_download(
         api,
-        f"/home/twenty/Downloads/",
+        f"{os.path.expanduser('~')}/Downloads/",
         url,
         filename,
         try_make_dir=False
@@ -252,7 +253,7 @@ def image_prompt(api, image_id):
     while True:
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
-            if "/tmp/pixivTUI" in os.getcwd():
+            if "/tmp/koneko" in os.getcwd():
                 show_artist_illusts()
                 break
             else:
@@ -433,3 +434,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
