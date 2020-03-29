@@ -27,6 +27,7 @@ import threading
 import queue
 import re
 from configparser import ConfigParser
+from contextlib import contextmanager
 from pixivpy3 import *
 
 import time
@@ -46,13 +47,22 @@ def timer(func):
 
     return wrapper
 
+#https://stackoverflow.com/questions/431684/how-do-i-change-the-working-directory-in-python/24176022#24176022
+@contextmanager
+def cd(newdir):
+    prevdir = os.getcwd()
+    os.chdir(os.path.expanduser(newdir))
+    try:
+        yield
+    finally:
+        os.chdir(prevdir)
 
 # @timer
 def setup(out_queue):
     api = AppPixivAPI()
     #Read config.ini file
     config_object = ConfigParser()
-    config_object.read("config.ini")
+    config_object.read(f"{os.path.expanduser('~/.config/koneko/')}config.ini")
     config = config_object["Credentials"]
 
     # print("Logging in...")
@@ -85,47 +95,49 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
         urls.append(current_page_illusts[i]["image_urls"]["medium"])  # or square_medium
         file_names.append(current_page_illusts[i]["title"])
 
-    os.makedirs(f"/tmp/koneko/{artist_user_id}/{current_page_num}/", exist_ok=True)
-    # TODO: use a context manager?
-    os.chdir(f"/tmp/koneko/{artist_user_id}/{current_page_num}/")
+    download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
+    os.makedirs(download_path, exist_ok=True)
+    #os.chdir(f"/tmp/koneko/{artist_user_id}/{current_page_num}/")
+    with cd(download_path):
+        for i in range(len(urls)):
+            url = urls[i]
+            img_name = url.split("/")[-1]
+            img_ext = img_name.split(".")[-1]
 
-    for i in range(len(urls)):
-        url = urls[i]
-        img_name = url.split("/")[-1]
-        img_ext = img_name.split(".")[-1]
+            if len(urls) >= 10 and i < 10:
+                # This assumes len(url) < 100
+                number_prefix = str(i).rjust(2, "0")
+            else:
+                number_prefix = str(i)
 
-        if len(urls) >= 10 and i < 10:
-            # This assumes len(url) < 100
-            number_prefix = str(i).rjust(2, "0")
-        else:
-            number_prefix = str(i)
+            # Rename files to be prefixed with a number
+            new_file_name = f"{number_prefix}_{file_names[i]}.{img_ext}"
 
-        # Rename files to be prefixed with a number
-        new_file_name = f"{number_prefix}_{file_names[i]}.{img_ext}"
+            # TODO: asynchronously display images (call lsix) after every
+            # downloaded pic. No need to wait for all of them to be downloaded
+            # Requires a rewrite of lsix, because I only want it to display the
+            # latest image and not create a new montage of all images so far.
+            # A custom implementation of the gallery in icat seems to be better
 
-        # TODO: asynchronously display images (call lsix) after every
-        # downloaded pic. No need to wait for all of them to be downloaded
-        # Requires a rewrite of lsix, because I only want it to display the
-        # latest image and not create a new montage of all images so far.
-        # A custom implementation of the gallery in icat seems to be better
-
-        # Only download pictures if not already downloaded
-        if not os.path.isfile(new_file_name):
-            print(f"Downloading {new_file_name}...")
-            # t0 = time.time()
-            api.download(url)
-            # t1 = time.time()
-            # total = t1-t0
-            # print(total)
-            # with open('/home/twenty/Workspace/pixiv/downloadtime.txt', 'a') as the_file:
-            #     the_file.write(f"{total}\n")
-            os.rename(f"{img_name}", f"{new_file_name}")
-    return urls
+            # Only download pictures if not already downloaded
+            if not os.path.isfile(new_file_name):
+                print(f"Downloading {new_file_name}...")
+                # t0 = time.time()
+                api.download(url)
+                # t1 = time.time()
+                # total = t1-t0
+                # print(total)
+                # with open('/home/twenty/Workspace/pixiv/downloadtime.txt', 'a') as the_file:
+                #     the_file.write(f"{total}\n")
+                os.rename(f"{img_name}", f"{new_file_name}")
+    return urls, download_path
 
 
 # @timer
-def show_artist_illusts():
-    os.system("~/lsix")
+def show_artist_illusts(path):
+    lscat_path = os.getcwd()
+    with cd(path):
+        os.system(f"{lscat_path}/lscat")
 
 def open_image(api, current_page_illusts, artist_user_id, number, current_page_num):
     # TODO: current_page_illusts is only used to pass to another function
@@ -192,10 +204,11 @@ def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
-        old_dir = os.getcwd()
-        os.chdir(large_dir)
-        api.download(url)
-        os.chdir(old_dir)
+        with cd(large_dir):
+       # old_dir = os.getcwd()
+       # os.chdir(large_dir)
+            api.download(url)
+       # os.chdir(old_dir)
 
 
 def download_large_vp(api, image_id):
@@ -239,7 +252,7 @@ def download_full(api, **kwargs):
     filename = download_full_core(api, url)
     return f"/home/twenty/Downloads/{filename}" # Filepath
 
-def image_prompt(api, image_id):
+def image_prompt(api, image_id, artist_user_id):
     """
     Image view commands:
     b -- go back to the gallery
@@ -253,11 +266,7 @@ def image_prompt(api, image_id):
     while True:
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
-            if "/tmp/koneko" in os.getcwd():
-                show_artist_illusts()
-                break
-            else:
-                break
+            artist_illusts_mode(api, artist_user_id)
         elif image_prompt_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
             if answer == "y" or not answer:
@@ -326,10 +335,10 @@ def gallery_prompt(
             # Mutating current_page to use the next page
             current_page = api.user_illusts(**api.parse_qs(next_url))
             current_page_illusts = current_page["illusts"]
-            urls = download_illusts(
+            urls, download_path = download_illusts(
                 api, current_page_illusts, current_page_num, artist_user_id
             )
-            show_artist_illusts()
+            show_artist_illusts(download_path)
 
         elif gallery_command == "p":
             if current_page_num > 1:
@@ -341,10 +350,11 @@ def gallery_prompt(
                 current_page = api.user_illusts(**api.parse_qs(prev_url))
                 current_page_illusts = current_page["illusts"]
                 current_page_num -= 1
-                urls = download_illusts(
+                urls, download_path = download_illusts(
                     api, current_page_illusts, current_page_num, artist_user_id
                 )
-                show_artist_illusts()
+                show_artist_illusts(download_path)
+
             else:
                 print("This is the first page!")
 
@@ -361,7 +371,7 @@ def gallery_prompt(
                     current_page_num,
                 )
 
-                image_prompt(api, image_id)
+                image_prompt(api, image_id, artist_user_id)
             except ValueError:
                 print("Invalid command")
                 print(gallery_prompt.__doc__)
@@ -373,10 +383,10 @@ def artist_illusts_mode(api, artist_user_id):
     current_page_illusts = current_page["illusts"]
     current_page_num = 1
 
-    urls = download_illusts(
+    urls, download_path = download_illusts(
         api, current_page_illusts, current_page_num, artist_user_id
     )
-    show_artist_illusts()
+    show_artist_illusts(download_path)
     gallery_prompt(
         api,
         current_page_illusts,
@@ -391,7 +401,7 @@ def view_post_mode(api, image_id):
     # TODO: both params are only used to pass to other functions
     artist_user_id, filename = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
-    image_prompt(api, image_id)
+    image_prompt(api, image_id, artist_user_id)
     artist_illusts_mode(api, artist_user_id)
 
 
