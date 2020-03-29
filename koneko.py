@@ -1,4 +1,10 @@
 """
+TODO: accept pixiv link via command line argument
+    eg https://www.pixiv.net/en/artworks/72642560 --> image view
+    https://www.pixiv.net/en/users/34931 --> artist view
+TODO: handle posts with multiple images:
+    Need an indicator in gallery view (need to rewrite lscat first)
+
 Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images.
@@ -71,9 +77,10 @@ def artist_user_id_prompt():
     return artist_user_id
 
 
-# TODO: take out invariant (duplicated code) and put into 'core' function
+# TODO: reduce code duplication by pre-evaluating ['image_urls']['medium'] or ['large']
 # @timer
 def download_illusts(api, current_page_illusts, current_page_num, artist_user_id):
+    # TODO: download asynchronously
     urls = []
     file_names = []
     for i in range(len(current_page_illusts)):
@@ -82,7 +89,6 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
 
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     os.makedirs(download_path, exist_ok=True)
-    #os.chdir(f"/tmp/koneko/{artist_user_id}/{current_page_num}/")
     with cd(download_path):
         for i in range(len(urls)):
             url = urls[i]
@@ -238,10 +244,29 @@ def download_full(api, **kwargs):
     return f"/home/twenty/Downloads/{filename}" # Filepath
 
 
-def image_prompt(api, image_id, artist_user_id):
+# TODO: consider refactoring (extracting core away) with download_illusts()
+def download_multi(api, artist_user_id, image_id, page_urls):
+    list_of_names = []
+    download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+    os.makedirs(download_path, exist_ok=True)
+    with cd(download_path):
+        for i in range(len(page_urls)):
+            url = page_urls[i]
+            img_name = url.split("/")[-1]
+            list_of_names.append(img_name)
+            #img_ext = img_name.split(".")[-1]
+
+            if not os.path.isfile(img_name):
+                print(f"Downloading {img_name}...")
+                api.download(url)
+    return list_of_names
+
+def image_prompt(api, image_id, artist_user_id, **kwargs):
     """
     Image view commands:
     b -- go back to the gallery
+    n -- view next image in post (only for posts with multiple pages)
+    p -- view previous image in post (same as above)
     d -- download this image
     o -- open pixiv post in browser
     h -- show this help
@@ -249,6 +274,10 @@ def image_prompt(api, image_id, artist_user_id):
     q -- quit (with confirmation)
 
     """
+    page_urls = kwargs['page_urls']
+    current_page_num = kwargs['current_page_num']
+    number_of_pages = kwargs['number_of_pages']
+
     while True:
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
@@ -259,13 +288,42 @@ def image_prompt(api, image_id, artist_user_id):
                 sys.exit(0)
             else:
                 continue
+
         elif image_prompt_command == "o":
             link = f"https://www.pixiv.net/artworks/{image_id}"
             os.system(f"xdg-open {link}")
             print(f"Opened {link} in browser")
+
         elif image_prompt_command == "d":
             filepath = download_full(api, image_id=image_id)
             print(f"Image downloaded at {filepath}\n")
+
+        elif image_prompt_command == "n":
+            if not page_urls:
+                print("This is the only page in the post!")
+                continue
+            if current_page_num+1 == number_of_pages:
+                print("This is the last image in the post!")
+            else:
+                current_page_num += 1 # Be careful of 0 index
+                # TODO: download first pic, display, then
+                # download the rest in the background
+                list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
+                open_image_vp(artist_user_id,
+                        f"{image_id}/{list_of_names[current_page_num]}")
+                print(f"Page {current_page_num+1}/{number_of_pages}")
+
+        elif image_prompt_command == "p":
+            if not page_urls:
+                print("This is the only page in the post!")
+                continue
+            if current_page_num == 0:
+                print("This is the first image in the post!")
+            else:
+                current_page_num -= 1
+                open_image_vp(artist_user_id,
+                        f"{image_id}/{list_of_names[current_page_num]}")
+                print(f"Page {current_page_num+1}/{number_of_pages}")
 
         elif image_prompt_command == "h":
             print(image_prompt.__doc__)
@@ -387,7 +445,19 @@ def view_post_mode(api, image_id):
     # TODO: both params are only used to pass to other functions
     artist_user_id, filename = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
-    image_prompt(api, image_id, artist_user_id)
+
+    illust_details = api.illust_detail(image_id)
+    number_of_pages = illust_details.illust.page_count
+    if number_of_pages > 1:
+        print(f"Page 1/{number_of_pages}")
+        list_of_pages = illust_details.illust.meta_pages
+        page_urls = [list_of_pages[i].image_urls.medium for i in range(number_of_pages)]
+    else:
+        page_urls = None
+
+    image_prompt(api, image_id, artist_user_id,
+            page_urls=page_urls, current_page_num=0,
+            number_of_pages=number_of_pages)
     artist_illusts_mode(api, artist_user_id)
 
 
@@ -397,6 +467,8 @@ def main():
     apiThread.start()  # Start logging in
 
     # During this part, the API can still be logging in but we can proceed
+    # TODO: put a cute anime girl here with icat
+    os.system("clear")
     main_command = begin_prompt()
 
     if main_command == "1":
