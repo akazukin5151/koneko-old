@@ -1,23 +1,9 @@
 """
+Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
-Frontend, interactive functions (with input()); has 'prompt' or 'command':
-    begin_prompt()
-    artist_user_id_prompt()
-    gallery_prompt()
-    image_prompt()
+Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images.
 
-Non interactive functions:
-    Not visible to user (backend):
-        setup()
-        download_illusts()   (only if 'downloading img' messages are disabled)
-        download_large()
-
-    Visible to user. non-interactive action() leads to (--->) an interactive prompt():
-        show_artist_illusts() ---> gallery_prompt()
-        open_image() ---> image_prompt()
-
-Here's a random shell command to get (but not download) and display any pixiv image url
-curl -e 'https://www.pixiv.net' "https://i.pximg.net/img-original/img/2019/12/21/20/13/12/78403815_p0.jpg" | convert - -geometry 800x480 jpg:- | kitty +kitten icat --align left --place 800x480@0x5
+Uses [pixivpy](https://github.com/upbit/pixivpy/), install with `pip install pixivpy`
 """
 
 import os
@@ -250,6 +236,7 @@ def download_full(api, **kwargs):
 
     filename = download_full_core(api, url)
     return f"/home/twenty/Downloads/{filename}" # Filepath
+
 
 def image_prompt(api, image_id, artist_user_id):
     """
