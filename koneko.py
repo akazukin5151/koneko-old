@@ -38,7 +38,8 @@ def timer(func):
 
     return wrapper
 
-#https://stackoverflow.com/questions/431684/how-do-i-change-the-working-directory-in-python/24176022#24176022
+
+# https://stackoverflow.com/questions/431684/how-do-i-change-the-working-directory-in-python/24176022#24176022
 @contextmanager
 def cd(newdir):
     prevdir = os.getcwd()
@@ -48,22 +49,24 @@ def cd(newdir):
     finally:
         os.chdir(prevdir)
 
+
 # @timer
 def setup(out_queue):
     api = AppPixivAPI()
-    #Read config.ini file
+    # Read config.ini file
     config_object = ConfigParser()
     config_object.read(f"{os.path.expanduser('~/.config/koneko/')}config.ini")
     config = config_object["Credentials"]
 
     # print("Logging in...")
-    api.login(config['Username'], config['Password'])
+    api.login(config["Username"], config["Password"])
     out_queue.put(api)
     # return api
 
 
 def begin_prompt():
-    print("\n        Select action:\n\
+    print(
+        "\n        Select action:\n\
         1. View artist illustrations\n\
         2. Open pixiv post\n\n\
         q. Quit\n"
@@ -130,6 +133,7 @@ def show_artist_illusts(path):
     with cd(path):
         os.system(f"{lscat_path}/lscat")
 
+
 def open_image(api, current_page_illusts, artist_user_id, number, current_page_num):
     # TODO: current_page_illusts is only used to pass to another function
     if number < 10:
@@ -167,6 +171,7 @@ def open_image(api, current_page_illusts, artist_user_id, number, current_page_n
 
     return image_id
 
+
 def open_image_vp(artist_user_id, filename):
     os.system(
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/individual/{filename}"
@@ -196,17 +201,14 @@ def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
         with cd(large_dir):
-       # old_dir = os.getcwd()
-       # os.chdir(large_dir)
             api.download(url)
-       # os.chdir(old_dir)
 
 
 def download_large_vp(api, image_id):
-    post_json = api.illust_detail(image_id)['illust']
-    url = post_json['image_urls']['large']
+    post_json = api.illust_detail(image_id)["illust"]
+    url = post_json["image_urls"]["large"]
     filename = url.split("/")[-1]
-    artist_user_id = post_json['user']['id']
+    artist_user_id = post_json["user"]["id"]
 
     large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
     make_path_and_download(api, large_dir, url, filename)
@@ -223,25 +225,21 @@ def get_url_and_filename(url):
 def download_full_core(api, url):
     url, filename = get_url_and_filename(url)
     make_path_and_download(
-        api,
-        f"{os.path.expanduser('~')}/Downloads/",
-        url,
-        filename,
-        try_make_dir=False
+        api, f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False
     )
     return filename
 
 
 def download_full(api, **kwargs):
     if ("current_page_illusts" and "number") in kwargs.keys():
-        currentImage = kwargs['current_page_illusts'][kwargs['number']]
+        currentImage = kwargs["current_page_illusts"][kwargs["number"]]
         url = currentImage["image_urls"]["large"]
     elif "image_id" in kwargs.keys():
-        current_image = api.illust_detail(kwargs['image_id'])
-        url = current_image['illust']['image_urls']['large']
+        current_image = api.illust_detail(kwargs["image_id"])
+        url = current_image["illust"]["image_urls"]["large"]
 
     filename = download_full_core(api, url)
-    return f"/home/twenty/Downloads/{filename}" # Filepath
+    return f"/home/twenty/Downloads/{filename}"  # Filepath
 
 
 # TODO: consider refactoring (extracting core away) with download_illusts()
@@ -254,12 +252,13 @@ def download_multi(api, artist_user_id, image_id, page_urls):
             url = page_urls[i]
             img_name = url.split("/")[-1]
             list_of_names.append(img_name)
-            #img_ext = img_name.split(".")[-1]
+            # img_ext = img_name.split(".")[-1]
 
             if not os.path.isfile(img_name):
                 print(f"Downloading {img_name}...")
                 api.download(url)
     return list_of_names
+
 
 def image_prompt(api, image_id, artist_user_id, **kwargs):
     """
@@ -274,11 +273,11 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
     q -- quit (with confirmation)
 
     """
-    # FIXME: doesn't work when accessed from mode 1 and gallery
+    # FIXME: doesn't work when accessed from mode 1 via gallery
     try:
-        page_urls = kwargs['page_urls']
-        current_page_num = kwargs['current_page_num']
-        number_of_pages = kwargs['number_of_pages']
+        page_urls = kwargs["page_urls"]
+        current_page_num = kwargs["current_page_num"]
+        number_of_pages = kwargs["number_of_pages"]
     except KeyError:
         single_image = True
 
@@ -306,15 +305,16 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
             if not page_urls:
                 print("This is the only page in the post!")
                 continue
-            if current_page_num+1 == number_of_pages:
+            if current_page_num + 1 == number_of_pages:
                 print("This is the last image in the post!")
             else:
-                current_page_num += 1 # Be careful of 0 index
+                current_page_num += 1  # Be careful of 0 index
                 # TODO: download first pic, display, then
                 # download the rest in the background asynchronously
                 list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
-                open_image_vp(artist_user_id,
-                        f"{image_id}/{list_of_names[current_page_num]}")
+                open_image_vp(
+                    artist_user_id, f"{image_id}/{list_of_names[current_page_num]}"
+                )
                 print(f"Page {current_page_num+1}/{number_of_pages}")
 
         elif image_prompt_command == "p":
@@ -325,8 +325,9 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 print("This is the first image in the post!")
             else:
                 current_page_num -= 1
-                open_image_vp(artist_user_id,
-                        f"{image_id}/{list_of_names[current_page_num]}")
+                open_image_vp(
+                    artist_user_id, f"{image_id}/{list_of_names[current_page_num]}"
+                )
                 print(f"Page {current_page_num+1}/{number_of_pages}")
 
         elif image_prompt_command == "h":
@@ -371,10 +372,10 @@ def gallery_prompt(
 
         elif gallery_command[0] == "d":
             filepath = download_full(
-                            api,
-                            current_page_illusts=current_page_illusts,
-                            number=int(gallery_command[1:])
-                        )
+                api,
+                current_page_illusts=current_page_illusts,
+                number=int(gallery_command[1:]),
+            )
             print(f"Image downloaded at {filepath}\n")
 
         elif gallery_command == "n":
@@ -436,11 +437,7 @@ def artist_illusts_mode(api, artist_user_id):
     )
     show_artist_illusts(download_path)
     gallery_prompt(
-        api,
-        current_page_illusts,
-        current_page,
-        current_page_num,
-        artist_user_id,
+        api, current_page_illusts, current_page, current_page_num, artist_user_id,
     )
 
 
@@ -458,9 +455,14 @@ def view_post_mode(api, image_id):
     else:
         page_urls = None
 
-    image_prompt(api, image_id, artist_user_id,
-            page_urls=page_urls, current_page_num=0,
-            number_of_pages=number_of_pages)
+    image_prompt(
+        api,
+        image_id,
+        artist_user_id,
+        page_urls=page_urls,
+        current_page_num=0,
+        number_of_pages=number_of_pages,
+    )
     artist_illusts_mode(api, artist_user_id)
 
 
