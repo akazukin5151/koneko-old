@@ -23,6 +23,11 @@ Password = XXX
 
 3. Run `koneko.py`
 
+Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. (Contains "artworks" and "member" respectively). Example:
+
+```python koneko.py https://www.pixiv.net/en/users/2232374```
+
+```python koneko.py https://www.pixiv.net/en/artworks/78823485```
 
 # Developer manual
 As of now there are two modes of operation:
