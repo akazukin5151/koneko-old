@@ -469,12 +469,29 @@ def main():
     # During this part, the API can still be logging in but we can proceed
     # TODO: put a cute anime girl here with icat
     os.system("clear")
-    main_command = begin_prompt()
+
+    # Direct command line arguments, skip begin_prompt()
+    if len(sys.argv) == 2:
+        url = sys.argv[1]
+        if "member" in url:
+            artist_user_id = url.split("/")[-1].split("\\")[-1][1:]
+            main_command = "1"
+        elif "artworks" in url:
+            image_id = url.split("/")[-1].split("\\")[0]
+            main_command = "2"
+
+        prompted=False
+    elif len(sys.argv) > 3:
+        print("Too many arguments!")
+    else:
+        main_command = begin_prompt()
+        prompted = True
 
     if main_command == "1":
-        artist_user_id = artist_user_id_prompt()
-        if "pixiv" in artist_user_id:
-            artist_user_id = artist_user_id.split("/")[-1]
+        if prompted:
+            artist_user_id = artist_user_id_prompt()
+            if "pixiv" in artist_user_id:
+                artist_user_id = artist_user_id.split("/")[-1]
 
         # TODO: add spinner
         apiThread.join()  # Wait for api to finish
@@ -483,11 +500,12 @@ def main():
         artist_illusts_mode(api, artist_user_id)
 
     elif main_command == "2":
-        url_or_id = input("Enter pixiv post url or ID:\n")
-        if "pixiv" in url_or_id:
-            image_id = url_or_id.split("/")[-1]
-        else:
-            image_id = url_or_id
+        if prompted:
+            url_or_id = input("Enter pixiv post url or ID:\n")
+            if "pixiv" in url_or_id:
+                image_id = url_or_id.split("/")[-1]
+            else:
+                image_id = url_or_id
 
         apiThread.join()  # Wait for api to finish
         api = apiQueue.get()  # Assign api to PixivAPI object
