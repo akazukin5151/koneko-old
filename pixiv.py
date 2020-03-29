@@ -238,8 +238,7 @@ def download_full(api, **kwargs):
     filename = download_full_core(api, url)
     return f"/home/twenty/Downloads/{filename}" # Filepath
 
-def image_prompt(api, image_id=None, current_page_illusts=None, number=None):
-    # TODO: use **kwargs
+def image_prompt(api, image_id):
     """
     Image view commands:
     b -- go back to the gallery
@@ -269,10 +268,7 @@ def image_prompt(api, image_id=None, current_page_illusts=None, number=None):
             os.system(f"xdg-open {link}")
             print(f"Opened {link} in browser")
         elif image_prompt_command == "d":
-            if current_page_illusts and number:
-                filepath = download_full(api, current_page_illusts=current_page_illusts, number=number)
-            elif image_id:
-                filepath = download_full(api, image_id=image_id)
+            filepath = download_full(api, image_id=image_id)
             print(f"Image downloaded at {filepath}\n")
 
         elif image_prompt_command == "h":
@@ -326,6 +322,7 @@ def gallery_prompt(
         elif gallery_command == "n":
             current_page_num += 1
             next_url = current_page["next_url"]
+            # Mutating current_page to use the next page
             current_page = api.user_illusts(**api.parse_qs(next_url))
             current_page_illusts = current_page["illusts"]
             urls = download_illusts(
@@ -363,7 +360,7 @@ def gallery_prompt(
                     current_page_num,
                 )
 
-                image_prompt(api, image_id=image_id)
+                image_prompt(api, image_id)
             except ValueError:
                 print("Invalid command")
                 print(gallery_prompt.__doc__)
@@ -393,7 +390,7 @@ def view_post_mode(api, image_id):
     # TODO: both params are only used to pass to other functions
     artist_user_id, filename = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
-    image_prompt(api, image_id=image_id)
+    image_prompt(api, image_id)
     artist_illusts_mode(api, artist_user_id)
 
 
