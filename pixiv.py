@@ -197,8 +197,8 @@ def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
         os.chdir(old_dir)
 
 
-def download_large_vp(api, post_id):
-    post_json = api.illust_detail(post_id)['illust']
+def download_large_vp(api, image_id):
+    post_json = api.illust_detail(image_id)['illust']
     url = post_json['image_urls']['large']
     filename = url.split("/")[-1]
     artist_user_id = post_json['user']['id']
@@ -231,14 +231,14 @@ def download_full(api, **kwargs):
     if ("current_page_illusts" and "number") in kwargs.keys():
         currentImage = kwargs['current_page_illusts'][kwargs['number']]
         url = currentImage["image_urls"]["large"]
-    elif "post_id" in kwargs.keys():
-        current_image = api.illust_detail(kwargs['post_id'])
+    elif "image_id" in kwargs.keys():
+        current_image = api.illust_detail(kwargs['image_id'])
         url = current_image['illust']['image_urls']['large']
 
     filename = download_full_core(api, url)
     return f"/home/twenty/Downloads/{filename}" # Filepath
 
-def image_prompt(api, image_id=None, current_page_illusts=None, number=None, post_id=None):
+def image_prompt(api, image_id=None, current_page_illusts=None, number=None):
     # TODO: use **kwargs
     """
     Image view commands:
@@ -271,8 +271,8 @@ def image_prompt(api, image_id=None, current_page_illusts=None, number=None, pos
         elif image_prompt_command == "d":
             if current_page_illusts and number:
                 filepath = download_full(api, current_page_illusts=current_page_illusts, number=number)
-            elif post_id:
-                filepath = download_full(api, post_id=post_id)
+            elif image_id:
+                filepath = download_full(api, image_id=image_id)
             print(f"Image downloaded at {filepath}\n")
 
         elif image_prompt_command == "h":
@@ -363,7 +363,7 @@ def gallery_prompt(
                     current_page_num,
                 )
 
-                image_prompt(api, post_id=image_id)
+                image_prompt(api, image_id=image_id)
             except ValueError:
                 print("Invalid command")
                 print(gallery_prompt.__doc__)
@@ -389,11 +389,11 @@ def artist_illusts_mode(api, artist_user_id):
     )
 
 
-def view_post_mode(api, post_id):
+def view_post_mode(api, image_id):
     # TODO: both params are only used to pass to other functions
-    artist_user_id, filename = download_large_vp(api, post_id)
+    artist_user_id, filename = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
-    image_prompt(api, post_id=post_id)
+    image_prompt(api, image_id=image_id)
     artist_illusts_mode(api, artist_user_id)
 
 
@@ -419,14 +419,14 @@ def main():
     elif main_command == "2":
         url_or_id = input("Enter pixiv post url or ID:\n")
         if "pixiv" in url_or_id:
-            post_id = url_or_id.split("/")[-1]
+            image_id = url_or_id.split("/")[-1]
         else:
-            post_id = url_or_id
+            image_id = url_or_id
 
         apiThread.join()  # Wait for api to finish
         api = apiQueue.get()  # Assign api to PixivAPI object
 
-        view_post_mode(api, post_id)
+        view_post_mode(api, image_id)
 
     elif main_command == "q":
         answer = input("Are you sure you want to exit? [y/N]:\n")
@@ -436,4 +436,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
