@@ -289,17 +289,27 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
     q -- quit (with confirmation)
 
     """
-    try:
+    try: # Posts with multiple pages
         page_urls = kwargs["page_urls"]
-        current_page_num = kwargs["current_page_num"]
+        current_page_num_post = kwargs["current_page_num_post"]
         number_of_pages = kwargs["number_of_pages"]
     except KeyError:
         pass
 
+    try: # Gallery view -> next page(s) -> image prompt -> back
+        current_page_num = kwargs["current_page_num"]
+        current_page = kwargs["current_page"]
+    except KeyError:
+        current_page_num = 1
+
     while True:
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
-            artist_illusts_mode(api, artist_user_id)
+            if current_page_num > 1:
+                artist_illusts_mode(api, artist_user_id, current_page_num, current_page=current_page)
+            else:
+                artist_illusts_mode(api, artist_user_id, current_page_num)
+
         elif image_prompt_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
             if answer == "y" or not answer:
@@ -320,10 +330,10 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
             if not page_urls:
                 print("This is the only page in the post!")
                 continue
-            if current_page_num + 1 == number_of_pages:
+            if current_page_num_post + 1 == number_of_pages:
                 print("This is the last image in the post!")
             else:
-                current_page_num += 1  # Be careful of 0 index
+                current_page_num_post += 1  # Be careful of 0 index
                 # TODO: download first pic, display, then
                 # download the rest in the background asynchronously
                 # Note: when used from gallery view, it first downloads the first pic
@@ -331,22 +341,22 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 # TODO: in gallery view, if multi-images detected, download in background
                 list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
                 open_image_vp(
-                    artist_user_id, f"{image_id}/{list_of_names[current_page_num]}"
+                    artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
                 )
-                print(f"Page {current_page_num+1}/{number_of_pages}")
+                print(f"Page {current_page_num_post+1}/{number_of_pages}")
 
         elif image_prompt_command == "p":
             if not page_urls:
                 print("This is the only page in the post!")
                 continue
-            if current_page_num == 0:
+            if current_page_num_post == 0:
                 print("This is the first image in the post!")
             else:
-                current_page_num -= 1
+                current_page_num_post -= 1
                 open_image_vp(
-                    artist_user_id, f"{image_id}/{list_of_names[current_page_num]}"
+                    artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
                 )
-                print(f"Page {current_page_num+1}/{number_of_pages}")
+                print(f"Page {current_page_num_post+1}/{number_of_pages}")
 
         elif image_prompt_command == "h":
             print(image_prompt.__doc__)
@@ -439,15 +449,17 @@ def gallery_prompt(
 
                 # TODO: huge delay here, need to run asynchronously
                 number_of_pages, page_urls = check_multiple_images_in_post(
-                    api, image_id
+                    api, post_json
                 )
 
                 image_prompt(
                     api,
                     image_id,
                     artist_user_id,
+                    current_page_num=current_page_num,
+                    current_page=current_page,
                     page_urls=page_urls,
-                    current_page_num=0,
+                    current_page_num_post=0,
                     number_of_pages=number_of_pages,
                 )
 
@@ -471,12 +483,14 @@ def check_multiple_images_in_post(api, post_json):
     return number_of_pages, page_urls
 
 
-def artist_illusts_mode(api, artist_user_id):
+def artist_illusts_mode(api, artist_user_id, current_page_num=1, **kwargs):
     # There's a delay here
     # TODO: async
-    current_page = api.user_illusts(artist_user_id)
+    if current_page_num == 1:
+        current_page = api.user_illusts(artist_user_id)
+    else:
+        current_page = kwargs["current_page"]
     current_page_illusts = current_page["illusts"]
-    current_page_num = 1
 
     urls, download_path = download_illusts(
         api, current_page_illusts, current_page_num, artist_user_id
@@ -498,7 +512,7 @@ def view_post_mode(api, image_id):
         image_id,
         artist_user_id,
         page_urls=page_urls,
-        current_page_num=0,
+        current_page_num_post=0,
         number_of_pages=number_of_pages,
     )
 
