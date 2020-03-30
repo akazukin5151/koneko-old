@@ -1,6 +1,7 @@
 """
 TODO: handle posts with multiple images:
     Need an indicator in gallery view (need to rewrite lscat first)
+TODO: unit tests
 
 Browse pixiv in the terminal using kitty's icat to display images (in the
 terminal!)
@@ -135,7 +136,6 @@ def show_artist_illusts(path):
 
 
 def open_image(api, current_page_illusts, artist_user_id, number, current_page_num):
-    # TODO: current_page_illusts is only used to pass to another function
     if number < 10:
         search_string = f"0{number}_"
     else:
@@ -273,13 +273,12 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
     q -- quit (with confirmation)
 
     """
-    # FIXME: doesn't work when accessed from mode 1 via gallery
     try:
         page_urls = kwargs["page_urls"]
         current_page_num = kwargs["current_page_num"]
         number_of_pages = kwargs["number_of_pages"]
     except KeyError:
-        single_image = True
+        pass
 
     while True:
         image_prompt_command = input("Enter an image view command: ")
@@ -340,7 +339,6 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
 def gallery_prompt(
     api, current_page_illusts, current_page, current_page_num, artist_user_id
 ):
-    # TODO: artist_user_id is only used to pass to other functions
     """
     Gallery commands:
     {digit} -- display that image; corresponds to number
@@ -420,14 +418,38 @@ def gallery_prompt(
                     current_page_num,
                 )
 
-                image_prompt(api, image_id, artist_user_id)
+                number_of_pages, page_urls = check_multiple_images_in_post(
+                    api, image_id
+                )
+
+                image_prompt(
+                    api,
+                    image_id,
+                    artist_user_id,
+                    page_urls=page_urls,
+                    current_page_num=0,
+                    number_of_pages=number_of_pages,
+                )
+
             except ValueError:
                 print("Invalid command")
                 print(gallery_prompt.__doc__)
 
 
+def check_multiple_images_in_post(api, image_id):
+    illust_details = api.illust_detail(image_id)
+    number_of_pages = illust_details.illust.page_count
+    if number_of_pages > 1:
+        print(f"Page 1/{number_of_pages}")
+        list_of_pages = illust_details.illust.meta_pages
+        page_urls = [list_of_pages[i].image_urls.medium for i in range(number_of_pages)]
+    else:
+        page_urls = None
+
+    return number_of_pages, page_urls
+
+
 def artist_illusts_mode(api, artist_user_id):
-    # TODO: both params are only used to pass to other functions
     current_page = api.user_illusts(artist_user_id)
     current_page_illusts = current_page["illusts"]
     current_page_num = 1
@@ -442,18 +464,10 @@ def artist_illusts_mode(api, artist_user_id):
 
 
 def view_post_mode(api, image_id):
-    # TODO: both params are only used to pass to other functions
     artist_user_id, filename = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
 
-    illust_details = api.illust_detail(image_id)
-    number_of_pages = illust_details.illust.page_count
-    if number_of_pages > 1:
-        print(f"Page 1/{number_of_pages}")
-        list_of_pages = illust_details.illust.meta_pages
-        page_urls = [list_of_pages[i].image_urls.medium for i in range(number_of_pages)]
-    else:
-        page_urls = None
+    number_of_pages, page_urls = check_multiple_images_in_post(api, image_id)
 
     image_prompt(
         api,
@@ -463,6 +477,7 @@ def view_post_mode(api, image_id):
         current_page_num=0,
         number_of_pages=number_of_pages,
     )
+
     artist_illusts_mode(api, artist_user_id)
 
 
