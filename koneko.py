@@ -227,7 +227,7 @@ def download_large_vp(api, image_id):
 
     large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
     make_path_and_download(api, large_dir, url, filename)
-    return artist_user_id, filename
+    return artist_user_id, filename, post_json
 
 
 def get_url_and_filename_full(url):
@@ -457,9 +457,8 @@ def gallery_prompt(
 
 
 @spinner
-def check_multiple_images_in_post(api, image_id):
-    illust_details = api.illust_detail(image_id)
-    number_of_pages = illust_details.illust.page_count
+def check_multiple_images_in_post(api, post_json):
+    number_of_pages = post_json.page_count
     if number_of_pages > 1:
         print(f"Page 1/{number_of_pages}")
         list_of_pages = illust_details.illust.meta_pages
@@ -489,10 +488,10 @@ def artist_illusts_mode(api, artist_user_id):
 
 
 def view_post_mode(api, image_id):
-    artist_user_id, filename = download_large_vp(api, image_id)
+    artist_user_id, filename, post_json = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
 
-    number_of_pages, page_urls = check_multiple_images_in_post(api, image_id)
+    number_of_pages, page_urls = check_multiple_images_in_post(api, post_json)
 
     image_prompt(
         api,
