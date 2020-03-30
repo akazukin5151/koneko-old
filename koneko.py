@@ -18,6 +18,7 @@ import sys
 import threading
 import queue
 import re
+import itertools
 from configparser import ConfigParser
 from contextlib import contextmanager
 from pixivpy3 import *
@@ -27,7 +28,7 @@ import functools
 
 
 def timer(func):
-    @functools.wraps(func)
+    @functools.wraps(func) # Preserve original func.__name__
     def wrapper(*args, **kwargs):
         t0 = time.time()
         value = func(*args, **kwargs)
@@ -49,6 +50,32 @@ def cd(newdir):
         yield
     finally:
         os.chdir(prevdir)
+
+
+def spin(done):
+    for char in itertools.cycle('|/-\\'): # Infinite loop
+        print(char, flush=True, end='\r')
+        if done.wait(.1):
+            break
+    print(' ' * len(char), end='\r') # clears the spinner
+
+
+def spinner(func):
+    """
+    https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
+    """
+
+    def wrapper(*args, **kwargs):
+        done = threading.Event()
+        spinner = threading.Thread(target=spin, args=(done,)) # Doesn't start it yet...
+        spinner.start() # start spinning
+
+        result = func(*args, **kwargs) # run slow function, blocking
+
+        done.set() # once slow function finishes, set it to be done, ending the spinner
+        spinner.join() # wait for spinner to end
+        return result
+    return wrapper
 
 
 # @timer
@@ -83,6 +110,7 @@ def artist_user_id_prompt():
 
 # TODO: reduce code duplication by pre-evaluating ['image_urls']['medium'] or ['large']
 # @timer
+@spinner
 def download_illusts(api, current_page_illusts, current_page_num, artist_user_id):
     # TODO: download asynchronously
     urls = []
@@ -179,10 +207,10 @@ def open_image_vp(artist_user_id, filename):
 
 
 # @timer
+@spinner
 def download_large(
     api, current_page_illusts, current_page_num, artist_user_id, number
-):  # out_queue
-    # TODO: add spinner
+):
     currentImage = current_page_illusts[number]
     image_id = currentImage["id"]
     url = currentImage["image_urls"]["large"]
@@ -191,8 +219,6 @@ def download_large(
     large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
     filepath = f"{large_dir}{filename}"
     make_path_and_download(api, large_dir, url, filename)
-    #   if out_queue:
-    #       out_queue.put((image_id, filename))
     return image_id, filename, filepath
 
 
@@ -204,6 +230,7 @@ def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
             api.download(url)
 
 
+@spinner
 def download_large_vp(api, image_id):
     post_json = api.illust_detail(image_id)["illust"]
     url = post_json["image_urls"]["large"]
@@ -229,7 +256,7 @@ def download_full_core(api, url):
     )
     return filename
 
-
+@spinner
 def download_full(api, **kwargs):
     if ("current_page_illusts" and "number") in kwargs.keys():
         currentImage = kwargs["current_page_illusts"][kwargs["number"]]
@@ -243,6 +270,7 @@ def download_full(api, **kwargs):
 
 
 # TODO: consider refactoring (extracting core away) with download_illusts()
+@spinner
 def download_multi(api, artist_user_id, image_id, page_urls):
     list_of_names = []
     download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
@@ -310,6 +338,9 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 current_page_num += 1  # Be careful of 0 index
                 # TODO: download first pic, display, then
                 # download the rest in the background asynchronously
+                # Note: when used from gallery view, it first downloads the first pic
+                # When 'n' is passed, it downloads the rest
+                # TODO: in gallery view, if multi-images detected, download in background
                 list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
                 open_image_vp(
                     artist_user_id, f"{image_id}/{list_of_names[current_page_num]}"
@@ -418,6 +449,7 @@ def gallery_prompt(
                     current_page_num,
                 )
 
+                # TODO: huge delay here, need to run asynchronously
                 number_of_pages, page_urls = check_multiple_images_in_post(
                     api, image_id
                 )
@@ -436,6 +468,7 @@ def gallery_prompt(
                 print(gallery_prompt.__doc__)
 
 
+@spinner
 def check_multiple_images_in_post(api, image_id):
     illust_details = api.illust_detail(image_id)
     number_of_pages = illust_details.illust.page_count
@@ -450,6 +483,8 @@ def check_multiple_images_in_post(api, image_id):
 
 
 def artist_illusts_mode(api, artist_user_id):
+    # There's a delay here
+    # TODO: async
     current_page = api.user_illusts(artist_user_id)
     current_page_illusts = current_page["illusts"]
     current_page_num = 1
