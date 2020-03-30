@@ -163,7 +163,7 @@ def show_artist_illusts(path):
         os.system(f"{lscat_path}/lscat")
 
 
-def open_image(api, current_page_illusts, artist_user_id, number, current_page_num):
+def open_image(api, post_json, artist_user_id, number, current_page_num):
     if number < 10:
         search_string = f"0{number}_"
     else:
@@ -176,8 +176,6 @@ def open_image(api, current_page_illusts, artist_user_id, number, current_page_n
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/{search_string}*"
     )
 
-    post_json = current_page_illusts[number]
-    image_id = post_json["id"] # This is only used to pass to another function outside
     url, filename = get_url_and_filename(post_json, "large", True)
     download_large(api, artist_user_id, current_page_num, url, filename)
 
@@ -191,7 +189,6 @@ def open_image(api, current_page_illusts, artist_user_id, number, current_page_n
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
     )
 
-    return image_id
 
 
 def open_image_vp(artist_user_id, filename):
@@ -249,8 +246,8 @@ def download_full_core(api, url):
 
 @spinner
 def download_full(api, **kwargs):
-    if ("current_page_illusts" and "number") in kwargs.keys():
-        post_json = kwargs["current_page_illusts"][kwargs["number"]]
+    if "post_json" in kwargs.keys():
+        post_json = kwargs['post_json']
     elif "image_id" in kwargs.keys():
         current_image = api.illust_detail(kwargs["image_id"])
         post_json = current_image.illust
@@ -391,11 +388,8 @@ def gallery_prompt(
             os.system(f"xdg-open https://www.pixiv.net/artworks/{image_id}")
 
         elif gallery_command[0] == "d":
-            filepath = download_full(
-                api,
-                current_page_illusts=current_page_illusts,
-                number=int(gallery_command[1:]),
-            )
+            post_json = current_page_illusts[int(gallery_command[1:])]
+            filepath = download_full(api, post_json=post_json)
             print(f"Image downloaded at {filepath}\n")
 
         elif gallery_command == "n":
@@ -432,9 +426,12 @@ def gallery_prompt(
 
         else:  # main_command is an int
             try:
-                image_id = open_image(
+                post_json = current_page_illusts[int(gallery_command)]
+                image_id = post_json.id
+
+                open_image(
                     api,
-                    current_page_illusts,
+                    post_json,
                     artist_user_id,
                     int(gallery_command),
                     current_page_num,
@@ -468,7 +465,7 @@ def check_multiple_images_in_post(api, image_id):
         list_of_pages = illust_details.illust.meta_pages
         page_urls = []
         for i in range(number_of_pages):
-            page_urls.append(get_url_and_filename(list_of_pages[i], "medium")
+            page_urls.append(get_url_and_filename(list_of_pages[i], "medium"))
     else:
         page_urls = None
 
