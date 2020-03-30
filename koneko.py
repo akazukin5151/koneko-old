@@ -108,7 +108,6 @@ def artist_user_id_prompt():
     return artist_user_id
 
 
-# TODO: reduce code duplication by pre-evaluating ['image_urls']['medium'] or ['large']
 # @timer
 @spinner
 def download_illusts(api, current_page_illusts, current_page_num, artist_user_id):
@@ -116,7 +115,8 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
     urls = []
     file_names = []
     for i in range(len(current_page_illusts)):
-        urls.append(current_page_illusts[i]["image_urls"]["medium"])  # or square_medium
+        # Or square medium
+        urls.append(get_url_and_filename(current_page_illusts[i], "medium"))
         file_names.append(current_page_illusts[i]["title"])
 
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
@@ -176,25 +176,19 @@ def open_image(api, current_page_illusts, artist_user_id, number, current_page_n
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/{search_string}*"
     )
 
-    image_id, image_filename, _ = download_large(
-        api, current_page_illusts, current_page_num, artist_user_id, number
-    )
+    post_json = current_page_illusts[number]
+    image_id = post_json["id"] # This is only used to pass to another function outside
+    url, filename = get_url_and_filename(post_json, "large", True)
+    download_large(api, artist_user_id, current_page_num, url, filename)
 
     # TODO: non blocking command input. solution 1: run input() in another
     # thread. doesn't work because it doesn't wait for input + enter and
     # immediately quits.
     # solution 2: run download_large in another thread. doesn't work because
     # icat doesn't detect kitty and fails
-    # Warning: code below has capitalization fucked up
-    #   largequeue = queue.queue()
-    #   largethread = threading.thread(target=download_large, args=(api, current_page_illusts, current_page_num, artist_user_id, number, largequeue))
-    #   largethread.start()
-    # asynchronous command prompt here
-    #    largethread.join()
-    #    image_id, image_filename = largequeue.get()
 
     os.system(
-        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{image_filename}"
+        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
     )
 
     return image_id
@@ -208,18 +202,10 @@ def open_image_vp(artist_user_id, filename):
 
 # @timer
 @spinner
-def download_large(
-    api, current_page_illusts, current_page_num, artist_user_id, number
-):
-    currentImage = current_page_illusts[number]
-    image_id = currentImage["id"]
-    url = currentImage["image_urls"]["large"]
-    filename = url.split("/")[-1]
-
+def download_large(api, artist_user_id, current_page_num, url, filename):
     large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
     filepath = f"{large_dir}{filename}"
     make_path_and_download(api, large_dir, url, filename)
-    return image_id, filename, filepath
 
 
 def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
@@ -229,12 +215,17 @@ def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
         with cd(large_dir):
             api.download(url)
 
+def get_url_and_filename(post_json, size, get_filename=False):
+    url = post_json["image_urls"][size]
+    if not get_filename:
+        return url
+    filename = url.split("/")[-1]
+    return url, filename
 
 @spinner
 def download_large_vp(api, image_id):
     post_json = api.illust_detail(image_id)["illust"]
-    url = post_json["image_urls"]["large"]
-    filename = url.split("/")[-1]
+    url, filename = get_url_and_filename(post_json, "large", True)
     artist_user_id = post_json["user"]["id"]
 
     large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
@@ -242,7 +233,7 @@ def download_large_vp(api, image_id):
     return artist_user_id, filename
 
 
-def get_url_and_filename(url):
+def get_url_and_filename_full(url):
     url = re.sub(r"_p0_master\d+", "_p0", url)
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
     filename = url.split("/")[-1]
@@ -250,7 +241,7 @@ def get_url_and_filename(url):
 
 
 def download_full_core(api, url):
-    url, filename = get_url_and_filename(url)
+    url, filename = get_url_and_filename_full(url)
     make_path_and_download(
         api, f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False
     )
@@ -259,11 +250,11 @@ def download_full_core(api, url):
 @spinner
 def download_full(api, **kwargs):
     if ("current_page_illusts" and "number") in kwargs.keys():
-        currentImage = kwargs["current_page_illusts"][kwargs["number"]]
-        url = currentImage["image_urls"]["large"]
+        post_json = kwargs["current_page_illusts"][kwargs["number"]]
     elif "image_id" in kwargs.keys():
         current_image = api.illust_detail(kwargs["image_id"])
-        url = current_image["illust"]["image_urls"]["large"]
+        post_json = current_image.illust
+    url = get_url_and_filename(post_json, "large")
 
     filename = download_full_core(api, url)
     return f"/home/twenty/Downloads/{filename}"  # Filepath
