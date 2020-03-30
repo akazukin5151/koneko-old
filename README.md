@@ -13,7 +13,7 @@ Uses [pixivpy](https://github.com/upbit/pixivpy/), install with `pip install pix
 
 Right now it's slow because it adapts [lsix](https://github.com/hackerb9/lsix/), which relies on ImageMagick. I started with lsix, using libsixel. But it used too much memory and switching around was slow. Plus I didn't want to switch away from kitty. Eventually there will be a rewrite of lsix (now [lscat](https://github.com/twenty5151/koneko/blob/master/lscat)) to remove dependency on ImageMagick and speed it up a lot.
 
-As of now it's in alpha stages. Once I finally get asyncio working it will be in beta. All PRs are welcome.
+As of now it's in alpha stages. Once I finally get asyncio working it will be in beta. All PRs are welcome. The current master branch is stable, but slow.
 
 
 # Usage
