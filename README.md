@@ -1,6 +1,10 @@
 # koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt)
 Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
+![Gallery view](gallery_view.png)
+
+![Image_view](image_view.png)
+
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html)
 
 **Why the name Koneko?** Koneko (こねこ) means kitten, which is icat is, a kitty +kitten
