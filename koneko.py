@@ -344,6 +344,7 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                     artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
                 )
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
+                # TODO: enter {digit} to jump to image number (for multi-image posts)
 
         elif image_prompt_command == "p":
             if not page_urls:
@@ -473,7 +474,7 @@ def check_multiple_images_in_post(api, post_json):
     number_of_pages = post_json.page_count
     if number_of_pages > 1:
         print(f"Page 1/{number_of_pages}")
-        list_of_pages = illust_details.illust.meta_pages
+        list_of_pages = post_json.meta_pages
         page_urls = []
         for i in range(number_of_pages):
             page_urls.append(get_url_and_filename(list_of_pages[i], "medium"))
