@@ -13,11 +13,13 @@ Uses [pixivpy](https://github.com/upbit/pixivpy/), install with `pip install pix
 
 Right now it's slow because it adapts [lsix](https://github.com/hackerb9/lsix/), which relies on ImageMagick. I started with lsix, using libsixel. But it used too much memory and switching around was slow. Plus I didn't want to switch away from kitty. Eventually there will be a rewrite of lsix (now [lscat](https://github.com/twenty5151/koneko/blob/master/lscat)) to remove dependency on ImageMagick and speed it up a lot.
 
+As of now it's in alpha stages. Once I finally get asyncio working it will be in beta. All PRs are welcome.
+
 
 # Usage
-0. Install [kitty](https://github.com/kovidgoyal/kitty) and all requirements (just see list of imports)
-1. Create a file called `config.ini` in `~/.config/koneko/`
-2. Fill it out with your pixiv username and password like this:
+0. Install [kitty](https://github.com/kovidgoyal/kitty), ImageMagick, and all requirements (just see list of imports)
+1. `mkdir ~/.config/koneko/ && touch ~/.config/koneko/config.ini`
+2. `vim ~/.config/koneko/config.ini` and fill it out with your pixiv username and password like this:
 
 ```
 [Credentials]
@@ -25,7 +27,8 @@ Username = XXX
 Password = XXX
 ```
 
-3. Run `koneko.py`
+3. `git clone https://github.com/twenty5151/koneko.git && cd koneko`
+4. `python koneko.py`
 
 Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. (Contains "artworks" and "member" respectively). Example:
 
