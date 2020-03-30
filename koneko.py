@@ -466,7 +466,9 @@ def check_multiple_images_in_post(api, image_id):
     if number_of_pages > 1:
         print(f"Page 1/{number_of_pages}")
         list_of_pages = illust_details.illust.meta_pages
-        page_urls = [list_of_pages[i].image_urls.medium for i in range(number_of_pages)]
+        page_urls = []
+        for i in range(number_of_pages):
+            page_urls.append(get_url_and_filename(list_of_pages[i], "medium")
     else:
         page_urls = None
 
