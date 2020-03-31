@@ -469,13 +469,16 @@ def gallery_prompt(
 
                 # TODO: it's async now but still blocking, as the result
                 # is needed to pass to function
-                with ThreadPoolExecutor(max_workers=3) as executor:
-                    future = executor.submit(
-                        check_multiple_images_in_post,
-                        api, post_json
-                    )
+                # Threading won't even do anything meaningful here
+                #with ThreadPoolExecutor(max_workers=3) as executor:
+                #    future = executor.submit(
+                #        check_multiple_images_in_post,
+                #        api, post_json
+                #    )
+                #
+                #number_of_pages, page_urls = future.result()
 
-                number_of_pages, page_urls = future.result()
+                number_of_pages, page_urls = check_multiple_images_in_post(api, post_json)
 
                 image_prompt(
                     api,
@@ -510,7 +513,7 @@ def check_multiple_images_in_post(api, post_json):
 
 def artist_illusts_mode(api, artist_user_id, current_page_num=1, **kwargs):
     # There's a delay here
-    # TODO: async
+    # Threading won't do anything meaningful here...
     if current_page_num == 1:
         current_page = api.user_illusts(artist_user_id)
     else:
