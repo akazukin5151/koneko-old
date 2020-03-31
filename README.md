@@ -36,6 +36,26 @@ Alternatively, you can supply a pixiv url as a command line argument to `koneko.
 
 ```python koneko.py https://www.pixiv.net/en/artworks/78823485```
 
+
+# Features
+* Artist illustration gallery (equivalent to the illustrations tab on the artist's profile)
+    * Enter a number to open a post
+* Image view: view an image in large resolution
+* Image view can also browse through different images in a multi-image post.
+* Both gallery and image views can:
+    * Download a post ([PixivUtil](https://github.com/Nandaka/PixivUtil2/) would be more suitable for batch download)
+    * Open post in browser
+
+
+# Rationale
+* Terminal user interfaces are minimalist, fast*, and doesn't load Javascript that slows down your entire browser
+* TUIs make you cool
+* TUIs *with embedded pictures* make you even cooler
+* Keyboard driven
+
+\* At the alpha stage, lscat is slow. But it'll be rewritten. Don't want to wait? Contribute!
+
+
 # Developer manual
 As of now there are two modes of operation:
 
