@@ -4,6 +4,10 @@ TODO: handle posts with multiple images:
 TODO: if post has multiple images, there should be a preview in image view
 TODO: unit tests
 
+FIXME: for https://www.pixiv.net/member_illust.php?mode=medium&illust_id=71410101,
+    the first image is low res, but the rest are high res
+FIXME: for same image above, it fails to download full
+
 Browse pixiv in the terminal using kitty's icat to display images (in the
 terminal!)
 
@@ -501,18 +505,26 @@ def gallery_prompt(
             # even if the files are already downloaded. Same for prev page.
             current_page_num += 1
             next_url = current_page["next_url"]
+            # Cache all downloaded Jsons, avoiding the need to request it
+            # when 'prev page' is called
+
             # Mutating current_page to use the next page
-            current_page = api.user_illusts(**api.parse_qs(next_url))
+            try:
+                current_page = api.user_illusts(**api.parse_qs(next_url))
+            except TypeError:
+                print("This is the last page!")
+                continue
             current_page_illusts = current_page["illusts"]
             urls, download_path = download_illusts(
                 api, current_page_illusts, current_page_num, artist_user_id
             )
             show_artist_illusts(download_path)
+            # Solution: download the next page here and store it
 
         elif gallery_command == "p":
             if current_page_num > 1:
-                # FIXME: Gallery view -> next page -> image prompt -> back -> p
-                # Need to keep next_url alive
+                # FIXME: Gallery -> next page -> image prompt -> back -> prev page
+                # Need to keep next_url alive (aka, cached). see above
                 matched = re.findall(r"\&offset=\d+", next_url)[0]
                 new_offset = int(matched.split("=")[1]) - 30
                 assert new_offset >= 0
@@ -646,11 +658,14 @@ def main():
     # Direct command line arguments, skip begin_prompt()
     if len(sys.argv) == 2:
         url = sys.argv[1]
-        if "member" in url:
+        if "users" in url:
             artist_user_id = url.split("/")[-1].split("\\")[-1][1:]
             main_command = "1"
         elif "artworks" in url:
             image_id = url.split("/")[-1].split("\\")[0]
+            main_command = "2"
+        elif "illust_id" in url:
+            image_id = re.findall(r"&illust_id.*", url)[0].split("=")[-1]
             main_command = "2"
 
         prompted = False
