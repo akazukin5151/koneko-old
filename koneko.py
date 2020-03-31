@@ -160,7 +160,7 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
     current_page_illusts : JsonDict
         JsonDict holding lots of info on all the images in the current page
     current_page_num : int
-        Page as in artist illustration profile pages. Starts from 0
+        Page as in artist illustration profile pages. Starts from 1
     artist_user_id : int
 
     Returns
@@ -383,17 +383,14 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
         page_urls = kwargs["page_urls"]
         current_page_num_post = kwargs["current_page_num_post"]
         number_of_pages = kwargs["number_of_pages"]
-        try:
-            list_of_names = kwargs["list_of_names"]
-        except KeyError:  # Multi-image post opened from gallery;no pre-download
-            list_of_names = None
+        list_of_names = kwargs["list_of_names"]
     except KeyError:
         pass
 
     try:  # Gallery view -> next page(s) -> image prompt -> back
         current_page_num = kwargs["current_page_num"]
         current_page = kwargs["current_page"]
-    except KeyError:
+    except KeyError:  # Comes from mode 2
         current_page_num = 1
 
     while True:
@@ -453,7 +450,7 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                     page_urls[: current_page_num_post + 2],
                 )
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
-                # TODO: enter {digit} to jump to image number (for multi-image posts)
+                # TODO: enter {number} to jump to image number (for multi-image posts)
 
         elif image_prompt_command == "p":
             if not page_urls:
@@ -480,10 +477,10 @@ def gallery_prompt(
 ):
     """
     Gallery commands:
-    {digit} -- display that image; corresponds to number
+    {number} -- display that image; corresponds to number
         prefixed on filenames
-    o{digit} -- open pixiv post in browser
-    d{digit} -- download image in large resolution
+    o{number} -- open pixiv post in browser
+    d{number} -- download image in large resolution
     n -- view the next page
     p -- view the previous page
     h -- show this help
@@ -494,6 +491,21 @@ def gallery_prompt(
         o9  --->    Open the ninth image's post in browser
         d9  --->    Download the ninth image, in large resolution
     """
+    if current_page_num == 1:
+        # Fixes: Gallery -> next page -> image prompt -> back -> prev page
+        # There's no need to pass it around because it'll never be changed
+        # outside of gallery_prompt().
+        global all_pages_cache
+        all_pages_cache = {"1": current_page}
+        # Prefetch page 2
+        page_2_url = current_page["next_url"]
+        page_2 = api.user_illusts(**api.parse_qs(page_2_url))
+        page_2_illusts = page_2["illusts"]
+        download_illusts(api, page_2_illusts, 2, artist_user_id)
+        all_pages_cache["2"] = page_2
+    else:  # Came back from image prompt
+        all_pages_cache[str(current_page_num)] = current_page
+
     while True:
         gallery_command = input("Enter a gallery command: ")
         if gallery_command == "q":
@@ -513,42 +525,32 @@ def gallery_prompt(
             print(f"Image downloaded at {filepath}\n")
 
         elif gallery_command == "n":
-            # TODO: reduce delay as it's requesting the api every time,
-            # even if the files are already downloaded. Same for prev page.
+            # First time pressing n: will always be 2
             current_page_num += 1
-            next_url = current_page["next_url"]
-            # Cache all downloaded Jsons, avoiding the need to request it
-            # when 'prev page' is called
-
-            # Mutating current_page to use the next page
-            try:
-                current_page = api.user_illusts(**api.parse_qs(next_url))
-            except TypeError:
-                print("This is the last page!")
-                continue
-            current_page_illusts = current_page["illusts"]
-            urls, download_path = download_illusts(
-                api, current_page_illusts, current_page_num, artist_user_id
-            )
+            download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
             show_artist_illusts(download_path)
-            # Solution: download the next page here and store it
+            print(f"Page {current_page_num}")
+
+            # After showing gallery, pre-fetch the next page
+            next_url = all_pages_cache[str(current_page_num)]["next_url"]
+            all_pages_cache[str(current_page_num + 1)] = api.user_illusts(
+                **api.parse_qs(next_url)
+            )
+            current_page_illusts = all_pages_cache[str(current_page_num + 1)]["illusts"]
+            download_illusts(
+                api, current_page_illusts, current_page_num + 1, artist_user_id
+            )
 
         elif gallery_command == "p":
             if current_page_num > 1:
-                # FIXME: Gallery -> next page -> image prompt -> back -> prev page
-                # Need to keep next_url alive (aka, cached). see above
-                matched = re.findall(r"\&offset=\d+", next_url)[0]
-                new_offset = int(matched.split("=")[1]) - 30
-                assert new_offset >= 0
-                prev_url = f"{next_url.split('&offset')[0]}&offset={new_offset}"
-
-                current_page = api.user_illusts(**api.parse_qs(prev_url))
+                # It's -2 because current_page_num starts at 1
+                current_page = all_pages_cache[str(current_page_num - 1)]
                 current_page_illusts = current_page["illusts"]
                 current_page_num -= 1
-                urls, download_path = download_illusts(
-                    api, current_page_illusts, current_page_num, artist_user_id
-                )
+                # download_path should already be set
+                download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
                 show_artist_illusts(download_path)
+                print(f"Page {current_page_num}")
 
             else:
                 print("This is the first page!")
@@ -558,6 +560,8 @@ def gallery_prompt(
 
         else:  # main_command is an int
             try:
+                current_page = all_pages_cache[str(current_page_num)]
+                current_page_illusts = current_page["illusts"]
                 post_json = current_page_illusts[int(gallery_command)]
                 image_id = post_json.id
 
@@ -593,6 +597,7 @@ def gallery_prompt(
                     page_urls=page_urls,
                     current_page_num_post=0,
                     number_of_pages=number_of_pages,
+                    list_of_names=None,
                 )
 
             except ValueError:
@@ -619,13 +624,14 @@ def get_pages_url_in_post(api, post_json, size="medium"):
 
 
 def artist_illusts_mode(api, artist_user_id, current_page_num=1, **kwargs):
-    # There's a delay here
+    # There's a delay here to there
     # Threading won't do anything meaningful here...
     if current_page_num == 1:
         current_page = api.user_illusts(artist_user_id)
     else:
         current_page = kwargs["current_page"]
     current_page_illusts = current_page["illusts"]
+    # there
 
     urls, download_path = download_illusts(
         api, current_page_illusts, current_page_num, artist_user_id
@@ -643,7 +649,7 @@ def view_post_mode(api, image_id):
     number_of_pages, page_urls = get_pages_url_in_post(api, post_json, "large")
 
     if number_of_pages == 1:
-        pass
+        list_of_names = None
     else:
         list_of_names = download_multi(api, artist_user_id, image_id, page_urls[:2])
 
