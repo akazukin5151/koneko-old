@@ -29,7 +29,7 @@ import functools
 
 
 def timer(func):
-    @functools.wraps(func) # Preserve original func.__name__
+    @functools.wraps(func)  # Preserve original func.__name__
     def wrapper(*args, **kwargs):
         t0 = time.time()
         value = func(*args, **kwargs)
@@ -54,11 +54,11 @@ def cd(newdir):
 
 
 def spin(done):
-    for char in itertools.cycle('|/-\\'): # Infinite loop
-        print(char, flush=True, end='\r')
-        if done.wait(.1):
+    for char in itertools.cycle("|/-\\"):  # Infinite loop
+        print(char, flush=True, end="\r")
+        if done.wait(0.1):
             break
-    print(' ' * len(char), end='\r') # clears the spinner
+    print(" " * len(char), end="\r")  # clears the spinner
 
 
 def spinner(func):
@@ -68,14 +68,15 @@ def spinner(func):
 
     def wrapper(*args, **kwargs):
         done = threading.Event()
-        spinner = threading.Thread(target=spin, args=(done,)) # Doesn't start it yet...
-        spinner.start() # start spinning
+        spinner = threading.Thread(target=spin, args=(done,))  # Doesn't start it yet...
+        spinner.start()  # start spinning
 
-        result = func(*args, **kwargs) # run slow function, blocking
+        result = func(*args, **kwargs)  # run slow function, blocking
 
-        done.set() # once slow function finishes, set it to be done, ending the spinner
-        spinner.join() # wait for spinner to end
+        done.set()  # once slow function finishes, set it to be done, ending the spinner
+        spinner.join()  # wait for spinner to end
         return result
+
     return wrapper
 
 
@@ -113,6 +114,7 @@ def async_download(api, url, img_name, new_file_name):
     api.download(url)
     os.rename(f"{img_name}", f"{new_file_name}")
 
+
 # @timer
 @spinner
 def download_illusts(api, current_page_illusts, current_page_num, artist_user_id):
@@ -132,16 +134,18 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
                 img_ext = img_name.split(".")[-1]
 
                 if index < 10:
-                   # Assumes 10 < number of files < 100
-                   number_prefix = str(index).rjust(2, "0")
+                    # Assumes 10 < number of files < 100
+                    number_prefix = str(index).rjust(2, "0")
                 else:
-                   number_prefix = str(index)
+                    number_prefix = str(index)
 
                 new_file_name = f"{number_prefix}_{file_names[index]}.{img_ext}"
 
                 if not os.path.isfile(new_file_name):
                     print(f"Downloading {new_file_name}...")
-                    future = executor.submit(async_download, api, url, img_name, new_file_name)
+                    future = executor.submit(
+                        async_download, api, url, img_name, new_file_name
+                    )
 
                 # TODO: asynchronously display images (call lsix) after every
                 # downloaded pic. No need to wait for all of them to be downloaded
@@ -187,7 +191,6 @@ def open_image(api, post_json, artist_user_id, number, current_page_num):
     )
 
 
-
 def open_image_vp(artist_user_id, filename):
     os.system(
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/individual/{filename}"
@@ -209,12 +212,14 @@ def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
         with cd(large_dir):
             api.download(url)
 
+
 def get_url_and_filename(post_json, size, get_filename=False):
     url = post_json["image_urls"][size]
     if not get_filename:
         return url
     filename = url.split("/")[-1]
     return url, filename
+
 
 @spinner
 def download_large_vp(api, image_id):
@@ -241,10 +246,11 @@ def download_full_core(api, url):
     )
     return filename
 
+
 @spinner
 def download_full(api, **kwargs):
     if "post_json" in kwargs.keys():
-        post_json = kwargs['post_json']
+        post_json = kwargs["post_json"]
     elif "image_id" in kwargs.keys():
         current_image = api.illust_detail(kwargs["image_id"])
         post_json = current_image.illust
@@ -287,14 +293,14 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
     q -- quit (with confirmation)
 
     """
-    try: # Posts with multiple pages
+    try:  # Posts with multiple pages
         page_urls = kwargs["page_urls"]
         current_page_num_post = kwargs["current_page_num_post"]
         number_of_pages = kwargs["number_of_pages"]
     except KeyError:
         pass
 
-    try: # Gallery view -> next page(s) -> image prompt -> back
+    try:  # Gallery view -> next page(s) -> image prompt -> back
         current_page_num = kwargs["current_page_num"]
         current_page = kwargs["current_page"]
     except KeyError:
@@ -304,7 +310,9 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
             if current_page_num > 1:
-                artist_illusts_mode(api, artist_user_id, current_page_num, current_page=current_page)
+                artist_illusts_mode(
+                    api, artist_user_id, current_page_num, current_page=current_page
+                )
             else:
                 artist_illusts_mode(api, artist_user_id, current_page_num)
 
