@@ -425,18 +425,18 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 print("This is the last image in the post!")
             else:
                 current_page_num_post += 1  # Be careful of 0 index
-                # TODO: from gallery view, will download all images in post
-                # before showing second image. Should download second image
-                # and immediately show it, then download the rest in background
-                if not list_of_names:
-                    list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
+                # IDEAL: image prompt should not be blocked while downloading
+                # But I think delaying the prompt is better than waiting for an image
+                # to download when you load it
+                if not list_of_names: # From gallery; download next image
+                    list_of_names = download_multi(api, artist_user_id, image_id, page_urls[:current_page_num_post+1])
 
                 open_image_vp(
                     artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
                 )
-                # Downloads the rest of the images (first 5 already downloaded)
-                # This is also blocking the image prompt btw
-                download_multi(api, artist_user_id, image_id, page_urls)
+
+                # Downloads the next image
+                list_of_names = download_multi(api, artist_user_id, image_id, page_urls[:current_page_num_post+2])
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
                 # TODO: enter {digit} to jump to image number (for multi-image posts)
 
@@ -557,7 +557,7 @@ def gallery_prompt(
                 #
                 #number_of_pages, page_urls = future.result()
 
-                number_of_pages, page_urls = get_pages_url_in_post(api, post_json)
+                number_of_pages, page_urls = get_pages_url_in_post(api, post_json, "large")
 
                 image_prompt(
                     api,
@@ -576,7 +576,7 @@ def gallery_prompt(
 
 
 @spinner
-def get_pages_url_in_post(api, post_json):
+def get_pages_url_in_post(api, post_json, size="medium"):
     """
     Formerly check_multiple_images_in_post(); for when posts have multiple images
     """
@@ -586,7 +586,7 @@ def get_pages_url_in_post(api, post_json):
         list_of_pages = post_json.meta_pages
         page_urls = []
         for i in range(number_of_pages):
-            page_urls.append(get_url_and_filename(list_of_pages[i], "medium"))
+            page_urls.append(get_url_and_filename(list_of_pages[i], size))
     else:
         page_urls = None
 
@@ -612,19 +612,16 @@ def artist_illusts_mode(api, artist_user_id, current_page_num=1, **kwargs):
 
 
 def view_post_mode(api, image_id):
+    # TODO: add label to spinner
     artist_user_id, filename, post_json = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
 
-    number_of_pages, page_urls = get_pages_url_in_post(api, post_json)
+    number_of_pages, page_urls = get_pages_url_in_post(api, post_json, "large")
 
-    # it now downloads the first 5 in the background asynchronously
-    # But it blocks image_prompt()
     if number_of_pages == 1:
         pass
-    elif number_of_pages <= 5:
-        list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
     else:
-        list_of_names = download_multi(api, artist_user_id, image_id, page_urls[:5])
+        list_of_names = download_multi(api, artist_user_id, image_id, page_urls[:2])
 
     image_prompt(
         api,
