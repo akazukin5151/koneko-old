@@ -1,6 +1,7 @@
 """
 TODO: handle posts with multiple images:
     Need an indicator in gallery view (need to rewrite lscat first)
+TODO: if post has multiple images, there should be a preview in image view
 TODO: unit tests
 
 Browse pixiv in the terminal using kitty's icat to display images (in the
@@ -42,9 +43,17 @@ def timer(func):
     return wrapper
 
 
-# https://stackoverflow.com/questions/431684/how-do-i-change-the-working-directory-in-python/24176022#24176022
 @contextmanager
 def cd(newdir):
+    """
+    Change current script directory, do something, change back to old directory
+    See https://stackoverflow.com/questions/431684/how-do-i-change-the-working-directory-in-python/24176022#24176022
+
+    Parameters
+    ----------
+    newdir : str
+        New directory to cd into inside 'with'
+    """
     prevdir = os.getcwd()
     os.chdir(os.path.expanduser(newdir))
     try:
@@ -82,6 +91,14 @@ def spinner(func):
 
 # @timer
 def setup(out_queue):
+    """
+    Logins to pixiv in the background, using credentials from config file
+
+    Parameters
+    ----------
+    out_queue : queue.Queue()
+        queue for storing logged-in api object
+    """
     api = AppPixivAPI()
     # Read config.ini file
     config_object = ConfigParser()
@@ -111,6 +128,18 @@ def artist_user_id_prompt():
 
 
 def async_download(api, url, img_name, new_file_name=None):
+    """
+    Downloads given url, rename if needed
+
+    Parameters
+    ----------
+    url : str
+        Url to download
+    img_name : str
+        Name of downloaded image without renaming (yet)
+    new_file_name : str or None
+        Desired new name of the image, if you want to rename it
+    """
     api.download(url)
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
@@ -119,6 +148,23 @@ def async_download(api, url, img_name, new_file_name=None):
 # @timer
 @spinner
 def download_illusts(api, current_page_illusts, current_page_num, artist_user_id):
+    """
+    Download the illustrations on one page of given artist id
+
+    Parameters
+    ----------
+    current_page_illusts : JsonDict
+        JsonDict holding lots of info on all the images in the current page
+    current_page_num : int
+        Page as in artist illustration profile pages. Starts from 0
+    artist_user_id : int
+
+    Returns
+    -------
+    urls : List of str
+        List of urls in current page
+    download_path : str
+    """
     urls = []
     file_names = []
     for i in range(len(current_page_illusts)):
@@ -134,12 +180,28 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
 
 # @timer
 def show_artist_illusts(path):
+    """
+    This assumes you're in the directory where both koneko.py and lscat is in
+    """
     lscat_path = os.getcwd()
     with cd(path):
         os.system(f"{lscat_path}/lscat")
 
 
 def open_image(api, post_json, artist_user_id, number, current_page_num):
+    """
+    Opens image given by the number (medium-res), downloads large-res and
+    display that
+
+    Parameters
+    ----------
+    post_json : JsonDict
+        description
+    number : int
+        The number prefixed in each image
+    artist_user_id : int
+    current_page_num : int
+    """
     if number < 10:
         search_string = f"0{number}_"
     else:
@@ -159,7 +221,7 @@ def open_image(api, post_json, artist_user_id, number, current_page_num):
     # open medium res image
     # run download_large on a separate thread
     # in the meantime, continue:
-    #   run check_multiple_images_in_post()
+    #   run get_pages_url_in_post()
     #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
     # when download_large finishes, display the large image (run below command)
 
@@ -190,6 +252,7 @@ def download_large(api, artist_user_id, current_page_num, url, filename):
 
 
 def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
+    # TODO: duplicated with async_download()?
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
@@ -198,6 +261,10 @@ def make_path_and_download(api, large_dir, url, filename, try_make_dir=True):
 
 
 def get_url_and_filename(post_json, size, get_filename=False):
+    """
+    size : str
+        One of: ("square-medium", "medium", "large")
+    """
     url = post_json["image_urls"][size]
     if not get_filename:
         return url
@@ -217,6 +284,14 @@ def download_large_vp(api, image_id):
 
 
 def get_url_and_filename_full(url):
+    """
+    The difference between this and get_url_and_filename() is that this
+    is for transforming a url from get_url_and_filename() into the original
+    resolution url. ("Large" res isn't the largest)
+
+    url : str
+        url should be from get_url_and_filename()
+    """
     url = re.sub(r"_p0_master\d+", "_p0", url)
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
     filename = url.split("/")[-1]
@@ -276,6 +351,10 @@ def download_core(api, download_path, urls, rename_images=False, file_names=None
 
 @spinner
 def download_multi(api, artist_user_id, image_id, page_urls):
+    """
+    page_urls : List of str
+        List of all image urls; images are part of a single (multi-image) post
+    """
     list_of_names = [i.split("/")[-1] for i in page_urls]
     download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
     download_core(api, download_path, page_urls)
@@ -472,13 +551,13 @@ def gallery_prompt(
                 # Threading won't even do anything meaningful here
                 #with ThreadPoolExecutor(max_workers=3) as executor:
                 #    future = executor.submit(
-                #        check_multiple_images_in_post,
+                #        get_pages_url_in_post,
                 #        api, post_json
                 #    )
                 #
                 #number_of_pages, page_urls = future.result()
 
-                number_of_pages, page_urls = check_multiple_images_in_post(api, post_json)
+                number_of_pages, page_urls = get_pages_url_in_post(api, post_json)
 
                 image_prompt(
                     api,
@@ -497,7 +576,10 @@ def gallery_prompt(
 
 
 @spinner
-def check_multiple_images_in_post(api, post_json):
+def get_pages_url_in_post(api, post_json):
+    """
+    Formerly check_multiple_images_in_post(); for when posts have multiple images
+    """
     number_of_pages = post_json.page_count
     if number_of_pages > 1:
         print(f"Page 1/{number_of_pages}")
@@ -533,7 +615,7 @@ def view_post_mode(api, image_id):
     artist_user_id, filename, post_json = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
 
-    number_of_pages, page_urls = check_multiple_images_in_post(api, post_json)
+    number_of_pages, page_urls = get_pages_url_in_post(api, post_json)
 
     # it now downloads the first 5 in the background asynchronously
     # But it blocks image_prompt()
