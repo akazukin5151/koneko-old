@@ -179,12 +179,20 @@ def open_image(api, post_json, artist_user_id, number, current_page_num):
     url, filename = get_url_and_filename(post_json, "large", True)
     download_large(api, artist_user_id, current_page_num, url, filename)
 
-    # TODO: non blocking command input. solution 1: run input() in another
-    # thread. doesn't work because it doesn't wait for input + enter and
-    # immediately quits.
-    # solution 2: run download_large in another thread. doesn't work because
-    # icat doesn't detect kitty and fails
-    # Just use solution 2, but don't call icat yet?
+    # TODO: non blocking command input.
+    # open medium res image
+    # run download_large on a separate thread
+    # in the meantime, continue:
+    #   run check_multiple_images_in_post()
+    #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
+    # when download_large finishes, display the large image (run below command)
+
+    # Can't put input into separate thread, as it will not correctly receive
+    # the input
+    # Can't display large image on a separate thread, as icat doesn't detect
+    # kitty and fails
+    # Only solution is to get image_prompt() to interrupt when it receives a
+    # signal that download_large() has finished
 
     os.system(
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
