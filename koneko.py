@@ -180,6 +180,7 @@ def open_image(api, post_json, artist_user_id, number, current_page_num):
     # immediately quits.
     # solution 2: run download_large in another thread. doesn't work because
     # icat doesn't detect kitty and fails
+    # Just use solution 2, but don't call icat yet?
 
     os.system(
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
@@ -401,6 +402,8 @@ def gallery_prompt(
             print(f"Image downloaded at {filepath}\n")
 
         elif gallery_command == "n":
+            # TODO: reduce delay as it's requesting the api every time,
+            # even if the files are already downloaded. Same for prev page.
             current_page_num += 1
             next_url = current_page["next_url"]
             # Mutating current_page to use the next page
