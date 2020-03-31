@@ -71,19 +71,18 @@ def spin(done):
 
 
 def spinner(func):
+    # TODO: add ability to append label to spinner
+    # If I try to pass in *args and **kwargs, the functions' args are lost
     """
     https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
     """
-
     def wrapper(*args, **kwargs):
         done = threading.Event()
-        spinner = threading.Thread(target=spin, args=(done,))  # Doesn't start it yet...
-        spinner.start()  # start spinning
-
+        spinner = threading.Thread(target=spin, args=(done,))
+        spinner.start()
         result = func(*args, **kwargs)  # run slow function, blocking
-
-        done.set()  # once slow function finishes, set it to be done, ending the spinner
-        spinner.join()  # wait for spinner to end
+        done.set()
+        spinner.join()
         return result
 
     return wrapper
@@ -612,7 +611,6 @@ def artist_illusts_mode(api, artist_user_id, current_page_num=1, **kwargs):
 
 
 def view_post_mode(api, image_id):
-    # TODO: add label to spinner
     artist_user_id, filename, post_json = download_large_vp(api, image_id)
     open_image_vp(artist_user_id, filename)
 
