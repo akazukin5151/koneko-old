@@ -269,7 +269,7 @@ def download_core(api, download_path, urls, rename_images=False, file_names=None
                     new_file_name = img_name
 
                 if not os.path.isfile(new_file_name):
-                    print(f"Downloading {new_file_name}...")
+                    #print(f"Downloading {new_file_name}...")
                     future = executor.submit(
                         async_download, api, url, img_name, new_file_name
                     )
@@ -299,6 +299,10 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
         page_urls = kwargs["page_urls"]
         current_page_num_post = kwargs["current_page_num_post"]
         number_of_pages = kwargs["number_of_pages"]
+        try:
+            list_of_names = kwargs["list_of_names"]
+        except KeyError: # Multi-image post opened from gallery;no pre-download
+            list_of_names = None
     except KeyError:
         pass
 
@@ -344,10 +348,15 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 current_page_num_post += 1  # Be careful of 0 index
                 # Note: when used from gallery view, the first pic is already
                 # downloaded. When 'n' is pressed, it downloads the rest
-                list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
+                if not list_of_names:
+                    list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
+
                 open_image_vp(
                     artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
                 )
+                # Downloads the rest of the images (first 5 already downloaded)
+                # This is also blocking the image prompt btw
+                download_multi(api, artist_user_id, image_id, page_urls)
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
                 # TODO: enter {digit} to jump to image number (for multi-image posts)
 
@@ -517,9 +526,14 @@ def view_post_mode(api, image_id):
 
     number_of_pages, page_urls = check_multiple_images_in_post(api, post_json)
 
-    # TODO: download the rest in the background asynchronously
-    #if number_of_pages > 1:
-        # Download images in background
+    # it now downloads the first 5 in the background asynchronously
+    # But it blocks image_prompt()
+    if number_of_pages == 1:
+        pass
+    elif number_of_pages <= 5:
+        list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
+    else:
+        list_of_names = download_multi(api, artist_user_id, image_id, page_urls[:5])
 
     image_prompt(
         api,
@@ -528,6 +542,7 @@ def view_post_mode(api, image_id):
         page_urls=page_urls,
         current_page_num_post=0,
         number_of_pages=number_of_pages,
+        list_of_names=list_of_names
     )
 
     artist_illusts_mode(api, artist_user_id)
