@@ -17,6 +17,7 @@ import os
 import sys
 import threading
 import queue
+from concurrent.futures import ThreadPoolExecutor
 import re
 import itertools
 from configparser import ConfigParser
@@ -108,10 +109,13 @@ def artist_user_id_prompt():
     return artist_user_id
 
 
+def async_download(api, url, img_name, new_file_name):
+    api.download(url)
+    os.rename(f"{img_name}", f"{new_file_name}")
+
 # @timer
 @spinner
 def download_illusts(api, current_page_illusts, current_page_num, artist_user_id):
-    # TODO: download asynchronously
     urls = []
     file_names = []
     for i in range(len(current_page_illusts)):
@@ -122,37 +126,29 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     os.makedirs(download_path, exist_ok=True)
     with cd(download_path):
-        for i in range(len(urls)):
-            url = urls[i]
-            img_name = url.split("/")[-1]
-            img_ext = img_name.split(".")[-1]
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            for (index, url) in enumerate(urls):
+                img_name = url.split("/")[-1]
+                img_ext = img_name.split(".")[-1]
 
-            if len(urls) >= 10 and i < 10:
-                # This assumes len(url) < 100
-                number_prefix = str(i).rjust(2, "0")
-            else:
-                number_prefix = str(i)
+                if index < 10:
+                   # Assumes 10 < number of files < 100
+                   number_prefix = str(index).rjust(2, "0")
+                else:
+                   number_prefix = str(index)
 
-            # Rename files to be prefixed with a number
-            new_file_name = f"{number_prefix}_{file_names[i]}.{img_ext}"
+                new_file_name = f"{number_prefix}_{file_names[index]}.{img_ext}"
 
-            # TODO: asynchronously display images (call lsix) after every
-            # downloaded pic. No need to wait for all of them to be downloaded
-            # Requires a rewrite of lsix, because I only want it to display the
-            # latest image and not create a new montage of all images so far.
-            # A custom implementation of the gallery in icat seems to be better
+                if not os.path.isfile(new_file_name):
+                    print(f"Downloading {new_file_name}...")
+                    future = executor.submit(async_download, api, url, img_name, new_file_name)
 
-            # Only download pictures if not already downloaded
-            if not os.path.isfile(new_file_name):
-                print(f"Downloading {new_file_name}...")
-                # t0 = time.time()
-                api.download(url)
-                # t1 = time.time()
-                # total = t1-t0
-                # print(total)
-                # with open('/home/twenty/Workspace/pixiv/downloadtime.txt', 'a') as the_file:
-                #     the_file.write(f"{total}\n")
-                os.rename(f"{img_name}", f"{new_file_name}")
+                # TODO: asynchronously display images (call lsix) after every
+                # downloaded pic. No need to wait for all of them to be downloaded
+                # Requires a rewrite of lsix, because I only want it to display the
+                # latest image and not create a new montage of all images so far.
+                # A custom implementation of the gallery in icat seems to be better
+        # All files downloaded
     return urls, download_path
 
 
@@ -257,7 +253,9 @@ def download_full(api, **kwargs):
     return f"/home/twenty/Downloads/{filename}"  # Filepath
 
 
-# TODO: consider refactoring (extracting core away) with download_illusts()
+# TODO: consider refactoring with download_illusts(). They are similar because
+# this one is for downloading from image view, on a post with multiple images
+# Might need to do async first (see THERE)
 @spinner
 def download_multi(api, artist_user_id, image_id, page_urls):
     list_of_names = []
@@ -268,7 +266,6 @@ def download_multi(api, artist_user_id, image_id, page_urls):
             url = page_urls[i]
             img_name = url.split("/")[-1]
             list_of_names.append(img_name)
-            # img_ext = img_name.split(".")[-1]
 
             if not os.path.isfile(img_name):
                 print(f"Downloading {img_name}...")
@@ -338,7 +335,7 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 # download the rest in the background asynchronously
                 # Note: when used from gallery view, it first downloads the first pic
                 # When 'n' is passed, it downloads the rest
-                # TODO: in gallery view, if multi-images detected, download in background
+                # TODO: in gallery view, if multi-images detected, download in background. THERE
                 list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
                 open_image_vp(
                     artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
