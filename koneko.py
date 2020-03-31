@@ -4,10 +4,6 @@ TODO: handle posts with multiple images:
 TODO: if post has multiple images, there should be a preview in image view
 TODO: unit tests
 
-FIXME: for https://www.pixiv.net/member_illust.php?mode=medium&illust_id=71410101,
-    the first image is low res, but the rest are high res
-FIXME: for same image above, it fails to download full
-
 Browse pixiv in the terminal using kitty's icat to display images (in the
 terminal!)
 
@@ -298,6 +294,9 @@ def get_url_and_filename_full(url):
     """
     url = re.sub(r"_p0_master\d+", "_p0", url)
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
+    # If it doesn't work, try changing to png
+    # Feh will fail opening the image, but no way to get its exit code...
+    #url = url.replace("jpg", "png")
     filename = url.split("/")[-1]
     return url, filename
 
@@ -676,6 +675,7 @@ def main():
             main_command = "2"
 
         prompted = False
+
     elif len(sys.argv) > 3:
         print("Too many arguments!")
     else:

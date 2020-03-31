@@ -36,6 +36,12 @@ Alternatively, you can supply a pixiv url as a command line argument to `koneko.
 
 ```python koneko.py https://www.pixiv.net/en/artworks/78823485```
 
+## Dev branch
+
+Use the dev branch for the latest features/fixes + instability:
+
+```git clone -b dev https://github.com/twenty5151/koneko.git```
+
 
 # Features
 * Artist illustration gallery (equivalent to the illustrations tab on the artist's profile)
