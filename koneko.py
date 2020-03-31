@@ -80,6 +80,7 @@ def spinner(func):
     """
     https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
     """
+
     def wrapper(*args, **kwargs):
         done = threading.Event()
         spinner = threading.Thread(target=spin, args=(done,))
@@ -347,10 +348,11 @@ def download_core(api, download_path, urls, rename_images=False, file_names=None
                     new_file_name = img_name
 
                 if not os.path.isfile(new_file_name):
-                    #print(f"Downloading {new_file_name}...")
+                    # print(f"Downloading {new_file_name}...")
                     future = executor.submit(
                         async_download, api, url, img_name, new_file_name
                     )
+
 
 @spinner
 def download_multi(api, artist_user_id, image_id, page_urls):
@@ -383,7 +385,7 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
         number_of_pages = kwargs["number_of_pages"]
         try:
             list_of_names = kwargs["list_of_names"]
-        except KeyError: # Multi-image post opened from gallery;no pre-download
+        except KeyError:  # Multi-image post opened from gallery;no pre-download
             list_of_names = None
     except KeyError:
         pass
@@ -431,15 +433,25 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 # IDEAL: image prompt should not be blocked while downloading
                 # But I think delaying the prompt is better than waiting for an image
                 # to download when you load it
-                if not list_of_names: # From gallery; download next image
-                    list_of_names = download_multi(api, artist_user_id, image_id, page_urls[:current_page_num_post+1])
+                if not list_of_names:  # From gallery; download next image
+                    list_of_names = download_multi(
+                        api,
+                        artist_user_id,
+                        image_id,
+                        page_urls[: current_page_num_post + 1],
+                    )
 
                 open_image_vp(
                     artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
                 )
 
                 # Downloads the next image
-                list_of_names = download_multi(api, artist_user_id, image_id, page_urls[:current_page_num_post+2])
+                list_of_names = download_multi(
+                    api,
+                    artist_user_id,
+                    image_id,
+                    page_urls[: current_page_num_post + 2],
+                )
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
                 # TODO: enter {digit} to jump to image number (for multi-image posts)
 
@@ -560,15 +572,17 @@ def gallery_prompt(
                 # TODO: it's async now but still blocking, as the result
                 # is needed to pass to function
                 # Threading won't even do anything meaningful here
-                #with ThreadPoolExecutor(max_workers=3) as executor:
+                # with ThreadPoolExecutor(max_workers=3) as executor:
                 #    future = executor.submit(
                 #        get_pages_url_in_post,
                 #        api, post_json
                 #    )
                 #
-                #number_of_pages, page_urls = future.result()
+                # number_of_pages, page_urls = future.result()
 
-                number_of_pages, page_urls = get_pages_url_in_post(api, post_json, "large")
+                number_of_pages, page_urls = get_pages_url_in_post(
+                    api, post_json, "large"
+                )
 
                 image_prompt(
                     api,
@@ -640,7 +654,7 @@ def view_post_mode(api, image_id):
         page_urls=page_urls,
         current_page_num_post=0,
         number_of_pages=number_of_pages,
-        list_of_names=list_of_names
+        list_of_names=list_of_names,
     )
 
     artist_illusts_mode(api, artist_user_id)
