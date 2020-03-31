@@ -110,9 +110,10 @@ def artist_user_id_prompt():
     return artist_user_id
 
 
-def async_download(api, url, img_name, new_file_name):
+def async_download(api, url, img_name, new_file_name=None):
     api.download(url)
-    os.rename(f"{img_name}", f"{new_file_name}")
+    if new_file_name:
+        os.rename(f"{img_name}", f"{new_file_name}")
 
 
 # @timer
@@ -126,33 +127,8 @@ def download_illusts(api, current_page_illusts, current_page_num, artist_user_id
         file_names.append(current_page_illusts[i]["title"])
 
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
-    os.makedirs(download_path, exist_ok=True)
-    with cd(download_path):
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            for (index, url) in enumerate(urls):
-                img_name = url.split("/")[-1]
-                img_ext = img_name.split(".")[-1]
+    download_core(api, download_path, urls, rename_images=True, file_names=file_names)
 
-                if index < 10:
-                    # Assumes 10 < number of files < 100
-                    number_prefix = str(index).rjust(2, "0")
-                else:
-                    number_prefix = str(index)
-
-                new_file_name = f"{number_prefix}_{file_names[index]}.{img_ext}"
-
-                if not os.path.isfile(new_file_name):
-                    print(f"Downloading {new_file_name}...")
-                    future = executor.submit(
-                        async_download, api, url, img_name, new_file_name
-                    )
-
-                # TODO: asynchronously display images (call lsix) after every
-                # downloaded pic. No need to wait for all of them to be downloaded
-                # Requires a rewrite of lsix, because I only want it to display the
-                # latest image and not create a new montage of all images so far.
-                # A custom implementation of the gallery in icat seems to be better
-        # All files downloaded
     return urls, download_path
 
 
@@ -268,23 +244,41 @@ def download_full(api, **kwargs):
     return f"/home/twenty/Downloads/{filename}"  # Filepath
 
 
-# TODO: consider refactoring with download_illusts(). They are similar because
-# this one is for downloading from image view, on a post with multiple images
-# Might need to do async first (see THERE)
-@spinner
-def download_multi(api, artist_user_id, image_id, page_urls):
-    list_of_names = []
-    download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+def download_core(api, download_path, urls, rename_images=False, file_names=None):
+    # TODO: asynchronously display images (call lsix) after every
+    # downloaded pic. No need to wait for all of them to be downloaded
+    # Requires a rewrite of lsix, because I only want it to display the
+    # latest image and not create a new montage of all images so far.
+    # A custom implementation of the gallery in icat seems to be better
     os.makedirs(download_path, exist_ok=True)
     with cd(download_path):
-        for i in range(len(page_urls)):
-            url = page_urls[i]
-            img_name = url.split("/")[-1]
-            list_of_names.append(img_name)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            for (index, url) in enumerate(urls):
+                img_name = url.split("/")[-1]
 
-            if not os.path.isfile(img_name):
-                print(f"Downloading {img_name}...")
-                api.download(url)
+                if rename_images:
+                    img_ext = img_name.split(".")[-1]
+                    if index < 10:
+                        # Assumes 10 < number of files < 100
+                        number_prefix = str(index).rjust(2, "0")
+                    else:
+                        number_prefix = str(index)
+                    new_file_name = f"{number_prefix}_{file_names[index]}.{img_ext}"
+
+                else:
+                    new_file_name = img_name
+
+                if not os.path.isfile(new_file_name):
+                    print(f"Downloading {new_file_name}...")
+                    future = executor.submit(
+                        async_download, api, url, img_name, new_file_name
+                    )
+
+@spinner
+def download_multi(api, artist_user_id, image_id, page_urls):
+    list_of_names = [i.split("/")[-1] for i in page_urls]
+    download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+    download_core(api, download_path, page_urls)
     return list_of_names
 
 
@@ -348,11 +342,8 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 print("This is the last image in the post!")
             else:
                 current_page_num_post += 1  # Be careful of 0 index
-                # TODO: download first pic, display, then
-                # download the rest in the background asynchronously
-                # Note: when used from gallery view, it first downloads the first pic
-                # When 'n' is passed, it downloads the rest
-                # TODO: in gallery view, if multi-images detected, download in background. THERE
+                # Note: when used from gallery view, the first pic is already
+                # downloaded. When 'n' is pressed, it downloads the rest
                 list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
                 open_image_vp(
                     artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
@@ -432,6 +423,8 @@ def gallery_prompt(
 
         elif gallery_command == "p":
             if current_page_num > 1:
+                # FIXME: Gallery view -> next page -> image prompt -> back -> p
+                # Need to keep next_url alive
                 matched = re.findall(r"\&offset=\d+", next_url)[0]
                 new_offset = int(matched.split("=")[1]) - 30
                 assert new_offset >= 0
@@ -523,6 +516,10 @@ def view_post_mode(api, image_id):
     open_image_vp(artist_user_id, filename)
 
     number_of_pages, page_urls = check_multiple_images_in_post(api, post_json)
+
+    # TODO: download the rest in the background asynchronously
+    #if number_of_pages > 1:
+        # Download images in background
 
     image_prompt(
         api,
