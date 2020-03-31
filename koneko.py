@@ -346,8 +346,9 @@ def image_prompt(api, image_id, artist_user_id, **kwargs):
                 print("This is the last image in the post!")
             else:
                 current_page_num_post += 1  # Be careful of 0 index
-                # Note: when used from gallery view, the first pic is already
-                # downloaded. When 'n' is pressed, it downloads the rest
+                # TODO: from gallery view, will download all images in post
+                # before showing second image. Should download second image
+                # and immediately show it, then download the rest in background
                 if not list_of_names:
                     list_of_names = download_multi(api, artist_user_id, image_id, page_urls)
 
@@ -466,10 +467,15 @@ def gallery_prompt(
                     current_page_num,
                 )
 
-                # TODO: huge delay here, need to run asynchronously
-                number_of_pages, page_urls = check_multiple_images_in_post(
-                    api, post_json
-                )
+                # TODO: it's async now but still blocking, as the result
+                # is needed to pass to function
+                with ThreadPoolExecutor(max_workers=3) as executor:
+                    future = executor.submit(
+                        check_multiple_images_in_post,
+                        api, post_json
+                    )
+
+                number_of_pages, page_urls = future.result()
 
                 image_prompt(
                     api,
