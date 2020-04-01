@@ -24,7 +24,7 @@ import itertools
 import imghdr
 from configparser import ConfigParser
 from contextlib import contextmanager
-import toolz
+import cytoolz
 from pixivpy3 import *
 
 # - Non interactive, invisible to user (backend) functions
@@ -114,7 +114,7 @@ def setup(out_queue):
 
 
 # - Other backend functions; all pure functions except for last one
-@toolz.curry
+@cytoolz.curry
 def get_url(post_json, size):
     """
     size : str
@@ -130,7 +130,7 @@ def split_backslash_last(str):
     return str.split("/")[-1]
 
 
-@toolz.curry
+@cytoolz.curry
 def get_title(current_page_illusts, post_number):
     return current_page_illusts[post_number]["title"]
 
