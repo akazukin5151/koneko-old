@@ -223,7 +223,7 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
         file_names.append(current_page_illusts[i]["title"])
 
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
-    download_core(download_path, urls, rename_images=True, file_names=file_names)
+    async_download_core(download_path, urls, rename_images=True, file_names=file_names)
 
     return urls, download_path
 
@@ -237,12 +237,12 @@ def download_large(artist_user_id, current_page_num, url, filename):
     """
     large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
     filepath = f"{large_dir}{filename}"
-    make_path_and_download(large_dir, url, filename)
+    download_core(large_dir, url, filename)
 
 
-def make_path_and_download(large_dir, url, filename, try_make_dir=True):
+def download_core(large_dir, url, filename, try_make_dir=True):
     """
-    Actually downloads given url
+    Actually downloads given url (non async, for single images)
     TODO: duplicated with async_download()?
     Ans: this is for downloading one image. Using threads will slow it down
     Q: Reduce code duplication by using a 'async' param?
@@ -267,7 +267,7 @@ def download_large_vp(image_id):
     artist_user_id = post_json["user"]["id"]
 
     large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
-    make_path_and_download(large_dir, url, filename)
+    download_core(large_dir, url, filename)
     return artist_user_id, filename, post_json
 
 
@@ -293,16 +293,16 @@ def download_full(png=False, **kwargs):
 
     filename = url.split("/")[-1]
 
-    make_path_and_download(
+    download_core(
         f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False
     )
 
     return f"/home/twenty/Downloads/{filename}"  # Filepath
 
 
-def download_core(download_path, urls, rename_images=False, file_names=None):
+def async_download_core(download_path, urls, rename_images=False, file_names=None):
     """
-    Core logic for downloading
+    Core logic for async downloading
     """
     # TODO: asynchronously display images (call lsix) after every
     # downloaded pic. No need to wait for all of them to be downloaded
@@ -346,7 +346,7 @@ def download_multi(artist_user_id, image_id, page_urls):
     """
     list_of_names = [i.split("/")[-1] for i in page_urls]
     download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
-    download_core(download_path, page_urls)
+    async_download_core(download_path, page_urls)
     return list_of_names
 
 
