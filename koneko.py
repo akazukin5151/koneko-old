@@ -71,8 +71,6 @@ def spin(done):
 
 
 def spinner(func):
-    # TODO: add ability to append label to spinner
-    # If I try to pass in *args and **kwargs, the functions' args are lost
     """
     https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
     """
@@ -256,6 +254,7 @@ def make_path_and_download(large_dir, url, filename, try_make_dir=True):
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
+        print("   Downloading illustration...", flush=True, end="\r")
         with cd(large_dir):
             api.download(url)
 
@@ -348,6 +347,7 @@ def download_core(download_path, urls, rename_images=False, file_names=None):
 
                 if not os.path.isfile(new_file_name):
                     # print(f"Downloading {new_file_name}...")
+                    print("   Downloading illustrations...", flush=True, end="\r")
                     future = executor.submit(
                         async_download, url, img_name, new_file_name
                     )
@@ -396,6 +396,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
             if current_page_num > 1:
+                # TODO: shouldn't need to do all the checks like prefetch
                 artist_illusts_mode(
                     artist_user_id, current_page_num, current_page=current_page
                 )
@@ -476,7 +477,7 @@ def prefetch_next_page(current_page_num, artist_user_id):
     current_page_num : int
         It is the CURRENT page number, before incrementing
     """
-    print("   Prefetching...", flush=True, end="\r")
+    print("   Prefetching next page...", flush=True, end="\r")
     next_url = all_pages_cache[str(current_page_num)]["next_url"]
     if not next_url: # this is the last page
         raise LastPageException
@@ -485,6 +486,8 @@ def prefetch_next_page(current_page_num, artist_user_id):
     all_pages_cache[str(current_page_num + 1)] = parse_page
     current_page_illusts = parse_page["illusts"]
     download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
+
+    print("  "*26)
     return current_page_illusts
 
 
@@ -638,15 +641,19 @@ def get_pages_url_in_post(post_json, size="medium"):
     return number_of_pages, page_urls
 
 
-def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
-    # There's a delay here to there
+@spinner
+def user_illusts_spinner(artist_user_id):
+    # There's a delay here
     # Threading won't do anything meaningful here...
+    print("   Fetching user illustrations...", flush=True, end="\r")
+    return api.user_illusts(artist_user_id)
+
+def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
     if current_page_num == 1:
-        current_page = api.user_illusts(artist_user_id)
+        current_page = user_illusts_spinner(artist_user_id)
     else:
         current_page = kwargs["current_page"]
     current_page_illusts = current_page["illusts"]
-    # there
 
     urls, download_path = download_illusts(
         current_page_illusts, current_page_num, artist_user_id
@@ -714,10 +721,10 @@ def main():
     if main_command == "1":
         if prompted:
             artist_user_id = artist_user_id_prompt()
+            os.system("clear")
             if "pixiv" in artist_user_id:
                 artist_user_id = artist_user_id.split("/")[-1]
 
-        # TODO: add spinner
         apiThread.join()  # Wait for api to finish
         api = apiQueue.get()  # Assign api to PixivAPI object
 
@@ -726,6 +733,7 @@ def main():
     elif main_command == "2":
         if prompted:
             url_or_id = input("Enter pixiv post url or ID:\n")
+            os.system("clear")
             if "pixiv" in url_or_id:
                 image_id = url_or_id.split("/")[-1]
             else:
