@@ -25,7 +25,7 @@ import imghdr
 from configparser import ConfigParser
 from contextlib import contextmanager
 import cytoolz
-from pixivpy3 import *
+from pixivpy3 import AppPixivAPI
 
 # - Non interactive, invisible to user (backend) functions
 # - General functions (can be applied anywhere)
@@ -78,7 +78,6 @@ def spinner(func):
     """
     https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
     """
-
     def wrapper(*args, **kwargs):
         done = threading.Event()
         spinner = threading.Thread(target=spin, args=(done,))
@@ -263,7 +262,7 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
                 if not os.path.isfile(new_file_name):
                     # print(f"Downloading {new_file_name}...")
                     print("   Downloading illustrations...", flush=True, end="\r")
-                    future = executor.submit(
+                    executor.submit(
                         async_download, url, img_name, new_file_name
                     )
 
@@ -337,7 +336,6 @@ def download_large(artist_user_id, current_page_num, url, filename):
     Works from only gallery mode
     """
     large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
-    filepath = f"{large_dir}{filename}"
     download_core(large_dir, url, filename)
 
 
@@ -598,6 +596,7 @@ def gallery_prompt(
     if current_page_num == 1:
         # There's no need to pass it around because it'll never be changed
         # outside of gallery_prompt().
+        # TODO: still, I'm uncomfortable with the global. Better refactor
         global all_pages_cache
         all_pages_cache = {"1": current_page}
 
@@ -726,8 +725,6 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, fast=False, **kwargs
         else:
             current_page = kwargs["current_page"]
         current_page_illusts = current_page["illusts"]
-
-        urls = get_medium_urls_in_page(current_page_illusts)
         download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
 
         download_illusts(current_page_illusts, current_page_num, artist_user_id)
