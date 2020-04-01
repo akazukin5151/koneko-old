@@ -24,6 +24,7 @@ import itertools
 import imghdr
 from configparser import ConfigParser
 from contextlib import contextmanager
+import toolz
 from pixivpy3 import *
 
 # - Non interactive, invisible to user (backend) functions
@@ -112,43 +113,38 @@ def setup(out_queue):
     out_queue.put(api)
 
 
-# - Other backend functions, not general
+# - Other backend functions; all pure functions except for last one
+@toolz.curry
 def get_url(post_json, size):
     """
     size : str
         One of: ("square-medium", "medium", "large")
     """
-    url = post_json["image_urls"][size]
-    return url
+    return post_json["image_urls"][size]
 
 
-def get_filename(url):
-    filename = url.split("/")[-1]
-    return filename
-
-
-class LastPageException(Exception):
-    pass
-
-
-@spinner
-def prefetch_next_page(current_page_num, artist_user_id):
+def split_backslash_last(str):
     """
-    current_page_num : int
-        It is the CURRENT page number, before incrementing
+    Intended for splitting url to get filename, but it has lots of applications...
     """
-    print("   Prefetching next page...", flush=True, end="\r")
-    next_url = all_pages_cache[str(current_page_num)]["next_url"]
-    if not next_url:  # this is the last page
-        raise LastPageException
+    return str.split("/")[-1]
 
-    parse_page = api.user_illusts(**api.parse_qs(next_url))
-    all_pages_cache[str(current_page_num + 1)] = parse_page
-    current_page_illusts = parse_page["illusts"]
-    download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
 
-    print("  " * 26)
-    return current_page_illusts
+@toolz.curry
+def get_title(current_page_illusts, post_number):
+    return current_page_illusts[post_number]["title"]
+
+
+def get_medium_urls_in_page(current_page_illusts):
+    get_medium_url = get_url(size="medium")
+    urls = list(map(get_medium_url, current_page_illusts))
+    return urls
+
+
+def get_titles_in_page(current_page_illusts):
+    get_titles = get_title(current_page_illusts)
+    titles = list(map(get_titles, range(len(current_page_illusts))))
+    return titles
 
 
 @spinner
@@ -177,6 +173,64 @@ def get_user_illusts_spinner(artist_user_id):
     return api.user_illusts(artist_user_id)
 
 
+def get_full_image_details(png=False, **kwargs):
+    """
+    Downloads one image in full resolution (the highest; equivalent to saving
+    it manually through browser). Works from either image or gallery mode
+    """
+    if "post_json" in kwargs.keys():
+        post_json = kwargs["post_json"]
+    elif "image_id" in kwargs.keys():
+        current_image = api.illust_detail(kwargs["image_id"])
+        post_json = current_image.illust
+
+    url = change_url_to_full(post_json, png)
+    filename = split_backslash_last(url)
+    filepath = generate_filepath(filename)
+    return url, filename, filepath
+
+
+def change_url_to_full(post_json, png=False):
+    url = get_url(post_json, "large")
+    url = re.sub(r"_p0_master\d+", "_p0", url)
+    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
+
+    # If it doesn't work, try changing to png
+    if png:
+        url = url.replace("jpg", "png")
+
+    return url
+
+
+def generate_filepath(filename):
+    filepath = f"/home/twenty/Downloads/{filename}"
+    return filepath
+
+
+class LastPageException(Exception):
+    pass
+
+
+@spinner
+def prefetch_next_page(current_page_num, artist_user_id):
+    """
+    current_page_num : int
+        It is the CURRENT page number, before incrementing
+    """
+    print("   Prefetching next page...", flush=True, end="\r")
+    next_url = all_pages_cache[str(current_page_num)]["next_url"]
+    if not next_url:  # this is the last page
+        raise LastPageException
+
+    parse_page = api.user_illusts(**api.parse_qs(next_url))
+    all_pages_cache[str(current_page_num + 1)] = parse_page
+    current_page_illusts = parse_page["illusts"]
+    download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
+
+    print("  " * 26)
+    return current_page_illusts
+
+
 # - Download functions
 # - Core download functions
 def async_download_core(download_path, urls, rename_images=False, file_names=None):
@@ -192,7 +246,7 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
     with cd(download_path):
         with ThreadPoolExecutor(max_workers=3) as executor:
             for (index, url) in enumerate(urls):
-                img_name = url.split("/")[-1]
+                img_name = split_backslash_last(url)
 
                 if rename_images:
                     img_ext = img_name.split(".")[-1]
@@ -253,24 +307,12 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     current_page_num : int
         Page as in artist illustration profile pages. Starts from 1
     artist_user_id : int
-
-    Returns
-    -------
-    urls : List of str
-        List of urls in current page
-    download_path : str
     """
-    urls = []
-    file_names = []
-    for i in range(len(current_page_illusts)):
-        # Or square medium
-        urls.append(get_url(current_page_illusts[i], "medium"))
-        file_names.append(current_page_illusts[i]["title"])
-
+    urls = get_medium_urls_in_page(current_page_illusts)
+    titles = get_titles_in_page(current_page_illusts)
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
-    async_download_core(download_path, urls, rename_images=True, file_names=file_names)
 
-    return urls, download_path
+    async_download_core(download_path, urls, rename_images=True, file_names=titles)
 
 
 @spinner
@@ -300,48 +342,13 @@ def download_large(artist_user_id, current_page_num, url, filename):
 
 
 @spinner
-def download_large_vp(image_id):
+def download_large_vp(artist_user_id, post_json, url, filename):
     """
     Downloads one image in large resolution, given image id (not url)
     Works from only view post (image) mode
     """
-    post_json = api.illust_detail(image_id)["illust"]
-    url = get_url(post_json, "large", True)
-    filename = get_filename(url)
-    artist_user_id = post_json["user"]["id"]
-
     large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
     download_core(large_dir, url, filename)
-    return artist_user_id, filename, post_json
-
-
-@spinner
-def download_full(png=False, **kwargs):
-    """
-    Downloads one image in full resolution (the highest; equivalent to saving
-    it manually through browser). Works from either image or gallery mode
-    """
-    if "post_json" in kwargs.keys():
-        post_json = kwargs["post_json"]
-    elif "image_id" in kwargs.keys():
-        current_image = api.illust_detail(kwargs["image_id"])
-        post_json = current_image.illust
-
-    url = get_url(post_json, "large")
-    url = re.sub(r"_p0_master\d+", "_p0", url)
-    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
-
-    # If it doesn't work, try changing to png
-    if png:
-        url = url.replace("jpg", "png")
-
-    filename = url.split("/")[-1]
-
-    download_core(
-        f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False
-    )
-
-    return f"/home/twenty/Downloads/{filename}"  # Filepath
 
 
 # - End non interactive, invisible to user (backend) functions
@@ -384,8 +391,8 @@ def open_image(post_json, artist_user_id, number, current_page_num):
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/{search_string}*"
     )
 
-    url = get_url(post_json, "large", True)
-    filename = get_filename(url)
+    url = get_url(post_json, "large")
+    filename = split_backslash_last(url)
     download_large(artist_user_id, current_page_num, url, filename)
 
     # TODO: non blocking command input.
@@ -489,11 +496,29 @@ def image_prompt(image_id, artist_user_id, **kwargs):
             print(f"Opened {link} in browser")
 
         elif image_prompt_command == "d":
-            filepath = download_full(image_id=image_id)
+            url, filename, filepath = get_full_image_details(image_id=image_id)
+            # TODO: spinner missing for all get_full_image_details()
+            download_core(
+                f"{os.path.expanduser('~')}/Downloads/",
+                url,
+                filename,
+                try_make_dir=False,
+            )
+
             png = imghdr.what(filepath)
             if not png:
                 os.remove(filepath)
-                download_full(png=True, image_id=image_id)
+
+                url, filename, filepath = get_full_image_details(
+                    png=True, image_id=image_id
+                )
+                download_core(
+                    f"{os.path.expanduser('~')}/Downloads/",
+                    url,
+                    filename,
+                    try_make_dir=False,
+                )
+
             print(f"Image downloaded at {filepath}\n")
 
         elif image_prompt_command == "n":
@@ -509,7 +534,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 # to download when you load it
                 if not list_of_names:  # From gallery; download next image
                     selection1 = page_urls[: current_page_num_post + 1]
-                    list_of_names = [i.split("/")[-1] for i in selection1]
+                    list_of_names = [split_backslash_last(url) for url in selection1]
                     download_multi(artist_user_id, image_id, selection1)
 
                 # fmt: off
@@ -521,7 +546,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
 
                 # Downloads the next image
                 selection2 = page_urls[: current_page_num_post + 2]
-                list_of_names = [i.split("/")[-1] for i in selection2]
+                list_of_names = [split_backslash_last(url) for url in selection2]
                 download_multi(artist_user_id, image_id, selection2)
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
 
@@ -604,7 +629,14 @@ def gallery_prompt(
 
         elif gallery_command[0] == "d":
             post_json = current_page_illusts[int(gallery_command[1:])]
-            filepath = download_full(post_json=post_json)
+
+            url, filename, filepath = get_full_image_details(post_json=post_json)
+            download_core(
+                f"{os.path.expanduser('~')}/Downloads/",
+                url,
+                filename,
+                try_make_dir=False,
+            )
             print(f"Image downloaded at {filepath}\n")
             continue
 
@@ -695,9 +727,10 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, fast=False, **kwargs
             current_page = kwargs["current_page"]
         current_page_illusts = current_page["illusts"]
 
-        urls, download_path = download_illusts(
-            current_page_illusts, current_page_num, artist_user_id
-        )
+        urls = get_medium_urls_in_page(current_page_illusts)
+        download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
+
+        download_illusts(current_page_illusts, current_page_num, artist_user_id)
 
     show_artist_illusts(download_path)
     gallery_prompt(
@@ -706,7 +739,13 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, fast=False, **kwargs
 
 
 def view_post_mode(image_id):
-    artist_user_id, filename, post_json = download_large_vp(image_id)
+    # illust_detail might need a spinner
+    post_json = api.illust_detail(image_id)["illust"]
+    url = get_url(post_json, "large")
+    filename = split_backslash_last(url)
+    artist_user_id = post_json["user"]["id"]
+
+    download_large_vp(artist_user_id, post_json, url, filename)
     open_image_vp(artist_user_id, filename)
 
     number_of_pages, page_urls = get_pages_url_in_post(post_json, "large")
@@ -714,7 +753,7 @@ def view_post_mode(image_id):
     if number_of_pages == 1:
         list_of_names = None
     else:
-        list_of_names = [i.split("/")[-1] for i in page_urls[:2]]
+        list_of_names = [split_backslash_last(url) for url in page_urls[:2]]
         download_multi(artist_user_id, image_id, page_urls[:2])
 
     image_prompt(
@@ -735,7 +774,7 @@ def artist_illusts_mode_loop(prompted, **kwargs):
             artist_user_id = artist_user_id_prompt()
             os.system("clear")
             if "pixiv" in artist_user_id:
-                artist_user_id = artist_user_id.split("/")[-1]
+                artist_user_id = split_backslash_last(artist_user_id)
             # After the if, input must either be int or invalid
             try:
                 int(artist_user_id)
@@ -758,7 +797,7 @@ def view_post_mode_loop(prompted, **kwargs):
             url_or_id = input("Enter pixiv post url or ID:\n")
             os.system("clear")
             if "pixiv" in url_or_id:
-                image_id = url_or_id.split("/")[-1]
+                image_id = split_backslash_last(url_or_id)
             else:
                 image_id = url_or_id
             # After the if, input must either be int or invalid
@@ -822,12 +861,12 @@ def main():
         prompted = False
         url = sys.argv[1]
         if "users" in url:
-            artist_user_id = url.split("/")[-1].split("\\")[-1][1:]
+            artist_user_id = split_backslash_last(url).split("\\")[-1][1:]
             main_command = "1"
             kwargs = {"artist_user_id": artist_user_id, "main_command": main_command}
 
         elif "artworks" in url:
-            image_id = url.split("/")[-1].split("\\")[0]
+            image_id = split_backslash_last(url).split("\\")[0]
             main_command = "2"
             kwargs = {"image_id": image_id, "main_command": main_command}
 
