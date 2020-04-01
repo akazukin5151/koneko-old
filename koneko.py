@@ -110,20 +110,21 @@ def setup(out_queue):
     # print("Logging in...")
     api.login(config["Username"], config["Password"])
     out_queue.put(api)
-    # return api
 
 
 # - Other backend functions, not general
-def get_url_and_filename(post_json, size, get_filename=False):
+def get_url(post_json, size):
     """
     size : str
         One of: ("square-medium", "medium", "large")
     """
     url = post_json["image_urls"][size]
-    if not get_filename:
-        return url
+    return url
+
+
+def get_filename(url):
     filename = url.split("/")[-1]
-    return url, filename
+    return filename
 
 
 class LastPageException(Exception):
@@ -161,7 +162,7 @@ def get_pages_url_in_post(post_json, size="medium"):
         list_of_pages = post_json.meta_pages
         page_urls = []
         for i in range(number_of_pages):
-            page_urls.append(get_url_and_filename(list_of_pages[i], size))
+            page_urls.append(get_url(list_of_pages[i], size))
     else:
         page_urls = None
 
@@ -169,7 +170,7 @@ def get_pages_url_in_post(post_json, size="medium"):
 
 
 @spinner
-def user_illusts_spinner(artist_user_id):
+def get_user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
     print("   Fetching user illustrations...", flush=True, end="\r")
@@ -263,7 +264,7 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     file_names = []
     for i in range(len(current_page_illusts)):
         # Or square medium
-        urls.append(get_url_and_filename(current_page_illusts[i], "medium"))
+        urls.append(get_url(current_page_illusts[i], "medium"))
         file_names.append(current_page_illusts[i]["title"])
 
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
@@ -305,7 +306,8 @@ def download_large_vp(image_id):
     Works from only view post (image) mode
     """
     post_json = api.illust_detail(image_id)["illust"]
-    url, filename = get_url_and_filename(post_json, "large", True)
+    url = get_url(post_json, "large", True)
+    filename = get_filename(url)
     artist_user_id = post_json["user"]["id"]
 
     large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
@@ -325,7 +327,7 @@ def download_full(png=False, **kwargs):
         current_image = api.illust_detail(kwargs["image_id"])
         post_json = current_image.illust
 
-    url = get_url_and_filename(post_json, "large")
+    url = get_url(post_json, "large")
     url = re.sub(r"_p0_master\d+", "_p0", url)
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
 
@@ -382,7 +384,8 @@ def open_image(post_json, artist_user_id, number, current_page_num):
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/{search_string}*"
     )
 
-    url, filename = get_url_and_filename(post_json, "large", True)
+    url = get_url(post_json, "large", True)
+    filename = get_filename(url)
     download_large(artist_user_id, current_page_num, url, filename)
 
     # TODO: non blocking command input.
@@ -687,7 +690,7 @@ def gallery_prompt(
 def artist_illusts_mode(artist_user_id, current_page_num=1, fast=False, **kwargs):
     if not fast:
         if current_page_num == 1:
-            current_page = user_illusts_spinner(artist_user_id)
+            current_page = get_user_illusts_spinner(artist_user_id)
         else:
             current_page = kwargs["current_page"]
         current_page_illusts = current_page["illusts"]
