@@ -295,7 +295,7 @@ def get_url_and_filename_full(url):
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
     # If it doesn't work, try changing to png
     # Feh will fail opening the image, but no way to get its exit code...
-    #url = url.replace("jpg", "png")
+    # url = url.replace("jpg", "png")
     filename = url.split("/")[-1]
     return url, filename
 
@@ -468,7 +468,8 @@ def image_prompt(image_id, artist_user_id, **kwargs):
             print(image_prompt.__doc__)
 
 
-class LastPageException(Exception): pass
+class LastPageException(Exception):
+    pass
 
 
 @spinner
@@ -479,7 +480,7 @@ def prefetch_next_page(current_page_num, artist_user_id):
     """
     print("   Prefetching next page...", flush=True, end="\r")
     next_url = all_pages_cache[str(current_page_num)]["next_url"]
-    if not next_url: # this is the last page
+    if not next_url:  # this is the last page
         raise LastPageException
 
     parse_page = api.user_illusts(**api.parse_qs(next_url))
@@ -487,7 +488,7 @@ def prefetch_next_page(current_page_num, artist_user_id):
     current_page_illusts = parse_page["illusts"]
     download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
 
-    print("  "*26)
+    print("  " * 26)
     return current_page_illusts
 
 
@@ -523,7 +524,7 @@ def gallery_prompt(
         except LastPageException:
             pass
     else:  # Gallery -> next -> image prompt -> back
-        #all_pages_cache[str(current_page_num)] = current_page
+        # all_pages_cache[str(current_page_num)] = current_page
         pass
 
     while True:
@@ -556,12 +557,12 @@ def gallery_prompt(
             except FileNotFoundError:
                 print("This is the last page!")
                 continue
-            current_page_num += 1 # Only increment if successful
+            current_page_num += 1  # Only increment if successful
             print(f"Page {current_page_num}")
 
             try:
                 # After showing gallery, pre-fetch the next page
-                prefetch_next_page(current_page_num-1, artist_user_id)
+                prefetch_next_page(current_page_num - 1, artist_user_id)
             except LastPageException:
                 print("This is the last page!")
                 continue
@@ -647,6 +648,7 @@ def user_illusts_spinner(artist_user_id):
     # Threading won't do anything meaningful here...
     print("   Fetching user illustrations...", flush=True, end="\r")
     return api.user_illusts(artist_user_id)
+
 
 def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
     if current_page_num == 1:
