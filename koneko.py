@@ -281,10 +281,8 @@ def download_multi(artist_user_id, image_id, page_urls):
     page_urls : List of str
         List of all image urls; images are part of a single (multi-image) post
     """
-    list_of_names = [i.split("/")[-1] for i in page_urls]
     download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
     async_download_core(download_path, page_urls)
-    return list_of_names
 
 
 # - Functions that download only one image
@@ -342,6 +340,7 @@ def download_full(png=False, **kwargs):
     )
 
     return f"/home/twenty/Downloads/{filename}"  # Filepath
+
 
 # - End non interactive, invisible to user (backend) functions
 
@@ -506,21 +505,23 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 # But I think delaying the prompt is better than waiting for an image
                 # to download when you load it
                 if not list_of_names:  # From gallery; download next image
-                    list_of_names = download_multi(
-                        artist_user_id,
-                        image_id,
-                        page_urls[: current_page_num_post + 1],
-                    )
+                    selection1 = page_urls[: current_page_num_post + 1]
+                    list_of_names = [i.split("/")[-1] for i in selection1]
+                    download_multi(artist_user_id, image_id, selection1)
 
+                # fmt: off
                 open_image_vp(
-                    artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
+                    artist_user_id,
+                    f"{image_id}/{list_of_names[current_page_num_post]}"
                 )
+                # fmt: on
 
                 # Downloads the next image
-                list_of_names = download_multi(
-                    artist_user_id, image_id, page_urls[: current_page_num_post + 2],
-                )
+                selection2 = page_urls[: current_page_num_post + 2]
+                list_of_names = [i.split("/")[-1] for i in selection2]
+                download_multi(artist_user_id, image_id, selection2)
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
+
                 # TODO: enter {number} to jump to image number (for multi-image posts)
 
         elif image_prompt_command == "p":
@@ -531,9 +532,12 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 print("This is the first image in the post!")
             else:
                 current_page_num_post -= 1
+                # fmt: off
                 open_image_vp(
-                    artist_user_id, f"{image_id}/{list_of_names[current_page_num_post]}"
+                    artist_user_id,
+                    f"{image_id}/{list_of_names[current_page_num_post]}"
                 )
+                # fmt: on
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
 
         elif image_prompt_command == "h":
@@ -707,7 +711,8 @@ def view_post_mode(image_id):
     if number_of_pages == 1:
         list_of_names = None
     else:
-        list_of_names = download_multi(artist_user_id, image_id, page_urls[:2])
+        list_of_names = [i.split("/")[-1] for i in page_urls[:2]]
+        download_multi(artist_user_id, image_id, page_urls[:2])
 
     image_prompt(
         image_id,
