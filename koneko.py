@@ -21,6 +21,7 @@ import queue
 from concurrent.futures import ThreadPoolExecutor
 import re
 import itertools
+import imghdr
 from configparser import ConfigParser
 from contextlib import contextmanager
 from pixivpy3 import *
@@ -282,7 +283,7 @@ def download_large_vp(image_id):
     return artist_user_id, filename, post_json
 
 
-def get_url_and_filename_full(url):
+def get_url_and_filename_full(url, png=False):
     """
     The difference between this and get_url_and_filename() is that this
     is for transforming a url from get_url_and_filename() into the original
@@ -295,13 +296,14 @@ def get_url_and_filename_full(url):
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
     # If it doesn't work, try changing to png
     # Feh will fail opening the image, but no way to get its exit code...
-    # url = url.replace("jpg", "png")
+    if png:
+        url = url.replace("jpg", "png")
     filename = url.split("/")[-1]
     return url, filename
 
 
-def download_full_core(url):
-    url, filename = get_url_and_filename_full(url)
+def download_full_core(url, png=False):
+    url, filename = get_url_and_filename_full(url, png)
     make_path_and_download(
         f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False
     )
@@ -309,7 +311,7 @@ def download_full_core(url):
 
 
 @spinner
-def download_full(**kwargs):
+def download_full(png=False, **kwargs):
     if "post_json" in kwargs.keys():
         post_json = kwargs["post_json"]
     elif "image_id" in kwargs.keys():
@@ -317,7 +319,7 @@ def download_full(**kwargs):
         post_json = current_image.illust
     url = get_url_and_filename(post_json, "large")
 
-    filename = download_full_core(url)
+    filename = download_full_core(url, png)
     return f"/home/twenty/Downloads/{filename}"  # Filepath
 
 
@@ -417,6 +419,10 @@ def image_prompt(image_id, artist_user_id, **kwargs):
 
         elif image_prompt_command == "d":
             filepath = download_full(image_id=image_id)
+            png = imghdr.what(filepath)
+            if not png:
+                os.remove(filepath)
+                download_full(png=True, image_id=image_id)
             print(f"Image downloaded at {filepath}\n")
 
         elif image_prompt_command == "n":
@@ -527,6 +533,7 @@ def gallery_prompt(
         # all_pages_cache[str(current_page_num)] = current_page
         pass
 
+    print(f"Page {current_page_num}")
     while True:
         gallery_command = input("Enter a gallery command: ")
         if gallery_command == "q":
