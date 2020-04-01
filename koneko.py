@@ -179,7 +179,7 @@ def user_illusts_spinner(artist_user_id):
 # - Download functions
 def async_download(url, img_name, new_file_name=None):
     """
-    Downloads given url, rename if needed
+    Actually downloads given url, rename if needed
 
     Parameters
     ----------
@@ -199,7 +199,7 @@ def async_download(url, img_name, new_file_name=None):
 @spinner
 def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     """
-    Download the illustrations on one page of given artist id
+    Download the illustrations on one page of given artist id (using threads)
 
     Parameters
     ----------
@@ -231,14 +231,23 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
 # @timer
 @spinner
 def download_large(artist_user_id, current_page_num, url, filename):
+    """
+    Downloads one image in large resolution, given url (not image id)
+    Works from only gallery mode
+    """
     large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
     filepath = f"{large_dir}{filename}"
     make_path_and_download(large_dir, url, filename)
 
 
 def make_path_and_download(large_dir, url, filename, try_make_dir=True):
-    # TODO: duplicated with async_download()?
-    # Ans: this is for downloading one image. Using threads will slow it down
+    """
+    Actually downloads given url
+    TODO: duplicated with async_download()?
+    Ans: this is for downloading one image. Using threads will slow it down
+    Q: Reduce code duplication by using a 'async' param?
+    A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
+    """
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
@@ -249,6 +258,10 @@ def make_path_and_download(large_dir, url, filename, try_make_dir=True):
 
 @spinner
 def download_large_vp(image_id):
+    """
+    Downloads one image in large resolution, given image id (not url)
+    Works from only view post (image) mode
+    """
     post_json = api.illust_detail(image_id)["illust"]
     url, filename = get_url_and_filename(post_json, "large", True)
     artist_user_id = post_json["user"]["id"]
@@ -277,16 +290,12 @@ def get_url_and_filename_full(url, png=False):
     return url, filename
 
 
-def download_full_core(url, png=False):
-    url, filename = get_url_and_filename_full(url, png)
-    make_path_and_download(
-        f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False
-    )
-    return filename
-
-
 @spinner
 def download_full(png=False, **kwargs):
+    """
+    Downloads one image in full resolution (the highest; equivalent to saving
+    it manually through browser). Works from either image or gallery mode
+    """
     if "post_json" in kwargs.keys():
         post_json = kwargs["post_json"]
     elif "image_id" in kwargs.keys():
@@ -294,11 +303,17 @@ def download_full(png=False, **kwargs):
         post_json = current_image.illust
     url = get_url_and_filename(post_json, "large")
 
-    filename = download_full_core(url, png)
+    _, filename = get_url_and_filename_full(url, png)
+    make_path_and_download(
+        f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False
+    )
     return f"/home/twenty/Downloads/{filename}"  # Filepath
 
 
 def download_core(download_path, urls, rename_images=False, file_names=None):
+    """
+    Core logic for downloading
+    """
     # TODO: asynchronously display images (call lsix) after every
     # downloaded pic. No need to wait for all of them to be downloaded
     # Requires a rewrite of lsix, because I only want it to display the
@@ -333,6 +348,9 @@ def download_core(download_path, urls, rename_images=False, file_names=None):
 @spinner
 def download_multi(artist_user_id, image_id, page_urls):
     """
+    Download images for posts with multiple images.
+    For use in image mode
+
     page_urls : List of str
         List of all image urls; images are part of a single (multi-image) post
     """
