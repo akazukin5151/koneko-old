@@ -271,25 +271,6 @@ def download_large_vp(image_id):
     return artist_user_id, filename, post_json
 
 
-def get_url_and_filename_full(url, png=False):
-    """
-    The difference between this and get_url_and_filename() is that this
-    is for transforming a url from get_url_and_filename() into the original
-    resolution url. ("Large" res isn't the largest)
-
-    url : str
-        url should be from get_url_and_filename()
-    """
-    url = re.sub(r"_p0_master\d+", "_p0", url)
-    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
-    # If it doesn't work, try changing to png
-    # Feh will fail opening the image, but no way to get its exit code...
-    if png:
-        url = url.replace("jpg", "png")
-    filename = url.split("/")[-1]
-    return url, filename
-
-
 @spinner
 def download_full(png=False, **kwargs):
     """
@@ -301,12 +282,21 @@ def download_full(png=False, **kwargs):
     elif "image_id" in kwargs.keys():
         current_image = api.illust_detail(kwargs["image_id"])
         post_json = current_image.illust
-    url = get_url_and_filename(post_json, "large")
 
-    _, filename = get_url_and_filename_full(url, png)
+    url = get_url_and_filename(post_json, "large")
+    url = re.sub(r"_p0_master\d+", "_p0", url)
+    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
+
+    # If it doesn't work, try changing to png
+    if png:
+        url = url.replace("jpg", "png")
+
+    filename = url.split("/")[-1]
+
     make_path_and_download(
         f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False
     )
+
     return f"/home/twenty/Downloads/{filename}"  # Filepath
 
 
