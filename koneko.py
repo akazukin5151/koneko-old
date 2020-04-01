@@ -467,6 +467,27 @@ def image_prompt(image_id, artist_user_id, **kwargs):
             print(image_prompt.__doc__)
 
 
+class LastPageException(Exception): pass
+
+
+@spinner
+def prefetch_next_page(current_page_num, artist_user_id):
+    """
+    current_page_num : int
+        It is the CURRENT page number, before incrementing
+    """
+    print("   Prefetching...", flush=True, end="\r")
+    next_url = all_pages_cache[str(current_page_num)]["next_url"]
+    if not next_url: # this is the last page
+        raise LastPageException
+
+    parse_page = api.user_illusts(**api.parse_qs(next_url))
+    all_pages_cache[str(current_page_num + 1)] = parse_page
+    current_page_illusts = parse_page["illusts"]
+    download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
+    return current_page_illusts
+
+
 def gallery_prompt(
     current_page_illusts, current_page, current_page_num, artist_user_id
 ):
@@ -486,20 +507,21 @@ def gallery_prompt(
         o9  --->    Open the ninth image's post in browser
         d9  --->    Download the ninth image, in large resolution
     """
+    # Fixes: Gallery -> next page -> image prompt -> back -> prev page
     if current_page_num == 1:
-        # Fixes: Gallery -> next page -> image prompt -> back -> prev page
         # There's no need to pass it around because it'll never be changed
         # outside of gallery_prompt().
         global all_pages_cache
         all_pages_cache = {"1": current_page}
-        # Prefetch page 2
-        page_2_url = current_page["next_url"]
-        page_2 = api.user_illusts(**api.parse_qs(page_2_url))
-        page_2_illusts = page_2["illusts"]
-        download_illusts(page_2_illusts, 2, artist_user_id)
-        all_pages_cache["2"] = page_2
-    else:  # Came back from image prompt
-        all_pages_cache[str(current_page_num)] = current_page
+
+        # Prefetch the next page on first gallery load
+        try:
+            prefetch_next_page(current_page_num, artist_user_id)
+        except LastPageException:
+            pass
+    else:  # Gallery -> next -> image prompt -> back
+        #all_pages_cache[str(current_page_num)] = current_page
+        pass
 
     while True:
         gallery_command = input("Enter a gallery command: ")
@@ -512,27 +534,34 @@ def gallery_prompt(
 
         elif gallery_command[0] == "o":
             image_id = current_page_illusts[int(gallery_command[1:])]["id"]
-            os.system(f"xdg-open https://www.pixiv.net/artworks/{image_id}")
+            link = f"https://www.pixiv.net/artworks/{image_id}"
+            os.system(f"xdg-open {link}")
+            print(f"Opened {link}!\n")
+            continue
 
         elif gallery_command[0] == "d":
             post_json = current_page_illusts[int(gallery_command[1:])]
             filepath = download_full(post_json=post_json)
             print(f"Image downloaded at {filepath}\n")
+            continue
 
         elif gallery_command == "n":
             # First time pressing n: will always be 2
-            current_page_num += 1
-            download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
-            show_artist_illusts(download_path)
+            download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num+1}/"
+            try:
+                show_artist_illusts(download_path)
+            except FileNotFoundError:
+                print("This is the last page!")
+                continue
+            current_page_num += 1 # Only increment if successful
             print(f"Page {current_page_num}")
 
-            # After showing gallery, pre-fetch the next page
-            next_url = all_pages_cache[str(current_page_num)]["next_url"]
-            all_pages_cache[str(current_page_num + 1)] = api.user_illusts(
-                **api.parse_qs(next_url)
-            )
-            current_page_illusts = all_pages_cache[str(current_page_num + 1)]["illusts"]
-            download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
+            try:
+                # After showing gallery, pre-fetch the next page
+                prefetch_next_page(current_page_num-1, artist_user_id)
+            except LastPageException:
+                print("This is the last page!")
+                continue
 
         elif gallery_command == "p":
             if current_page_num > 1:
@@ -711,6 +740,9 @@ def main():
         answer = input("Are you sure you want to exit? [y/N]:\n")
         if answer == "y" or not answer:
             sys.exit(0)
+
+    elif not isinstance(main_command, int):
+        print("Invalid command!")
 
 
 if __name__ == "__main__":
