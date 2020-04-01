@@ -73,28 +73,26 @@ Those two modes are represented by:
 1. `artist_illusts_mode()`
 2. `view_post_mode()`
 
-Frontend, interactive functions (with an input()); has word 'prompt'
+* Frontend, interactive functions (with an input()); has word 'prompt'
+    * `begin_prompt()`
+    * `artist_user_id_prompt()`
+    * `gallery_prompt()`
+    * `image_prompt()`
 
-* `begin_prompt()`
-* `artist_user_id_prompt()`
-* `gallery_prompt()`
-* `image_prompt()`
+* Non interactive functions:
+    * Not visible to user (backend):
+        * `setup()`
+        * `download_illusts()`   (only if 'downloading img' messages are disabled)
+        * `download_large()`, `download_large_vp()`
+            * `make_path_and_download()`
+        * `download_full()`
+            * `download_full_core()`
+            * `get_url_and_filename()`
 
-Non interactive functions:
-
-* Not visible to user (backend):
-    * `setup()`
-    * `download_illusts()`   (only if 'downloading img' messages are disabled)
-    * `download_large()`, `download_large_vp()`
-        * `make_path_and_download()`
-    * `download_full()`
-        * `download_full_core()`
-        * `get_url_and_filename()`
-
-* Visible to user. Non-interactive function leads to (--->) an interactive prompt:
-    * `show_artist_illusts()` ---> `gallery_prompt()`
-    * `open_image()` ---> `image_prompt()`
-    * `open_image_vp()` ---^
+    * Visible to user. Leads to (--->) an interactive prompt:
+        * `show_artist_illusts()` ---> `gallery_prompt()`
+        * `open_image()` ---> `image_prompt()`
+        * `open_image_vp()` ---^
 
 Misc functions:
 * `main()` starts `setup()` asynchronously, so it log ins in the background while the user pick between modes and enters the IDs
