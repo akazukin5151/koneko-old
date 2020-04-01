@@ -689,50 +689,31 @@ def view_post_mode(image_id):
     artist_illusts_mode(artist_user_id)
 
 
-def main():
-    apiQueue = queue.Queue()
-    apiThread = threading.Thread(target=setup, args=(apiQueue,))
-    apiThread.start()  # Start logging in
-    global api  # It'll never be changed after logging in
-
-    # During this part, the API can still be logging in but we can proceed
-    # TODO: put a cute anime girl here with icat
-    os.system("clear")
-
-    # Direct command line arguments, skip begin_prompt()
-    if len(sys.argv) == 2:
-        url = sys.argv[1]
-        if "users" in url:
-            artist_user_id = url.split("/")[-1].split("\\")[-1][1:]
-            main_command = "1"
-        elif "artworks" in url:
-            image_id = url.split("/")[-1].split("\\")[0]
-            main_command = "2"
-        elif "illust_id" in url:
-            image_id = re.findall(r"&illust_id.*", url)[0].split("=")[-1]
-            main_command = "2"
-
-        prompted = False
-
-    elif len(sys.argv) > 3:
-        print("Too many arguments!")
-    else:
-        main_command = begin_prompt()
-        prompted = True
-
-    if main_command == "1":
+def artist_illusts_mode_loop(prompted, **kwargs):
+    while True:
         if prompted:
             artist_user_id = artist_user_id_prompt()
             os.system("clear")
             if "pixiv" in artist_user_id:
                 artist_user_id = artist_user_id.split("/")[-1]
+            # After the if, input must either be int or invalid
+            try:
+                int(artist_user_id)
+            except ValueError:
+                print("Invalid user ID!")
+                continue
+        else:
+            artist_user_id = kwargs["artist_user_id"]
 
-        apiThread.join()  # Wait for api to finish
-        api = apiQueue.get()  # Assign api to PixivAPI object
+        api_thread.join()  # Wait for api to finish
+        global api
+        api = api_queue.get()  # Assign api to PixivAPI object
 
         artist_illusts_mode(artist_user_id)
 
-    elif main_command == "2":
+
+def view_post_mode_loop(prompted, **kwargs):
+    while True:
         if prompted:
             url_or_id = input("Enter pixiv post url or ID:\n")
             os.system("clear")
@@ -740,19 +721,96 @@ def main():
                 image_id = url_or_id.split("/")[-1]
             else:
                 image_id = url_or_id
+            # After the if, input must either be int or invalid
+            try:
+                int(image_id)
+            except ValueError:
+                print("Invalid image ID!")
+                continue
+        else:
+            image_id = kwargs["image_id"]
 
-        apiThread.join()  # Wait for api to finish
-        api = apiQueue.get()  # Assign api to PixivAPI object
+        api_thread.join()  # Wait for api to finish
+        global api
+        api = api_queue.get()  # Assign api to PixivAPI object
 
         view_post_mode(image_id)
 
-    elif main_command == "q":
+
+def main_loop(prompted, **kwargs):
+    while True:
+        if prompted:
+            main_command = begin_prompt()
+        else:
+            main_command = kwargs["main_command"]
+
+        if main_command == "1":
+            try:
+                artist_illusts_mode_loop(prompted, **kwargs)
+            except KeyboardInterrupt:
+                continue
+
+        elif main_command == "2":
+            try:
+                view_post_mode_loop(prompted, **kwargs)
+            except KeyboardInterrupt:
+                continue
+
+        elif main_command == "q":
+            answer = input("Are you sure you want to exit? [y/N]:\n")
+            if answer == "y" or not answer:
+                break
+
+        else:
+            print("Invalid command!")
+            continue
+
+
+def main():
+    # It'll never be changed after logging in
+    global api, api_queue, api_thread
+    api_queue = queue.Queue()
+    api_thread = threading.Thread(target=setup, args=(api_queue,))
+    api_thread.start()  # Start logging in
+
+    # During this part, the API can still be logging in but we can proceed
+    # TODO: put a cute anime girl here with icat
+    os.system("clear")
+
+    # Direct command line arguments, skip begin_prompt()
+    if len(sys.argv) == 2:
+        prompted = False
+        url = sys.argv[1]
+        if "users" in url:
+            artist_user_id = url.split("/")[-1].split("\\")[-1][1:]
+            main_command = "1"
+            kwargs = {"artist_user_id": artist_user_id, "main_command": main_command}
+
+        elif "artworks" in url:
+            image_id = url.split("/")[-1].split("\\")[0]
+            main_command = "2"
+            kwargs = {"image_id": image_id, "main_command": main_command}
+
+        elif "illust_id" in url:
+            image_id = re.findall(r"&illust_id.*", url)[0].split("=")[-1]
+            main_command = "2"
+            kwargs = {"image_id": image_id, "main_command": main_command}
+
+    elif len(sys.argv) > 3:
+        print("Too many arguments!")
+        sys.exit(1)
+
+    else:
+        prompted = True
+        kwargs = {}
+
+    try:
+        main_loop(prompted, **kwargs)
+    except KeyboardInterrupt:
+        print("\n")
         answer = input("Are you sure you want to exit? [y/N]:\n")
         if answer == "y" or not answer:
-            sys.exit(0)
-
-    elif not isinstance(main_command, int):
-        print("Invalid command!")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
