@@ -177,24 +177,68 @@ def user_illusts_spinner(artist_user_id):
 
 
 # - Download functions
+# - Core download functions
+def async_download_core(download_path, urls, rename_images=False, file_names=None):
+    """
+    Core logic for async downloading
+    """
+    # TODO: asynchronously display images (call lsix) after every
+    # downloaded pic. No need to wait for all of them to be downloaded
+    # Requires a rewrite of lsix, because I only want it to display the
+    # latest image and not create a new montage of all images so far.
+    # A custom implementation of the gallery in icat seems to be better
+    os.makedirs(download_path, exist_ok=True)
+    with cd(download_path):
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            for (index, url) in enumerate(urls):
+                img_name = url.split("/")[-1]
+
+                if rename_images:
+                    img_ext = img_name.split(".")[-1]
+                    if index < 10:
+                        # Assumes 10 < number of files < 100
+                        number_prefix = str(index).rjust(2, "0")
+                    else:
+                        number_prefix = str(index)
+                    new_file_name = f"{number_prefix}_{file_names[index]}.{img_ext}"
+
+                else:
+                    new_file_name = img_name
+
+                if not os.path.isfile(new_file_name):
+                    # print(f"Downloading {new_file_name}...")
+                    print("   Downloading illustrations...", flush=True, end="\r")
+                    future = executor.submit(
+                        async_download, url, img_name, new_file_name
+                    )
+
+
+def download_core(large_dir, url, filename, try_make_dir=True):
+    """
+    Actually downloads given url (non async, for single images)
+    TODO: duplicated with async_download()?
+    Ans: this is for downloading one image. Using threads will slow it down
+    Q: Reduce code duplication by using a 'async' param?
+    A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
+    """
+    if try_make_dir:
+        os.makedirs(large_dir, exist_ok=True)
+    if not os.path.isfile(filename):
+        print("   Downloading illustration...", flush=True, end="\r")
+        with cd(large_dir):
+            api.download(url)
+
+
 def async_download(url, img_name, new_file_name=None):
     """
     Actually downloads given url, rename if needed
-
-    Parameters
-    ----------
-    url : str
-        Url to download
-    img_name : str
-        Name of downloaded image without renaming (yet)
-    new_file_name : str or None
-        Desired new name of the image, if you want to rename it
     """
     api.download(url)
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
 
 
+# - Functions that download multiple images
 # @timer
 @spinner
 def download_illusts(current_page_illusts, current_page_num, artist_user_id):
@@ -228,6 +272,22 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     return urls, download_path
 
 
+@spinner
+def download_multi(artist_user_id, image_id, page_urls):
+    """
+    Download images for posts with multiple images.
+    For use in image mode
+
+    page_urls : List of str
+        List of all image urls; images are part of a single (multi-image) post
+    """
+    list_of_names = [i.split("/")[-1] for i in page_urls]
+    download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+    async_download_core(download_path, page_urls)
+    return list_of_names
+
+
+# - Functions that download only one image
 # @timer
 @spinner
 def download_large(artist_user_id, current_page_num, url, filename):
@@ -238,22 +298,6 @@ def download_large(artist_user_id, current_page_num, url, filename):
     large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
     filepath = f"{large_dir}{filename}"
     download_core(large_dir, url, filename)
-
-
-def download_core(large_dir, url, filename, try_make_dir=True):
-    """
-    Actually downloads given url (non async, for single images)
-    TODO: duplicated with async_download()?
-    Ans: this is for downloading one image. Using threads will slow it down
-    Q: Reduce code duplication by using a 'async' param?
-    A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
-    """
-    if try_make_dir:
-        os.makedirs(large_dir, exist_ok=True)
-    if not os.path.isfile(filename):
-        print("   Downloading illustration...", flush=True, end="\r")
-        with cd(large_dir):
-            api.download(url)
 
 
 @spinner
@@ -298,57 +342,6 @@ def download_full(png=False, **kwargs):
     )
 
     return f"/home/twenty/Downloads/{filename}"  # Filepath
-
-
-def async_download_core(download_path, urls, rename_images=False, file_names=None):
-    """
-    Core logic for async downloading
-    """
-    # TODO: asynchronously display images (call lsix) after every
-    # downloaded pic. No need to wait for all of them to be downloaded
-    # Requires a rewrite of lsix, because I only want it to display the
-    # latest image and not create a new montage of all images so far.
-    # A custom implementation of the gallery in icat seems to be better
-    os.makedirs(download_path, exist_ok=True)
-    with cd(download_path):
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            for (index, url) in enumerate(urls):
-                img_name = url.split("/")[-1]
-
-                if rename_images:
-                    img_ext = img_name.split(".")[-1]
-                    if index < 10:
-                        # Assumes 10 < number of files < 100
-                        number_prefix = str(index).rjust(2, "0")
-                    else:
-                        number_prefix = str(index)
-                    new_file_name = f"{number_prefix}_{file_names[index]}.{img_ext}"
-
-                else:
-                    new_file_name = img_name
-
-                if not os.path.isfile(new_file_name):
-                    # print(f"Downloading {new_file_name}...")
-                    print("   Downloading illustrations...", flush=True, end="\r")
-                    future = executor.submit(
-                        async_download, url, img_name, new_file_name
-                    )
-
-
-@spinner
-def download_multi(artist_user_id, image_id, page_urls):
-    """
-    Download images for posts with multiple images.
-    For use in image mode
-
-    page_urls : List of str
-        List of all image urls; images are part of a single (multi-image) post
-    """
-    list_of_names = [i.split("/")[-1] for i in page_urls]
-    download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
-    async_download_core(download_path, page_urls)
-    return list_of_names
-
 
 # - End non interactive, invisible to user (backend) functions
 
