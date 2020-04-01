@@ -26,10 +26,12 @@ from configparser import ConfigParser
 from contextlib import contextmanager
 from pixivpy3 import *
 
-#- Non interactive, invisible to user (backend) functions
-#- General functions (can be applied anywhere)
+# - Non interactive, invisible to user (backend) functions
+# - General functions (can be applied anywhere)
 import time
 import functools
+
+
 def timer(func):
     @functools.wraps(func)  # Preserve original func.__name__
     def wrapper(*args, **kwargs):
@@ -88,7 +90,7 @@ def spinner(func):
     return wrapper
 
 
-#- Logging in functions
+# - Logging in functions
 # @timer
 def setup(out_queue):
     """
@@ -110,7 +112,8 @@ def setup(out_queue):
     out_queue.put(api)
     # return api
 
-#- Other backend functions, not general
+
+# - Other backend functions, not general
 def get_url_and_filename(post_json, size, get_filename=False):
     """
     size : str
@@ -121,6 +124,7 @@ def get_url_and_filename(post_json, size, get_filename=False):
         return url
     filename = url.split("/")[-1]
     return url, filename
+
 
 class LastPageException(Exception):
     pass
@@ -144,6 +148,7 @@ def prefetch_next_page(current_page_num, artist_user_id):
 
     print("  " * 26)
     return current_page_illusts
+
 
 @spinner
 def get_pages_url_in_post(post_json, size="medium"):
@@ -171,7 +176,7 @@ def user_illusts_spinner(artist_user_id):
     return api.user_illusts(artist_user_id)
 
 
-#- Download functions
+# - Download functions
 def async_download(url, img_name, new_file_name=None):
     """
     Downloads given url, rename if needed
@@ -222,6 +227,7 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
 
     return urls, download_path
 
+
 # @timer
 @spinner
 def download_large(artist_user_id, current_page_num, url, filename):
@@ -239,6 +245,7 @@ def make_path_and_download(large_dir, url, filename, try_make_dir=True):
         print("   Downloading illustration...", flush=True, end="\r")
         with cd(large_dir):
             api.download(url)
+
 
 @spinner
 def download_large_vp(image_id):
@@ -334,10 +341,11 @@ def download_multi(artist_user_id, image_id, page_urls):
     download_core(download_path, page_urls)
     return list_of_names
 
-#- End non interactive, invisible to user (backend) functions
+
+# - End non interactive, invisible to user (backend) functions
 
 
-#- Non interactive, visible to user functions
+# - Non interactive, visible to user functions
 # @timer
 def show_artist_illusts(path):
     """
@@ -401,11 +409,13 @@ def open_image_vp(artist_user_id, filename):
     os.system(
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/individual/{filename}"
     )
-#- End non interactive, visible to user functions
 
 
-#- Interactive functions (frontend)
-#- Prompt functions
+# - End non interactive, visible to user functions
+
+
+# - Interactive functions (frontend)
+# - Prompt functions
 def begin_prompt():
     print(
         "\n        Select action:\n\
@@ -421,7 +431,8 @@ def artist_user_id_prompt():
     artist_user_id = input("Enter artist ID or url:\n")
     return artist_user_id
 
-#- Prompt functions with logic
+
+# - Prompt functions with logic
 def image_prompt(image_id, artist_user_id, **kwargs):
     """
     Image view commands:
@@ -529,8 +540,6 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         else:
             print("Invalid command")
             print(image_prompt.__doc__)
-
-
 
 
 def gallery_prompt(
@@ -664,10 +673,12 @@ def gallery_prompt(
             except ValueError:
                 print("Invalid command")
                 print(gallery_prompt.__doc__)
-#- End interactive (frontend) functions
 
 
-#- Mode and loop functions (some interactive and some not)
+# - End interactive (frontend) functions
+
+
+# - Mode and loop functions (some interactive and some not)
 def artist_illusts_mode(artist_user_id, current_page_num=1, fast=False, **kwargs):
     if not fast:
         if current_page_num == 1:
