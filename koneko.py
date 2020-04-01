@@ -26,10 +26,10 @@ from configparser import ConfigParser
 from contextlib import contextmanager
 from pixivpy3 import *
 
+#- Non interactive, invisible to user (backend) functions
+#- General functions (can be applied anywhere)
 import time
 import functools
-
-
 def timer(func):
     @functools.wraps(func)  # Preserve original func.__name__
     def wrapper(*args, **kwargs):
@@ -88,6 +88,7 @@ def spinner(func):
     return wrapper
 
 
+#- Logging in functions
 # @timer
 def setup(out_queue):
     """
@@ -109,23 +110,68 @@ def setup(out_queue):
     out_queue.put(api)
     # return api
 
+#- Other backend functions, not general
+def get_url_and_filename(post_json, size, get_filename=False):
+    """
+    size : str
+        One of: ("square-medium", "medium", "large")
+    """
+    url = post_json["image_urls"][size]
+    if not get_filename:
+        return url
+    filename = url.split("/")[-1]
+    return url, filename
 
-def begin_prompt():
-    print(
-        "\n        Select action:\n\
-        1. View artist illustrations\n\
-        2. Open pixiv post\n\n\
-        q. Quit\n"
-    )
-    command = input("Enter a number: ")
-    return command
+class LastPageException(Exception):
+    pass
 
 
-def artist_user_id_prompt():
-    artist_user_id = input("Enter artist ID or url:\n")
-    return artist_user_id
+@spinner
+def prefetch_next_page(current_page_num, artist_user_id):
+    """
+    current_page_num : int
+        It is the CURRENT page number, before incrementing
+    """
+    print("   Prefetching next page...", flush=True, end="\r")
+    next_url = all_pages_cache[str(current_page_num)]["next_url"]
+    if not next_url:  # this is the last page
+        raise LastPageException
+
+    parse_page = api.user_illusts(**api.parse_qs(next_url))
+    all_pages_cache[str(current_page_num + 1)] = parse_page
+    current_page_illusts = parse_page["illusts"]
+    download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
+
+    print("  " * 26)
+    return current_page_illusts
+
+@spinner
+def get_pages_url_in_post(post_json, size="medium"):
+    """
+    Formerly check_multiple_images_in_post(); for when posts have multiple images
+    """
+    number_of_pages = post_json.page_count
+    if number_of_pages > 1:
+        print(f"Page 1/{number_of_pages}")
+        list_of_pages = post_json.meta_pages
+        page_urls = []
+        for i in range(number_of_pages):
+            page_urls.append(get_url_and_filename(list_of_pages[i], size))
+    else:
+        page_urls = None
+
+    return number_of_pages, page_urls
 
 
+@spinner
+def user_illusts_spinner(artist_user_id):
+    # There's a delay here
+    # Threading won't do anything meaningful here...
+    print("   Fetching user illustrations...", flush=True, end="\r")
+    return api.user_illusts(artist_user_id)
+
+
+#- Download functions
 def async_download(url, img_name, new_file_name=None):
     """
     Downloads given url, rename if needed
@@ -176,72 +222,6 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
 
     return urls, download_path
 
-
-# @timer
-def show_artist_illusts(path):
-    """
-    This assumes you're in the directory where both koneko.py and lscat is in
-    """
-    lscat_path = os.getcwd()
-    with cd(path):
-        os.system(f"{lscat_path}/lscat")
-
-
-def open_image(post_json, artist_user_id, number, current_page_num):
-    """
-    Opens image given by the number (medium-res), downloads large-res and
-    display that
-
-    Parameters
-    ----------
-    post_json : JsonDict
-        description
-    number : int
-        The number prefixed in each image
-    artist_user_id : int
-    current_page_num : int
-    """
-    if number < 10:
-        search_string = f"0{number}_"
-    else:
-        search_string = f"{number}_"
-
-    # display the already-downloaded medium-res image first, then download and
-    # display the large-res
-    os.system("clear")
-    os.system(
-        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/{search_string}*"
-    )
-
-    url, filename = get_url_and_filename(post_json, "large", True)
-    download_large(artist_user_id, current_page_num, url, filename)
-
-    # TODO: non blocking command input.
-    # open medium res image
-    # run download_large on a separate thread
-    # in the meantime, continue:
-    #   run get_pages_url_in_post()
-    #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
-    # when download_large finishes, display the large image (run below command)
-
-    # Can't put input into separate thread, as it will not correctly receive
-    # the input
-    # Can't display large image on a separate thread, as icat doesn't detect
-    # kitty and fails
-    # Only solution is to get image_prompt() to interrupt when it receives a
-    # signal that download_large() has finished
-
-    os.system(
-        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
-    )
-
-
-def open_image_vp(artist_user_id, filename):
-    os.system(
-        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/individual/{filename}"
-    )
-
-
 # @timer
 @spinner
 def download_large(artist_user_id, current_page_num, url, filename):
@@ -252,25 +232,13 @@ def download_large(artist_user_id, current_page_num, url, filename):
 
 def make_path_and_download(large_dir, url, filename, try_make_dir=True):
     # TODO: duplicated with async_download()?
+    # Ans: this is for downloading one image. Using threads will slow it down
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
         print("   Downloading illustration...", flush=True, end="\r")
         with cd(large_dir):
             api.download(url)
-
-
-def get_url_and_filename(post_json, size, get_filename=False):
-    """
-    size : str
-        One of: ("square-medium", "medium", "large")
-    """
-    url = post_json["image_urls"][size]
-    if not get_filename:
-        return url
-    filename = url.split("/")[-1]
-    return url, filename
-
 
 @spinner
 def download_large_vp(image_id):
@@ -366,7 +334,94 @@ def download_multi(artist_user_id, image_id, page_urls):
     download_core(download_path, page_urls)
     return list_of_names
 
+#- End non interactive, invisible to user (backend) functions
 
+
+#- Non interactive, visible to user functions
+# @timer
+def show_artist_illusts(path):
+    """
+    This assumes you're in the directory where both koneko.py and lscat is in
+    """
+    lscat_path = os.getcwd()
+    with cd(path):
+        os.system(f"{lscat_path}/lscat")
+
+
+def open_image(post_json, artist_user_id, number, current_page_num):
+    """
+    Opens image given by the number (medium-res), downloads large-res and
+    display that
+
+    Parameters
+    ----------
+    post_json : JsonDict
+        description
+    number : int
+        The number prefixed in each image
+    artist_user_id : int
+    current_page_num : int
+    """
+    if number < 10:
+        search_string = f"0{number}_"
+    else:
+        search_string = f"{number}_"
+
+    # display the already-downloaded medium-res image first, then download and
+    # display the large-res
+    os.system("clear")
+    os.system(
+        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/{search_string}*"
+    )
+
+    url, filename = get_url_and_filename(post_json, "large", True)
+    download_large(artist_user_id, current_page_num, url, filename)
+
+    # TODO: non blocking command input.
+    # open medium res image
+    # run download_large on a separate thread
+    # in the meantime, continue:
+    #   run get_pages_url_in_post()
+    #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
+    # when download_large finishes, display the large image (run below command)
+
+    # Can't put input into separate thread, as it will not correctly receive
+    # the input
+    # Can't display large image on a separate thread, as icat doesn't detect
+    # kitty and fails
+    # Only solution is to get image_prompt() to interrupt when it receives a
+    # signal that download_large() has finished
+
+    os.system(
+        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
+    )
+
+
+def open_image_vp(artist_user_id, filename):
+    os.system(
+        f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/individual/{filename}"
+    )
+#- End non interactive, visible to user functions
+
+
+#- Interactive functions (frontend)
+#- Prompt functions
+def begin_prompt():
+    print(
+        "\n        Select action:\n\
+        1. View artist illustrations\n\
+        2. Open pixiv post\n\n\
+        q. Quit\n"
+    )
+    command = input("Enter a number: ")
+    return command
+
+
+def artist_user_id_prompt():
+    artist_user_id = input("Enter artist ID or url:\n")
+    return artist_user_id
+
+#- Prompt functions with logic
 def image_prompt(image_id, artist_user_id, **kwargs):
     """
     Image view commands:
@@ -399,6 +454,8 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         if image_prompt_command == "b":
             if current_page_num > 1:
                 # TODO: shouldn't need to do all the checks like prefetch
+                # That means all data from gallery prompt has to be passed
+                # to here
                 artist_illusts_mode(
                     artist_user_id, current_page_num, current_page=current_page
                 )
@@ -474,28 +531,6 @@ def image_prompt(image_id, artist_user_id, **kwargs):
             print(image_prompt.__doc__)
 
 
-class LastPageException(Exception):
-    pass
-
-
-@spinner
-def prefetch_next_page(current_page_num, artist_user_id):
-    """
-    current_page_num : int
-        It is the CURRENT page number, before incrementing
-    """
-    print("   Prefetching next page...", flush=True, end="\r")
-    next_url = all_pages_cache[str(current_page_num)]["next_url"]
-    if not next_url:  # this is the last page
-        raise LastPageException
-
-    parse_page = api.user_illusts(**api.parse_qs(next_url))
-    all_pages_cache[str(current_page_num + 1)] = parse_page
-    current_page_illusts = parse_page["illusts"]
-    download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
-
-    print("  " * 26)
-    return current_page_illusts
 
 
 def gallery_prompt(
@@ -629,44 +664,22 @@ def gallery_prompt(
             except ValueError:
                 print("Invalid command")
                 print(gallery_prompt.__doc__)
+#- End interactive (frontend) functions
 
 
-@spinner
-def get_pages_url_in_post(post_json, size="medium"):
-    """
-    Formerly check_multiple_images_in_post(); for when posts have multiple images
-    """
-    number_of_pages = post_json.page_count
-    if number_of_pages > 1:
-        print(f"Page 1/{number_of_pages}")
-        list_of_pages = post_json.meta_pages
-        page_urls = []
-        for i in range(number_of_pages):
-            page_urls.append(get_url_and_filename(list_of_pages[i], size))
-    else:
-        page_urls = None
+#- Mode and loop functions (some interactive and some not)
+def artist_illusts_mode(artist_user_id, current_page_num=1, fast=False, **kwargs):
+    if not fast:
+        if current_page_num == 1:
+            current_page = user_illusts_spinner(artist_user_id)
+        else:
+            current_page = kwargs["current_page"]
+        current_page_illusts = current_page["illusts"]
 
-    return number_of_pages, page_urls
+        urls, download_path = download_illusts(
+            current_page_illusts, current_page_num, artist_user_id
+        )
 
-
-@spinner
-def user_illusts_spinner(artist_user_id):
-    # There's a delay here
-    # Threading won't do anything meaningful here...
-    print("   Fetching user illustrations...", flush=True, end="\r")
-    return api.user_illusts(artist_user_id)
-
-
-def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
-    if current_page_num == 1:
-        current_page = user_illusts_spinner(artist_user_id)
-    else:
-        current_page = kwargs["current_page"]
-    current_page_illusts = current_page["illusts"]
-
-    urls, download_path = download_illusts(
-        current_page_illusts, current_page_num, artist_user_id
-    )
     show_artist_illusts(download_path)
     gallery_prompt(
         current_page_illusts, current_page, current_page_num, artist_user_id,
