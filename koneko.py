@@ -276,24 +276,8 @@ def download_multi(artist_user_id, image_id, page_urls):
 # - Functions that download only one image
 # @timer
 @spinner('')
-def download_large(artist_user_id, current_page_num, url, filename):
-    """
-    Downloads one image in large resolution, given url (not image id)
-    Works from only gallery mode
-    """
-    large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
+def download_core_spinner(large_dir, url, filename):
     download_core(large_dir, url, filename)
-
-
-@spinner('')
-def download_large_vp(artist_user_id, post_json, url, filename):
-    """
-    Downloads one image in large resolution, given image id (not url)
-    Works from only view post (image) mode
-    """
-    large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
-    download_core(large_dir, url, filename)
-
 
 # - End non interactive, invisible to user (backend) functions
 
@@ -338,22 +322,24 @@ def open_image(post_json, artist_user_id, number, current_page_num):
 
     url = get_url(post_json, "large")
     filename = split_backslash_last(url)
-    download_large(artist_user_id, current_page_num, url, filename)
+
+    large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
+    download_core_spinner(large_dir, url, filename)
 
     # TODO: non blocking command input.
     # open medium res image
-    # run download_large on a separate thread
+    # run download_core_spinner on a separate thread
     # in the meantime, continue:
     #   run get_pages_url_in_post()
     #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
-    # when download_large finishes, display the large image (run below command)
+    # when download_core_spinner finishes, display the large image (run below command)
 
     # Can't put input into separate thread, as it will not correctly receive
     # the input
     # Can't display large image on a separate thread, as icat doesn't detect
     # kitty and fails
     # Only solution is to get image_prompt() to interrupt when it receives a
-    # signal that download_large() has finished
+    # signal that download_core_spinner() has finished
 
     os.system(
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
@@ -705,7 +691,8 @@ def view_post_mode(image_id):
     filename = split_backslash_last(url)
     artist_user_id = post_json["user"]["id"]
 
-    download_large_vp(artist_user_id, post_json, url, filename)
+    large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
+    download_core_spinner(large_dir, url, filename)
     open_image_vp(artist_user_id, filename)
 
     number_of_pages, page_urls = get_pages_url_in_post(post_json, "large")
