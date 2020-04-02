@@ -70,7 +70,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 
 I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get logged out
 
-![pixiv_ublock](pixiv_ublock.png)
+<a href="url"><img src="pixiv_ublock.png" height="350"></a>
 
 * TUIs make you cool
 * TUIs *with embedded pictures* make you even cooler
