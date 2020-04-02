@@ -25,52 +25,8 @@ import imghdr
 from configparser import ConfigParser
 import cytoolz
 from pixivpy3 import AppPixivAPI
-from pure import cd
+from pure import cd, spinner
 from lscat import main as lscat
-
-# - Non interactive, invisible to user (backend) functions
-# - General functions (can be applied anywhere)
-import time
-import functools
-
-
-def timer(func):
-    @functools.wraps(func)  # Preserve original func.__name__
-    def wrapper(*args, **kwargs):
-        t0 = time.time()
-        value = func(*args, **kwargs)
-        t1 = time.time()
-        total = t1 - t0
-        with open("/home/twenty/Workspace/pixiv/time.txt", "a") as the_file:
-            the_file.write(f"{func.__name__!r}() time: {total}\n")
-        return value
-
-    return wrapper
-
-
-def spin(done):
-    for char in itertools.cycle("|/-\\"):  # Infinite loop
-        print(char, flush=True, end="\r")
-        if done.wait(0.1):
-            break
-    print(" " * len(char), end="\r")  # clears the spinner
-
-
-def spinner(func):
-    """
-    https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
-    """
-
-    def wrapper(*args, **kwargs):
-        done = threading.Event()
-        spinner = threading.Thread(target=spin, args=(done,))
-        spinner.start()
-        result = func(*args, **kwargs)  # run slow function, blocking
-        done.set()
-        spinner.join()
-        return result
-
-    return wrapper
 
 
 # - Logging in functions
@@ -350,7 +306,7 @@ def show_artist_illusts(path):
     """
     lscat_path = os.getcwd()
     with cd(path):
-        #os.system(f"{lscat_path}/lscat")
+        # os.system(f"{lscat_path}/lscat")
         lscat(path)
 
 

@@ -33,9 +33,7 @@ def init_consts(number_of_columns, width, path):
     left_shifts = list(map(calc, cols))
     rows = range(-(-len(file_list) // number_of_columns))  # Round up
 
-    partition_file_list = list(
-        cytoolz.partition_all(number_of_columns, file_list)
-    )
+    partition_file_list = list(cytoolz.partition_all(number_of_columns, file_list))
 
     # 2 rows in page 1, 3 rows in page 2
     page1 = partition_file_list[:2]
@@ -48,11 +46,7 @@ def display_page(page, spaces, rows, left_shifts, path):
     with cd(path):
         for (index, space) in enumerate(spaces):
             for row in rows:
-                Image(
-                    page[index][row]
-                ).thumbnail(
-                    300
-                ).show(
+                Image(page[index][row]).thumbnail(300).show(
                     align="left", x=left_shifts[row], y=space
                 )
 
