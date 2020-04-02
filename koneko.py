@@ -78,6 +78,7 @@ def spinner(func):
     """
     https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
     """
+
     def wrapper(*args, **kwargs):
         done = threading.Event()
         spinner = threading.Thread(target=spin, args=(done,))
@@ -230,42 +231,46 @@ def prefetch_next_page(current_page_num, artist_user_id):
     return current_page_illusts
 
 
+def prefix_filename(old_name, new_name, number):
+    img_ext = old_name.split(".")[-1]
+    number_prefix = str(number).rjust(2, "0")
+    new_file_name = f"{number_prefix}_{new_name}.{img_ext}"
+    return new_file_name
+
+
+@cytoolz.curry
+def submit(executor, img_name, new_file_name, url):
+    executor.submit(async_download, url, img_name, new_file_name)
+
+
 # - Download functions
 # - Core download functions
 def async_download_core(download_path, urls, rename_images=False, file_names=None):
     """
     Core logic for async downloading
     """
+    oldnames = list(map(split_backslash_last, urls))
+    if rename_images:
+        newnames = list(map(prefix_filename, oldnames, file_names, range(len(urls))))
+    else:
+        newnames = oldnames
+
     # TODO: asynchronously display images (call lsix) after every
     # downloaded pic. No need to wait for all of them to be downloaded
     # Requires a rewrite of lsix, because I only want it to display the
     # latest image and not create a new montage of all images so far.
     # A custom implementation of the gallery in icat seems to be better
     os.makedirs(download_path, exist_ok=True)
-    with cd(download_path):
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            for (index, url) in enumerate(urls):
-                img_name = split_backslash_last(url)
+    with cd(download_path), ThreadPoolExecutor(max_workers=16) as executor:
+        urls_to_download = list(itertools.filterfalse(os.path.isfile, urls))
 
-                # TODO: split to pure function
-                if rename_images:
-                    img_ext = img_name.split(".")[-1]
-                    if index < 10:
-                        # Assumes 10 < number of files < 100
-                        number_prefix = str(index).rjust(2, "0")
-                    else:
-                        number_prefix = str(index)
-                    new_file_name = f"{number_prefix}_{file_names[index]}.{img_ext}"
+        # FIXME: Submit this doesn't seem to work; multiple values for executor
+        # submit_this = submit(executor=executor, img_name=oldnames, new_file_name=newnames)
+        # list(map(submit_this, urls_to_download))
 
-                else:
-                    new_file_name = img_name
-
-                if not os.path.isfile(new_file_name):
-                    # print(f"Downloading {new_file_name}...")
-                    print("   Downloading illustrations...", flush=True, end="\r")
-                    executor.submit(
-                        async_download, url, img_name, new_file_name
-                    )
+        for (i, url) in enumerate(urls_to_download):
+            print("   Downloading illustrations...", flush=True, end="\r")
+            executor.submit(async_download, url, oldnames[i], newnames[i])
 
 
 def download_core(large_dir, url, filename, try_make_dir=True):
@@ -288,6 +293,7 @@ def async_download(url, img_name, new_file_name=None):
     """
     Actually downloads given url, rename if needed
     """
+    #print(f"Downloading {img_name}")
     api.download(url)
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
@@ -716,20 +722,31 @@ def gallery_prompt(
 # - Mode and loop functions (some interactive and some not)
 def show_gallery(artist_user_id, current_page_num, current_page):
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
-    current_page_illusts = current_page['illusts']
+    current_page_illusts = current_page["illusts"]
+
+    if current_page_num == 1:
+        download_illusts(current_page_illusts, current_page_num, artist_user_id)
 
     show_artist_illusts(download_path)
     gallery_prompt(
         current_page_illusts, current_page, current_page_num, artist_user_id,
     )
 
+
 def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
+    """
+    Use this if get_user_illusts_spinner() is needed (don't have current_page
+    yet)
+    Use show_gallery() otherwise (such as, after returning from image mode
+    to gallery)
+    """
     if current_page_num == 1:
         current_page = get_user_illusts_spinner(artist_user_id)
     else:
         current_page = kwargs["current_page"]
 
     show_gallery(artist_user_id, current_page_num, current_page)
+
 
 def view_post_mode(image_id):
     # illust_detail might need a spinner
