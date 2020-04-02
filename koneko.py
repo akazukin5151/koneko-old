@@ -157,23 +157,26 @@ class LastPageException(Exception):
 
 
 @spinner("")  # No message because it conflicts with download_illusts()
-def prefetch_next_page(current_page_num, artist_user_id):
+def prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages_cache):
     """
     current_page_num : int
         It is the CURRENT page number, before incrementing
     """
+    download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     print("   Prefetching next page...", flush=True, end="\r")
-    next_url = all_pages_cache[str(current_page_num)]["next_url"]
+    next_url = current_page['next_url']
     if not next_url:  # this is the last page
         raise LastPageException
 
     parse_page = api.user_illusts(**api.parse_qs(next_url))
     all_pages_cache[str(current_page_num + 1)] = parse_page
     current_page_illusts = parse_page["illusts"]
-    download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
+
+    if not os.path.isdir(download_path):
+        download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
 
     print("  " * 26)
-    return current_page_illusts
+    return all_pages_cache
 
 
 # - Download functions
@@ -195,11 +198,6 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
     else:
         newnames = oldnames
 
-    # TODO: asynchronously display images (call lsix) after every
-    # downloaded pic. No need to wait for all of them to be downloaded
-    # Requires a rewrite of lsix, because I only want it to display the
-    # latest image and not create a new montage of all images so far.
-    # A custom implementation of the gallery in icat seems to be better
     os.makedirs(download_path, exist_ok=True)
     with cd(download_path), ThreadPoolExecutor(max_workers=16) as executor:
         urls_to_download = list(itertools.filterfalse(os.path.isfile, urls))
@@ -419,6 +417,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         elif image_prompt_command == "d":
             url, filename, filepath = get_full_image_details(image_id=image_id)
             # TODO: spinner missing for all get_full_image_details()
+            # because it accepts **kwargs and that confuses the spinner decorator
             download_core(
                 f"{os.path.expanduser('~')}/Downloads/",
                 url,
@@ -500,7 +499,8 @@ def image_prompt(image_id, artist_user_id, **kwargs):
 
 
 def gallery_prompt(
-    current_page_illusts, current_page, current_page_num, artist_user_id
+    current_page_illusts, current_page, current_page_num, artist_user_id,
+    all_pages_cache
 ):
     """
     Gallery commands:
@@ -520,20 +520,13 @@ def gallery_prompt(
     """
     # Fixes: Gallery -> next page -> image prompt -> back -> prev page
     if current_page_num == 1:
-        # There's no need to pass it around because it'll never be changed
-        # outside of gallery_prompt().
-        # TODO: still, I'm uncomfortable with the global. Better refactor
-        global all_pages_cache
-        all_pages_cache = {"1": current_page}
-
         # Prefetch the next page on first gallery load
         try:
-            prefetch_next_page(current_page_num, artist_user_id)
+            all_pages_cache = prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages_cache)
         except LastPageException:
             pass
     else:  # Gallery -> next -> image prompt -> back
-        # all_pages_cache[str(current_page_num)] = current_page
-        pass
+        all_pages_cache[str(current_page_num)] = current_page
 
     print(f"Page {current_page_num}")
     while True:
@@ -576,13 +569,13 @@ def gallery_prompt(
             current_page_num += 1  # Only increment if successful
             print(f"Page {current_page_num}")
 
-            # TODO: don't prefetch if next -> prev -> next
-            try:
-                # After showing gallery, pre-fetch the next page
-                prefetch_next_page(current_page_num - 1, artist_user_id)
-            except LastPageException:
-                print("This is the last page!")
-                continue
+            if not str(current_page_num) in all_pages_cache.keys():
+                try:
+                    # After showing gallery, pre-fetch the next page
+                    all_pages_cache = prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages_cache)
+                except LastPageException:
+                    print("This is the last page!")
+                    continue
 
         elif gallery_command == "p":
             if current_page_num > 1:
@@ -654,16 +647,21 @@ def gallery_prompt(
 
 
 # - Mode and loop functions (some interactive and some not)
-def show_gallery(artist_user_id, current_page_num, current_page):
+def show_gallery(artist_user_id, current_page_num, current_page, show=True):
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     current_page_illusts = current_page["illusts"]
 
     if current_page_num == 1:
-        download_illusts(current_page_illusts, current_page_num, artist_user_id)
+        if not os.path.isdir(download_path):
+            download_illusts(current_page_illusts, current_page_num, artist_user_id)
 
-    show_artist_illusts(download_path)
+    if show:
+        show_artist_illusts(download_path)
+
+    all_pages_cache = {"1": current_page}
     gallery_prompt(
         current_page_illusts, current_page, current_page_num, artist_user_id,
+        all_pages_cache
     )
 
 
@@ -675,11 +673,17 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
     to gallery)
     """
     if current_page_num == 1:
+        download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
+        # If path exists, show immediately (without checking for contents!)
+        if os.path.isdir(download_path):
+            show_artist_illusts(download_path)
+
         current_page = get_user_illusts_spinner(artist_user_id)
+        show_gallery(artist_user_id, current_page_num, current_page, show=False)
+
     else:
         current_page = kwargs["current_page"]
-
-    show_gallery(artist_user_id, current_page_num, current_page)
+        show_gallery(artist_user_id, current_page_num, current_page)
 
 
 def view_post_mode(image_id):
