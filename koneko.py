@@ -1,7 +1,7 @@
 """
 TODO: handle posts with multiple images:
     Need an indicator in gallery view (need to rewrite lscat first)
-TODO: if post has multiple images, there should be a preview in image view
+IMPROVEMENT: if post has multiple images, there should be a preview in image view
 TODO: unit tests
 
 Browse pixiv in the terminal using kitty's icat to display images (in the
@@ -23,72 +23,10 @@ import re
 import itertools
 import imghdr
 from configparser import ConfigParser
-from contextlib import contextmanager
 import cytoolz
 from pixivpy3 import AppPixivAPI
-
-# - Non interactive, invisible to user (backend) functions
-# - General functions (can be applied anywhere)
-import time
-import functools
-
-
-def timer(func):
-    @functools.wraps(func)  # Preserve original func.__name__
-    def wrapper(*args, **kwargs):
-        t0 = time.time()
-        value = func(*args, **kwargs)
-        t1 = time.time()
-        total = t1 - t0
-        with open("/home/twenty/Workspace/pixiv/time.txt", "a") as the_file:
-            the_file.write(f"{func.__name__!r}() time: {total}\n")
-        return value
-
-    return wrapper
-
-
-@contextmanager
-def cd(newdir):
-    """
-    Change current script directory, do something, change back to old directory
-    See https://stackoverflow.com/questions/431684/how-do-i-change-the-working-directory-in-python/24176022#24176022
-
-    Parameters
-    ----------
-    newdir : str
-        New directory to cd into inside 'with'
-    """
-    prevdir = os.getcwd()
-    os.chdir(os.path.expanduser(newdir))
-    try:
-        yield
-    finally:
-        os.chdir(prevdir)
-
-
-def spin(done):
-    for char in itertools.cycle("|/-\\"):  # Infinite loop
-        print(char, flush=True, end="\r")
-        if done.wait(0.1):
-            break
-    print(" " * len(char), end="\r")  # clears the spinner
-
-
-def spinner(func):
-    """
-    https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
-    """
-
-    def wrapper(*args, **kwargs):
-        done = threading.Event()
-        spinner = threading.Thread(target=spin, args=(done,))
-        spinner.start()
-        result = func(*args, **kwargs)  # run slow function, blocking
-        done.set()
-        spinner.join()
-        return result
-
-    return wrapper
+from pure import cd, spinner
+from lscat import main as lscat
 
 
 # - Logging in functions
@@ -147,7 +85,7 @@ def get_titles_in_page(current_page_illusts):
     return titles
 
 
-@spinner
+@spinner("")
 def get_pages_url_in_post(post_json, size="medium"):
     """
     Formerly check_multiple_images_in_post(); for when posts have multiple images
@@ -165,12 +103,12 @@ def get_pages_url_in_post(post_json, size="medium"):
     return number_of_pages, page_urls
 
 
-@spinner
+@spinner("Fetching user illustrations... ")
 def get_user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
-    # TODO: Caching it (in non volatile storage) might work
-    print("   Fetching user illustrations...", flush=True, end="\r")
+    # IMPROVEMENT: Caching it (in non volatile storage) might work
+    # print("   Fetching user illustrations...", flush=True, end="\r")
     return api.user_illusts(artist_user_id)
 
 
@@ -199,37 +137,12 @@ def change_url_to_full(post_json, png=False):
     # If it doesn't work, try changing to png
     if png:
         url = url.replace("jpg", "png")
-
     return url
 
 
 def generate_filepath(filename):
-    filepath = f"/home/twenty/Downloads/{filename}"
+    filepath = f"{os.path.expanduser('~')}/Downloads/{filename}"
     return filepath
-
-
-class LastPageException(Exception):
-    pass
-
-
-@spinner
-def prefetch_next_page(current_page_num, artist_user_id):
-    """
-    current_page_num : int
-        It is the CURRENT page number, before incrementing
-    """
-    print("   Prefetching next page...", flush=True, end="\r")
-    next_url = all_pages_cache[str(current_page_num)]["next_url"]
-    if not next_url:  # this is the last page
-        raise LastPageException
-
-    parse_page = api.user_illusts(**api.parse_qs(next_url))
-    all_pages_cache[str(current_page_num + 1)] = parse_page
-    current_page_illusts = parse_page["illusts"]
-    download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
-
-    print("  " * 26)
-    return current_page_illusts
 
 
 def prefix_filename(old_name, new_name, number):
@@ -239,13 +152,35 @@ def prefix_filename(old_name, new_name, number):
     return new_file_name
 
 
-@cytoolz.curry
-def submit(executor, img_name, new_file_name, url):
-    executor.submit(async_download, url, img_name, new_file_name)
+class LastPageException(Exception):
+    pass
+
+
+@spinner("")  # No message because it conflicts with download_illusts()
+def prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages_cache):
+    """
+    current_page_num : int
+        It is the CURRENT page number, before incrementing
+    """
+    download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
+    print("   Prefetching next page...", flush=True, end="\r")
+    next_url = current_page["next_url"]
+    if not next_url:  # this is the last page
+        raise LastPageException
+
+    parse_page = api.user_illusts(**api.parse_qs(next_url))
+    all_pages_cache[str(current_page_num + 1)] = parse_page
+    current_page_illusts = parse_page["illusts"]
+
+    if not os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
+        download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
+
+    print("  " * 26)
+    return all_pages_cache
 
 
 # - Download functions
-# - Core download functions
+# - Core download functions (for async)
 def async_download_core(download_path, urls, rename_images=False, file_names=None):
     """
     Core logic for async downloading
@@ -256,43 +191,19 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
     else:
         newnames = oldnames
 
-    # TODO: asynchronously display images (call lsix) after every
-    # downloaded pic. No need to wait for all of them to be downloaded
-    # Requires a rewrite of lsix, because I only want it to display the
-    # latest image and not create a new montage of all images so far.
-    # A custom implementation of the gallery in icat seems to be better
     os.makedirs(download_path, exist_ok=True)
-    with cd(download_path), ThreadPoolExecutor(max_workers=16) as executor:
+    with cd(download_path), ThreadPoolExecutor(max_workers=30) as executor:
         urls_to_download = list(itertools.filterfalse(os.path.isfile, urls))
 
-        # FIXME: Submit this doesn't seem to work; multiple values for executor
-        # submit_this = submit(executor=executor, img_name=oldnames, new_file_name=newnames)
-        # list(map(submit_this, urls_to_download))
-
+        # Curried submit function doesn't work...
         for (i, url) in enumerate(urls_to_download):
-            print("   Downloading illustrations...", flush=True, end="\r")
             executor.submit(async_download, url, oldnames[i], newnames[i])
-
-
-def download_core(large_dir, url, filename, try_make_dir=True):
-    """
-    Actually downloads given url (non async, for single images)
-    TODO: duplicated with async_download()?
-    Ans: this is for downloading one image. Using threads will slow it down
-    Q: Reduce code duplication by using a 'async' param?
-    A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
-    """
-    if try_make_dir:
-        os.makedirs(large_dir, exist_ok=True)
-    if not os.path.isfile(filename):
-        print("   Downloading illustration...", flush=True, end="\r")
-        with cd(large_dir):
-            api.download(url)
 
 
 def async_download(url, img_name, new_file_name=None):
     """
-    Actually downloads given url, rename if needed
+    Actually downloads given url, rename if needed. For use inside
+    async_download_core
     """
     # print(f"Downloading {img_name}")
     api.download(url)
@@ -300,9 +211,9 @@ def async_download(url, img_name, new_file_name=None):
         os.rename(f"{img_name}", f"{new_file_name}")
 
 
-# - Functions that download multiple images
+# - Wrappers around the core functions for async download
 # @timer
-@spinner
+@spinner(" Downloading illustrations...  ")
 def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     """
     Download the illustrations on one page of given artist id (using threads)
@@ -322,38 +233,31 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     async_download_core(download_path, urls, rename_images=True, file_names=titles)
 
 
-@spinner
-def download_multi(artist_user_id, image_id, page_urls):
-    """
-    Download images for posts with multiple images.
-    For use in image mode
-
-    page_urls : List of str
-        List of all image urls; images are part of a single (multi-image) post
-    """
-    download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+@spinner("")
+def async_download_spinner(download_path, page_urls):
     async_download_core(download_path, page_urls)
 
 
-# - Functions that download only one image
+# - Core function for downloading one image
+def download_core(large_dir, url, filename, try_make_dir=True):
+    """
+    Actually downloads given url (non async, for single images)
+    Q: duplicated with async_download()?
+    A: this is for downloading one image. Using threads will slow it down
+    Q: Reduce code duplication by using a 'async' param?
+    A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
+    """
+    if try_make_dir:
+        os.makedirs(large_dir, exist_ok=True)
+    if not os.path.isfile(filename):
+        print("   Downloading illustration...", flush=True, end="\r")
+        with cd(large_dir):
+            api.download(url)
+
+
 # @timer
-@spinner
-def download_large(artist_user_id, current_page_num, url, filename):
-    """
-    Downloads one image in large resolution, given url (not image id)
-    Works from only gallery mode
-    """
-    large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
-    download_core(large_dir, url, filename)
-
-
-@spinner
-def download_large_vp(artist_user_id, post_json, url, filename):
-    """
-    Downloads one image in large resolution, given image id (not url)
-    Works from only view post (image) mode
-    """
-    large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
+@spinner("")
+def download_core_spinner(large_dir, url, filename):
     download_core(large_dir, url, filename)
 
 
@@ -368,7 +272,8 @@ def show_artist_illusts(path):
     """
     lscat_path = os.getcwd()
     with cd(path):
-        os.system(f"{lscat_path}/lscat")
+        # os.system(f"{lscat_path}/lscat")
+        lscat(path)
 
 
 def open_image(post_json, artist_user_id, number, current_page_num):
@@ -399,22 +304,24 @@ def open_image(post_json, artist_user_id, number, current_page_num):
 
     url = get_url(post_json, "large")
     filename = split_backslash_last(url)
-    download_large(artist_user_id, current_page_num, url, filename)
 
-    # TODO: non blocking command input.
+    large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
+    download_core_spinner(large_dir, url, filename)
+
+    # IMPROVEMENT: non blocking command input.
     # open medium res image
-    # run download_large on a separate thread
+    # run download_core_spinner on a separate thread
     # in the meantime, continue:
     #   run get_pages_url_in_post()
     #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
-    # when download_large finishes, display the large image (run below command)
+    # when download_core_spinner finishes, display the large image (run below command)
 
     # Can't put input into separate thread, as it will not correctly receive
     # the input
     # Can't display large image on a separate thread, as icat doesn't detect
     # kitty and fails
     # Only solution is to get image_prompt() to interrupt when it receives a
-    # signal that download_large() has finished
+    # signal that download_core_spinner() has finished
 
     os.system(
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
@@ -498,7 +405,8 @@ def image_prompt(image_id, artist_user_id, **kwargs):
 
         elif image_prompt_command == "d":
             url, filename, filepath = get_full_image_details(image_id=image_id)
-            # TODO: spinner missing for all get_full_image_details()
+            # IMPROVEMENT: spinner missing for all get_full_image_details()
+            # because it accepts **kwargs and that confuses the spinner decorator
             download_core(
                 f"{os.path.expanduser('~')}/Downloads/",
                 url,
@@ -529,6 +437,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
             if current_page_num_post + 1 == number_of_pages:
                 print("This is the last image in the post!")
             else:
+                download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
                 current_page_num_post += 1  # Be careful of 0 index
                 # IDEAL: image prompt should not be blocked while downloading
                 # But I think delaying the prompt is better than waiting for an image
@@ -536,7 +445,8 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 if not list_of_names:  # From gallery; download next image
                     selection1 = page_urls[: current_page_num_post + 1]
                     list_of_names = [split_backslash_last(url) for url in selection1]
-                    download_multi(artist_user_id, image_id, selection1)
+
+                    async_download_spinner(download_path, selection1)
 
                 # fmt: off
                 open_image_vp(
@@ -548,10 +458,12 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 # Downloads the next image
                 selection2 = page_urls[: current_page_num_post + 2]
                 list_of_names = [split_backslash_last(url) for url in selection2]
-                download_multi(artist_user_id, image_id, selection2)
+
+                async_download_spinner(download_path, selection2)
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
 
-                # TODO: enter {number} to jump to image number (for multi-image posts)
+                # IMPROVEMENT: enter {number} to jump to image number (for
+                # multi-image posts)
 
         elif image_prompt_command == "p":
             if not page_urls:
@@ -577,7 +489,11 @@ def image_prompt(image_id, artist_user_id, **kwargs):
 
 
 def gallery_prompt(
-    current_page_illusts, current_page, current_page_num, artist_user_id
+    current_page_illusts,
+    current_page,
+    current_page_num,
+    artist_user_id,
+    all_pages_cache,
 ):
     """
     Gallery commands:
@@ -597,20 +513,15 @@ def gallery_prompt(
     """
     # Fixes: Gallery -> next page -> image prompt -> back -> prev page
     if current_page_num == 1:
-        # There's no need to pass it around because it'll never be changed
-        # outside of gallery_prompt().
-        # TODO: still, I'm uncomfortable with the global. Better refactor
-        global all_pages_cache
-        all_pages_cache = {"1": current_page}
-
         # Prefetch the next page on first gallery load
         try:
-            prefetch_next_page(current_page_num, artist_user_id)
+            all_pages_cache = prefetch_next_page(
+                current_page, current_page_num, artist_user_id, all_pages_cache
+            )
         except LastPageException:
             pass
     else:  # Gallery -> next -> image prompt -> back
-        # all_pages_cache[str(current_page_num)] = current_page
-        pass
+        all_pages_cache[str(current_page_num)] = current_page
 
     print(f"Page {current_page_num}")
     while True:
@@ -653,13 +564,15 @@ def gallery_prompt(
             current_page_num += 1  # Only increment if successful
             print(f"Page {current_page_num}")
 
-            # TODO: don't prefetch if next -> prev -> next
-            try:
-                # After showing gallery, pre-fetch the next page
-                prefetch_next_page(current_page_num - 1, artist_user_id)
-            except LastPageException:
-                print("This is the last page!")
-                continue
+            if not str(current_page_num) in all_pages_cache.keys():
+                try:
+                    # After showing gallery, pre-fetch the next page
+                    all_pages_cache = prefetch_next_page(
+                        current_page, current_page_num, artist_user_id, all_pages_cache
+                    )
+                except LastPageException:
+                    print("This is the last page!")
+                    continue
 
         elif gallery_command == "p":
             if current_page_num > 1:
@@ -678,6 +591,15 @@ def gallery_prompt(
         elif gallery_command == "h":
             print(gallery_prompt.__doc__)
 
+        # TODO: accept coordinates
+        # TODO: o and d should also accept accept coordinates:
+        # o {x,y} o {x y} d {x,y} d {x y}
+        elif re.match(r"^\d,\d$", gallery_command):
+            print("Coordinate, comma")
+
+        elif re.match(r"^\d \d$", gallery_command):
+            print("Coordinate, space")
+
         else:  # main_command is an int
             try:
                 current_page = all_pages_cache[str(current_page_num)]
@@ -689,7 +611,7 @@ def gallery_prompt(
                     post_json, artist_user_id, int(gallery_command), current_page_num
                 )
 
-                # TODO: it's async now but still blocking, as the result
+                # IMPROVEMENT: it's async now but still blocking, as the result
                 # is needed to pass to function
                 # Threading won't even do anything meaningful here
                 # with ThreadPoolExecutor(max_workers=3) as executor:
@@ -722,16 +644,24 @@ def gallery_prompt(
 
 
 # - Mode and loop functions (some interactive and some not)
-def show_gallery(artist_user_id, current_page_num, current_page):
+def show_gallery(artist_user_id, current_page_num, current_page, show=True):
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     current_page_illusts = current_page["illusts"]
 
     if current_page_num == 1:
-        download_illusts(current_page_illusts, current_page_num, artist_user_id)
+        if not os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
+            download_illusts(current_page_illusts, current_page_num, artist_user_id)
 
-    show_artist_illusts(download_path)
+    if show:
+        show_artist_illusts(download_path)
+
+    all_pages_cache = {"1": current_page}
     gallery_prompt(
-        current_page_illusts, current_page, current_page_num, artist_user_id,
+        current_page_illusts,
+        current_page,
+        current_page_num,
+        artist_user_id,
+        all_pages_cache,
     )
 
 
@@ -743,11 +673,17 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
     to gallery)
     """
     if current_page_num == 1:
+        download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
+        # If path exists, show immediately (without checking for contents!)
+        if os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
+            show_artist_illusts(download_path)
+
         current_page = get_user_illusts_spinner(artist_user_id)
+        show_gallery(artist_user_id, current_page_num, current_page, show=False)
+
     else:
         current_page = kwargs["current_page"]
-
-    show_gallery(artist_user_id, current_page_num, current_page)
+        show_gallery(artist_user_id, current_page_num, current_page)
 
 
 def view_post_mode(image_id):
@@ -757,7 +693,8 @@ def view_post_mode(image_id):
     filename = split_backslash_last(url)
     artist_user_id = post_json["user"]["id"]
 
-    download_large_vp(artist_user_id, post_json, url, filename)
+    large_dir = f"/tmp/koneko/{artist_user_id}/individual/"
+    download_core_spinner(large_dir, url, filename)
     open_image_vp(artist_user_id, filename)
 
     number_of_pages, page_urls = get_pages_url_in_post(post_json, "large")
@@ -766,7 +703,9 @@ def view_post_mode(image_id):
         list_of_names = None
     else:
         list_of_names = [split_backslash_last(url) for url in page_urls[:2]]
-        download_multi(artist_user_id, image_id, page_urls[:2])
+
+        download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+        async_download_spinner(download_path, page_urls[:2])
 
     image_prompt(
         image_id,
@@ -829,6 +768,8 @@ def view_post_mode_loop(prompted, **kwargs):
 
 
 def main_loop(prompted, **kwargs):
+    # TODO: gallery mode - if tmp has artist id and '1' dir, immediately
+    # show it without trying to log in or download
     while True:
         if prompted:
             main_command = begin_prompt()
@@ -865,7 +806,7 @@ def main():
     api_thread.start()  # Start logging in
 
     # During this part, the API can still be logging in but we can proceed
-    # TODO: put a cute anime girl here with icat
+    # IMPROVEMENT: put a cute anime girl here with icat
     os.system("clear")
 
     # Direct command line arguments, skip begin_prompt()
