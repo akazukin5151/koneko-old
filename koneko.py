@@ -172,7 +172,7 @@ def prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages
     all_pages_cache[str(current_page_num + 1)] = parse_page
     current_page_illusts = parse_page["illusts"]
 
-    if not os.path.isdir(download_path):
+    if not os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
         download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
 
     print("  " * 26)
@@ -180,14 +180,7 @@ def prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages
 
 
 # - Download functions
-
-
-@cytoolz.curry
-def submit(executor, img_name, new_file_name, url):
-    executor.submit(async_download, url, img_name, new_file_name)
-
-
-# - Core download functions (for async
+# - Core download functions (for async)
 def async_download_core(download_path, urls, rename_images=False, file_names=None):
     """
     Core logic for async downloading
@@ -199,15 +192,11 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
         newnames = oldnames
 
     os.makedirs(download_path, exist_ok=True)
-    with cd(download_path), ThreadPoolExecutor(max_workers=16) as executor:
+    with cd(download_path), ThreadPoolExecutor(max_workers=30) as executor:
         urls_to_download = list(itertools.filterfalse(os.path.isfile, urls))
 
-        # FIXME: Submit this doesn't seem to work; multiple values for executor
-        # submit_this = submit(executor=executor, img_name=oldnames, new_file_name=newnames)
-        # list(map(submit_this, urls_to_download))
-
+        # Curried submit function doesn't work...
         for (i, url) in enumerate(urls_to_download):
-            # print("   Downloading illustrations...", flush=True, end="\r")
             executor.submit(async_download, url, oldnames[i], newnames[i])
 
 
@@ -652,7 +641,7 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True):
     current_page_illusts = current_page["illusts"]
 
     if current_page_num == 1:
-        if not os.path.isdir(download_path):
+        if not os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
             download_illusts(current_page_illusts, current_page_num, artist_user_id)
 
     if show:
@@ -675,7 +664,7 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
     if current_page_num == 1:
         download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
         # If path exists, show immediately (without checking for contents!)
-        if os.path.isdir(download_path):
+        if os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
             show_artist_illusts(download_path)
 
         current_page = get_user_illusts_spinner(artist_user_id)
