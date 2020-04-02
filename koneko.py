@@ -145,6 +145,12 @@ def generate_filepath(filename):
     filepath = f"/home/twenty/Downloads/{filename}"
     return filepath
 
+def prefix_filename(old_name, new_name, number):
+    img_ext = old_name.split(".")[-1]
+    number_prefix = str(number).rjust(2, "0")
+    new_file_name = f"{number_prefix}_{new_name}.{img_ext}"
+    return new_file_name
+
 
 class LastPageException(Exception):
     pass
@@ -170,20 +176,14 @@ def prefetch_next_page(current_page_num, artist_user_id):
     return current_page_illusts
 
 
-def prefix_filename(old_name, new_name, number):
-    img_ext = old_name.split(".")[-1]
-    number_prefix = str(number).rjust(2, "0")
-    new_file_name = f"{number_prefix}_{new_name}.{img_ext}"
-    return new_file_name
-
+# - Download functions
 
 @cytoolz.curry
 def submit(executor, img_name, new_file_name, url):
     executor.submit(async_download, url, img_name, new_file_name)
 
 
-# - Download functions
-# - Core download functions
+# - Core download functions (for async
 def async_download_core(download_path, urls, rename_images=False, file_names=None):
     """
     Core logic for async downloading
@@ -211,34 +211,17 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
             #print("   Downloading illustrations...", flush=True, end="\r")
             executor.submit(async_download, url, oldnames[i], newnames[i])
 
-
-def download_core(large_dir, url, filename, try_make_dir=True):
-    """
-    Actually downloads given url (non async, for single images)
-    TODO: duplicated with async_download()?
-    Ans: this is for downloading one image. Using threads will slow it down
-    Q: Reduce code duplication by using a 'async' param?
-    A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
-    """
-    if try_make_dir:
-        os.makedirs(large_dir, exist_ok=True)
-    if not os.path.isfile(filename):
-        print("   Downloading illustration...", flush=True, end="\r")
-        with cd(large_dir):
-            api.download(url)
-
-
 def async_download(url, img_name, new_file_name=None):
     """
-    Actually downloads given url, rename if needed
+    Actually downloads given url, rename if needed. For use inside
+    async_download_core
     """
     # print(f"Downloading {img_name}")
     api.download(url)
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
 
-
-# - Functions that download multiple images
+# - Wrappers around the core functions for async download
 # @timer
 @spinner(" Downloading illustrations...  ")
 def download_illusts(current_page_illusts, current_page_num, artist_user_id):
@@ -261,23 +244,29 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
 
 
 @spinner('')
-def download_multi(artist_user_id, image_id, page_urls):
-    """
-    Download images for posts with multiple images.
-    For use in image mode
-
-    page_urls : List of str
-        List of all image urls; images are part of a single (multi-image) post
-    """
-    download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+def async_download_spinner(download_path, page_urls):
     async_download_core(download_path, page_urls)
 
-
-# - Functions that download only one image
+# - Core function for downloading one image
+def download_core(large_dir, url, filename, try_make_dir=True):
+    """
+    Actually downloads given url (non async, for single images)
+    TODO: duplicated with async_download()?
+    Ans: this is for downloading one image. Using threads will slow it down
+    Q: Reduce code duplication by using a 'async' param?
+    A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
+    """
+    if try_make_dir:
+        os.makedirs(large_dir, exist_ok=True)
+    if not os.path.isfile(filename):
+        print("   Downloading illustration...", flush=True, end="\r")
+        with cd(large_dir):
+            api.download(url)
 # @timer
 @spinner('')
 def download_core_spinner(large_dir, url, filename):
     download_core(large_dir, url, filename)
+
 
 # - End non interactive, invisible to user (backend) functions
 
@@ -454,6 +443,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
             if current_page_num_post + 1 == number_of_pages:
                 print("This is the last image in the post!")
             else:
+                download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
                 current_page_num_post += 1  # Be careful of 0 index
                 # IDEAL: image prompt should not be blocked while downloading
                 # But I think delaying the prompt is better than waiting for an image
@@ -461,7 +451,8 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 if not list_of_names:  # From gallery; download next image
                     selection1 = page_urls[: current_page_num_post + 1]
                     list_of_names = [split_backslash_last(url) for url in selection1]
-                    download_multi(artist_user_id, image_id, selection1)
+
+                    async_download_spinner(download_path, selection1)
 
                 # fmt: off
                 open_image_vp(
@@ -473,7 +464,8 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 # Downloads the next image
                 selection2 = page_urls[: current_page_num_post + 2]
                 list_of_names = [split_backslash_last(url) for url in selection2]
-                download_multi(artist_user_id, image_id, selection2)
+
+                async_download_spinner(download_path, selection2)
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
 
                 # TODO: enter {number} to jump to image number (for multi-image posts)
@@ -701,7 +693,9 @@ def view_post_mode(image_id):
         list_of_names = None
     else:
         list_of_names = [split_backslash_last(url) for url in page_urls[:2]]
-        download_multi(artist_user_id, image_id, page_urls[:2])
+
+        download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+        async_download_spinner(download_path, page_urls[:2])
 
     image_prompt(
         image_id,
