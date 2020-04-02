@@ -13,7 +13,7 @@ Uses [pixivpy](https://github.com/upbit/pixivpy/), install with `pip install pix
 
 Right now it's slow because it adapts [lsix](https://github.com/hackerb9/lsix/), which relies on ImageMagick. I started with lsix, using libsixel. But it used too much memory and switching around was slow. Plus I didn't want to switch away from kitty. Eventually there will be a rewrite of lsix (now [lscat](https://github.com/twenty5151/koneko/blob/master/lscat)) to remove dependency on ImageMagick and speed it up a lot.
 
-As of now it's in alpha stages. Once I finally get asyncio working it will be in beta. All PRs are welcome. The current master branch is stable, but slow.
+**This is still in alpha stages**. Once I finally get async working and rewrite lscat it will be in beta (see [milestones](https://github.com/twenty5151/koneko/milestone/1)). All PRs are welcome. The current master branch is stable, but slow (due to lack of concurrency). The `testing` branch is for the latest features, fixes, and super instability. The `dev` branch is a more stable branch where commits from `testing` gets merged nightly (or less frequently).
 
 
 # Usage
@@ -36,9 +36,9 @@ Alternatively, you can supply a pixiv url as a command line argument to `koneko.
 
 ```python koneko.py https://www.pixiv.net/en/artworks/78823485```
 
-## Dev branch
+## `Dev` branch
 
-Use the dev branch for the latest features/fixes + instability:
+Use the `dev` branch for latest features/fixes that will be merged to `master` soon:
 
 ```git clone -b dev https://github.com/twenty5151/koneko.git```
 
