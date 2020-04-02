@@ -2,6 +2,7 @@ import os
 import fnmatch
 import cytoolz
 from pixcat import Image
+from koneko import cd
 
 
 def is_jpg(myfile):
@@ -11,15 +12,13 @@ def is_jpg(myfile):
 
 
 def filter_jpg():
-    os.chdir("/tmp/koneko/2232374/1/")
-    return sorted(filter(is_jpg, os.listdir(".")))
+    with cd("/tmp/koneko/2232374/1/"):
+        return sorted(filter(is_jpg, os.listdir(".")))
 
 
 @cytoolz.curry
-def calc_left_shift(image_number, number_of_columns, width):
-    col = image_number % number_of_columns
-    left_shift = col * width
-    return left_shift
+def xcoord(image_number, number_of_columns, width):
+    return image_number % number_of_columns * width
 
 
 def number_prefix(myfile):
@@ -30,49 +29,53 @@ def init_consts(number_of_columns, width):
     # TODO: split up function to smaller pieces
     file_list = filter_jpg()
     cols = range(number_of_columns)
-    calc = calc_left_shift(number_of_columns=number_of_columns, width=width)
+    calc = xcoord(number_of_columns=number_of_columns, width=width)
     left_shifts = list(map(calc, cols))
     rows = range(-(-len(file_list) // number_of_columns))  # Round up
 
-    partition_file_list = list(cytoolz.partition_all(number_of_columns, file_list))
+    partition_file_list = list(
+        cytoolz.partition_all(number_of_columns, file_list)
+    )
+
     # 2 rows in page 1, 3 rows in page 2
-    page_1 = partition_file_list[:2]
-    page_2 = partition_file_list[2:]
-    return page_1, page_2, left_shifts, rows
+    page1 = partition_file_list[:2]
+    page2 = partition_file_list[2:]
+    return page1, page2, left_shifts, rows
 
 
 def display_page(page, spaces, rows, left_shifts):
-    for (i, space) in enumerate(spaces):
-        for row in rows:
-            (
-                Image(page[i][row])
-                .thumbnail(300)
-                .show(align="left", x=left_shifts[row], y=space)
-            )
+    with cd("/tmp/koneko/2232374/1/"):
+        for (index, space) in enumerate(spaces):
+            for row in rows:
+                Image(
+                    page[index][row]
+                ).thumbnail(
+                    300
+                ).show(
+                    align="left", x=left_shifts[row], y=space
+                )
 
 
-def render(page_1, page_2, rows, left_shifts):
+def render(page1, page2, rows, left_shifts):
     os.system("clear")
     print("\n" * 26)  # Scroll to new 'page'
-    spaces = (0, 8)
-    display_page(page_1, spaces, rows, left_shifts)
+    display_page(page1, (0, 8), rows, left_shifts)
 
     print("\n" * 23)  # Scroll to new 'page'
-    spaces = (0, 8, 16)
-    display_page(page_2, spaces, rows, left_shifts)
+    display_page(page2, (0, 8, 16), rows, left_shifts)
 
 
 def main():
-    NUMCOLS = 7
+    number_of_columns = 7
     total_width = 140
-    WIDTH = total_width // NUMCOLS
+    width = total_width // number_of_columns
     # TODO: how to render font?
-    FONTFAMILY = "Hiragino-Sans-GB-W3"
-    FONTSIZE = 16
+    fontfamily = "Hiragino-Sans-GB-W3"
+    fontsize = 16
 
-    page_1, page_2, left_shifts, rows = init_consts(NUMCOLS, WIDTH)
+    page1, page2, left_shifts, rows = init_consts(number_of_columns, width)
     try:
-        render(page_1, page_2, rows, left_shifts)
+        render(page1, page2, rows, left_shifts)
     except IndexError:
         pass
 
