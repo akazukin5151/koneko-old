@@ -1,6 +1,7 @@
 import os
 import threading
 import itertools
+import funcy
 from contextlib import contextmanager
 
 import time
@@ -40,26 +41,23 @@ def cd(newdir):
         os.chdir(prevdir)
 
 
-def spin(done):
+def spin(done, message):
     for char in itertools.cycle("|/-\\"):  # Infinite loop
-        print(char, flush=True, end="\r")
+        print(message, char, flush=True, end="\r")
         if done.wait(0.1):
             break
     print(" " * len(char), end="\r")  # clears the spinner
 
 
-def spinner(func):
+@funcy.decorator
+def spinner(call, message=''):
     """
-    https://github.com/fluentpython/example-code/blob/master/18-asyncio-py3.7/spinner_asyncio.py
+    See http://hackflow.com/blog/2013/11/03/painless-decorators/
     """
-
-    def wrapper(*args, **kwargs):
-        done = threading.Event()
-        spinner = threading.Thread(target=spin, args=(done,))
-        spinner.start()
-        result = func(*args, **kwargs)  # run slow function, blocking
-        done.set()
-        spinner.join()
-        return result
-
-    return wrapper
+    done = threading.Event()
+    spinner = threading.Thread(target=spin, args=(done,message))
+    spinner.start()
+    result = call()
+    done.set()
+    spinner.join()
+    return result
