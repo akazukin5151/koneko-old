@@ -85,7 +85,7 @@ def get_titles_in_page(current_page_illusts):
     return titles
 
 
-@spinner('')
+@spinner("")
 def get_pages_url_in_post(post_json, size="medium"):
     """
     Formerly check_multiple_images_in_post(); for when posts have multiple images
@@ -108,7 +108,7 @@ def get_user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
     # TODO: Caching it (in non volatile storage) might work
-    #print("   Fetching user illustrations...", flush=True, end="\r")
+    # print("   Fetching user illustrations...", flush=True, end="\r")
     return api.user_illusts(artist_user_id)
 
 
@@ -145,6 +145,7 @@ def generate_filepath(filename):
     filepath = f"/home/twenty/Downloads/{filename}"
     return filepath
 
+
 def prefix_filename(old_name, new_name, number):
     img_ext = old_name.split(".")[-1]
     number_prefix = str(number).rjust(2, "0")
@@ -156,7 +157,7 @@ class LastPageException(Exception):
     pass
 
 
-@spinner("") # No message because it conflicts with download_illusts()
+@spinner("")  # No message because it conflicts with download_illusts()
 def prefetch_next_page(current_page_num, artist_user_id):
     """
     current_page_num : int
@@ -177,6 +178,7 @@ def prefetch_next_page(current_page_num, artist_user_id):
 
 
 # - Download functions
+
 
 @cytoolz.curry
 def submit(executor, img_name, new_file_name, url):
@@ -208,8 +210,9 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
         # list(map(submit_this, urls_to_download))
 
         for (i, url) in enumerate(urls_to_download):
-            #print("   Downloading illustrations...", flush=True, end="\r")
+            # print("   Downloading illustrations...", flush=True, end="\r")
             executor.submit(async_download, url, oldnames[i], newnames[i])
+
 
 def async_download(url, img_name, new_file_name=None):
     """
@@ -220,6 +223,7 @@ def async_download(url, img_name, new_file_name=None):
     api.download(url)
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
+
 
 # - Wrappers around the core functions for async download
 # @timer
@@ -243,9 +247,10 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     async_download_core(download_path, urls, rename_images=True, file_names=titles)
 
 
-@spinner('')
+@spinner("")
 def async_download_spinner(download_path, page_urls):
     async_download_core(download_path, page_urls)
+
 
 # - Core function for downloading one image
 def download_core(large_dir, url, filename, try_make_dir=True):
@@ -262,8 +267,10 @@ def download_core(large_dir, url, filename, try_make_dir=True):
         print("   Downloading illustration...", flush=True, end="\r")
         with cd(large_dir):
             api.download(url)
+
+
 # @timer
-@spinner('')
+@spinner("")
 def download_core_spinner(large_dir, url, filename):
     download_core(large_dir, url, filename)
 
