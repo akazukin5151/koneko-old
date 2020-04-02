@@ -18,7 +18,7 @@ def filter_jpg(path):
 
 @cytoolz.curry
 def xcoord(image_number, number_of_columns, width):
-    return image_number % number_of_columns * width
+    return image_number % number_of_columns * width + 1
 
 
 def number_prefix(myfile):
@@ -42,6 +42,17 @@ def init_consts(number_of_columns, width, path):
 
 
 def display_page(page, spaces, rows, left_shifts, path):
+    """
+    The reason why it has to this complicated thing, is because every time
+    something in a different row is displayed, the entire terminal shifts.
+    So if you try to naively plot every image as it loads, it would result
+    in a cascading gallery l
+                            i
+                             k
+                              e
+                                this.
+    Hence, the need to plot each row of images in order
+    """
     # TODO: rewrite with functional style map and currying
     with cd(path):
         for (index, space) in enumerate(spaces):
@@ -64,15 +75,14 @@ def main(path):
     number_of_columns = 7
     total_width = 140
     width = total_width // number_of_columns
-    # FIXME: how to output font?
-    fontfamily = "Hiragino-Sans-GB-W3"
-    fontsize = 16
 
     page1, page2, left_shifts, rows = init_consts(number_of_columns, width, path)
     try:
         render(page1, page2, rows, left_shifts, path)
     except IndexError:
         pass
+    finally:
+        print(' '*4, 1,' '*18, 2,' '*17, 3,' '*17, 4, ' '*17, 5)
 
 
 if __name__ == "__main__":
