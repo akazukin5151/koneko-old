@@ -137,12 +137,11 @@ def change_url_to_full(post_json, png=False):
     # If it doesn't work, try changing to png
     if png:
         url = url.replace("jpg", "png")
-
     return url
 
 
 def generate_filepath(filename):
-    filepath = f"/home/twenty/Downloads/{filename}"
+    filepath = f"{os.path.expanduser('~')}/Downloads/{filename}"
     return filepath
 
 
