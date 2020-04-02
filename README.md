@@ -5,15 +5,11 @@ Browse pixiv in the terminal using kitty's icat to display images (in the termin
 
 ![Image_view](image_view.png)
 
-Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html)
+Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html). Actually, `lscat.py` uses [pixcat](https://github.com/mirukana/pixcat), which is a Python API for icat.
 
 **Why the name Koneko?** Koneko (こねこ) means kitten, which is icat is, a kitty +kitten
 
-Uses [pixivpy](https://github.com/upbit/pixivpy/), install with `pip install pixivpy`
-
-Right now it's slow because it adapts [lsix](https://github.com/hackerb9/lsix/), which relies on ImageMagick. I started with lsix, using libsixel. But it used too much memory and switching around was slow. Plus I didn't want to switch away from kitty. Eventually there will be a rewrite of lsix (now [lscat](https://github.com/twenty5151/koneko/blob/master/lscat)) to remove dependency on ImageMagick and speed it up a lot.
-
-**This is still in alpha stages**. Once I finally get async working and rewrite lscat it will be in beta (see [milestones](https://github.com/twenty5151/koneko/milestone/1)). All PRs are welcome. The current master branch is stable, but slow (due to lack of concurrency). The `testing` branch is for the latest features, fixes, and super instability. The `dev` branch is a more stable branch where commits from `testing` gets merged nightly (or less frequently).
+**This is still in alpha stages**. Once I finally ~~get async working~~ and ~~rewrite lscat~~ and refactor+stabilize it will be in beta (see [milestones](https://github.com/twenty5151/koneko/milestone/1)). All PRs are welcome. The current master branch is (relatively more) stable. The `testing` branch is for the latest features, fixes, and super instability. The `dev` branch is a more stable branch where commits from `testing` gets merged nightly (or less frequently).
 
 ## lscat rewrite
 
@@ -21,30 +17,41 @@ It's not possible to print the post title with the new lscat (without using the 
 
 
 # Usage
-0. Install [kitty](https://github.com/kovidgoyal/kitty), ImageMagick, and all requirements (just see list of imports)
+0. Install [kitty](https://github.com/kovidgoyal/kitty), and all other requirements (just see list of imports)
+    * [pixivpy](https://github.com/upbit/pixivpy): `pip install pixivpy`
+    * [pixcat](https://github.com/mirukana/pixcat): `pip install pixcat`
 1. `mkdir ~/.config/koneko/ && touch ~/.config/koneko/config.ini`
 2. `vim ~/.config/koneko/config.ini` and fill it out with your pixiv username and password like this:
 
-```
+```ini
 [Credentials]
 Username = XXX
 Password = XXX
 ```
 
-3. `git clone https://github.com/twenty5151/koneko.git && cd koneko`
-4. `python koneko.py`
+3. 
+```sh
+git clone https://github.com/twenty5151/koneko.git && cd koneko
+python koneko.py
+```
 
 Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. (Contains "artworks" and "member" respectively). Example:
 
-```python koneko.py https://www.pixiv.net/en/users/2232374```
+```sh
+python koneko.py https://www.pixiv.net/en/users/2232374
+```
 
-```python koneko.py https://www.pixiv.net/en/artworks/78823485```
+```sh
+python koneko.py https://www.pixiv.net/en/artworks/78823485
+```
 
 ## `Dev` branch
 
 Use the `dev` branch for latest features/fixes that will be merged to `master` soon:
 
-```git clone -b dev https://github.com/twenty5151/koneko.git```
+```sh
+git clone -b dev https://github.com/twenty5151/koneko.git
+```
 
 
 # Features
@@ -60,6 +67,11 @@ Use the `dev` branch for latest features/fixes that will be merged to `master` s
 # Rationale
 * Terminal user interfaces are minimalist, fast, and doesn't load Javascript that slows down your entire browser or track you
     * Image loading is *so* much faster
+
+I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get logged out
+
+![pixiv_ublock](pixiv_ublock.png)
+
 * TUIs make you cool
 * TUIs *with embedded pictures* make you even cooler
 * TUIs embedded with pictures of cute anime girls make you the coolest
