@@ -15,6 +15,10 @@ Right now it's slow because it adapts [lsix](https://github.com/hackerb9/lsix/),
 
 **This is still in alpha stages**. Once I finally get async working and rewrite lscat it will be in beta (see [milestones](https://github.com/twenty5151/koneko/milestone/1)). All PRs are welcome. The current master branch is stable, but slow (due to lack of concurrency). The `testing` branch is for the latest features, fixes, and super instability. The `dev` branch is a more stable branch where commits from `testing` gets merged nightly (or less frequently).
 
+## lscat rewrite
+
+It's not possible to print the post title with the new lscat (without using the slow ImageMagick). So I just put column numbers in the bottom. You can count! Gallery prompt will now recognise coordinates `2,3` instead of `6` (both accesses the sixth picture) to assist in counting.
+
 
 # Usage
 0. Install [kitty](https://github.com/kovidgoyal/kitty), ImageMagick, and all requirements (just see list of imports)
@@ -45,7 +49,7 @@ Use the `dev` branch for latest features/fixes that will be merged to `master` s
 
 # Features
 * Artist illustration gallery (equivalent to the illustrations tab on the artist's profile)
-    * Enter a number to open a post
+    * Enter a number to open a post, or its coordinates in the form `x,y` (no brackets needed) or `x y` (separate with a space)
 * Image view: view an image in large resolution
 * Image view can also browse through different images in a multi-image post.
 * Both gallery and image views can:
@@ -54,12 +58,13 @@ Use the `dev` branch for latest features/fixes that will be merged to `master` s
 
 
 # Rationale
-* Terminal user interfaces are minimalist, fast*, and doesn't load Javascript that slows down your entire browser
+* Terminal user interfaces are minimalist, fast, and doesn't load Javascript that slows down your entire browser or track you
+    * Image loading is *so* much faster
 * TUIs make you cool
 * TUIs *with embedded pictures* make you even cooler
+* TUIs embedded with pictures of cute anime girls make you the coolest
 * Keyboard driven
-
-\* At the alpha stage, lscat is slow. But it'll be rewritten. Don't want to wait? Contribute!
+* I use arch btw
 
 
 # Developer manual
@@ -101,3 +106,7 @@ Misc functions:
 
 Here's a random shell command to get (but not download) and display any pixiv image url
 `curl -e 'https://www.pixiv.net' "https://i.pximg.net/img-original/img/2019/12/21/20/13/12/78403815_p0.jpg" | convert - -geometry 800x480 jpg:- | kitty +kitten icat --align left --place 800x480@0x5`
+
+## Unit tests
+The few lines of unit tests can be ran with `pytest testing.py`
+
