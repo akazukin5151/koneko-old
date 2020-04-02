@@ -294,7 +294,7 @@ def async_download(url, img_name, new_file_name=None):
     """
     Actually downloads given url, rename if needed
     """
-    #print(f"Downloading {img_name}")
+    # print(f"Downloading {img_name}")
     api.download(url)
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
