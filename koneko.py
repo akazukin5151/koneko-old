@@ -617,6 +617,15 @@ def gallery_prompt(
         elif gallery_command == "h":
             print(gallery_prompt.__doc__)
 
+        # TODO: accept coordinates
+        # TODO: o and d should also accept accept coordinates:
+        # o {x,y} o {x y} d {x,y} d {x y}
+        elif re.match(r"^\d,\d$", gallery_command):
+            print("Coordinate, comma")
+
+        elif re.match(r"^\d \d$", gallery_command):
+            print("Coordinate, space")
+
         else:  # main_command is an int
             try:
                 current_page = all_pages_cache[str(current_page_num)]
@@ -768,6 +777,8 @@ def view_post_mode_loop(prompted, **kwargs):
 
 
 def main_loop(prompted, **kwargs):
+    # TODO: gallery mode - if tmp has artist id and '1' dir, immediately
+    # show it without trying to log in or download
     while True:
         if prompted:
             main_command = begin_prompt()
