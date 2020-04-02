@@ -106,3 +106,7 @@ Misc functions:
 
 Here's a random shell command to get (but not download) and display any pixiv image url
 `curl -e 'https://www.pixiv.net' "https://i.pximg.net/img-original/img/2019/12/21/20/13/12/78403815_p0.jpg" | convert - -geometry 800x480 jpg:- | kitty +kitten icat --align left --place 800x480@0x5`
+
+## Unit tests
+The few lines of unit tests can be ran with `pytest testing.py`
+
