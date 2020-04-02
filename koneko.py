@@ -169,6 +169,7 @@ def get_pages_url_in_post(post_json, size="medium"):
 def get_user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
+    # TODO: Caching it (in non volatile storage) might work
     print("   Fetching user illustrations...", flush=True, end="\r")
     return api.user_illusts(artist_user_id)
 
@@ -652,6 +653,7 @@ def gallery_prompt(
             current_page_num += 1  # Only increment if successful
             print(f"Page {current_page_num}")
 
+            # TODO: don't prefetch if next -> prev -> next
             try:
                 # After showing gallery, pre-fetch the next page
                 prefetch_next_page(current_page_num - 1, artist_user_id)
