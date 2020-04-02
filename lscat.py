@@ -64,7 +64,7 @@ def main(path):
     number_of_columns = 7
     total_width = 140
     width = total_width // number_of_columns
-    # TODO: how to output font?
+    # FIXME: how to output font?
     fontfamily = "Hiragino-Sans-GB-W3"
     fontsize = 16
 

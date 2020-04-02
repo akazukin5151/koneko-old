@@ -85,7 +85,7 @@ def get_titles_in_page(current_page_illusts):
     return titles
 
 
-@spinner
+@spinner('')
 def get_pages_url_in_post(post_json, size="medium"):
     """
     Formerly check_multiple_images_in_post(); for when posts have multiple images
@@ -103,12 +103,12 @@ def get_pages_url_in_post(post_json, size="medium"):
     return number_of_pages, page_urls
 
 
-@spinner
+@spinner("Fetching user illustrations... ")
 def get_user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
     # TODO: Caching it (in non volatile storage) might work
-    print("   Fetching user illustrations...", flush=True, end="\r")
+    #print("   Fetching user illustrations...", flush=True, end="\r")
     return api.user_illusts(artist_user_id)
 
 
@@ -150,7 +150,7 @@ class LastPageException(Exception):
     pass
 
 
-@spinner
+@spinner("") # No message because it conflicts with download_illusts()
 def prefetch_next_page(current_page_num, artist_user_id):
     """
     current_page_num : int
@@ -208,7 +208,7 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
         # list(map(submit_this, urls_to_download))
 
         for (i, url) in enumerate(urls_to_download):
-            print("   Downloading illustrations...", flush=True, end="\r")
+            #print("   Downloading illustrations...", flush=True, end="\r")
             executor.submit(async_download, url, oldnames[i], newnames[i])
 
 
@@ -240,7 +240,7 @@ def async_download(url, img_name, new_file_name=None):
 
 # - Functions that download multiple images
 # @timer
-@spinner
+@spinner(" Downloading illustrations...  ")
 def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     """
     Download the illustrations on one page of given artist id (using threads)
@@ -260,7 +260,7 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     async_download_core(download_path, urls, rename_images=True, file_names=titles)
 
 
-@spinner
+@spinner('')
 def download_multi(artist_user_id, image_id, page_urls):
     """
     Download images for posts with multiple images.
@@ -275,7 +275,7 @@ def download_multi(artist_user_id, image_id, page_urls):
 
 # - Functions that download only one image
 # @timer
-@spinner
+@spinner('')
 def download_large(artist_user_id, current_page_num, url, filename):
     """
     Downloads one image in large resolution, given url (not image id)
@@ -285,7 +285,7 @@ def download_large(artist_user_id, current_page_num, url, filename):
     download_core(large_dir, url, filename)
 
 
-@spinner
+@spinner('')
 def download_large_vp(artist_user_id, post_json, url, filename):
     """
     Downloads one image in large resolution, given image id (not url)
