@@ -2,7 +2,7 @@ import os
 import fnmatch
 import cytoolz
 from pixcat import Image
-from koneko import cd
+from pure import cd
 
 
 def is_jpg(myfile):
@@ -11,8 +11,8 @@ def is_jpg(myfile):
     return False
 
 
-def filter_jpg():
-    with cd("/tmp/koneko/2232374/1/"):
+def filter_jpg(path):
+    with cd(path):
         return sorted(filter(is_jpg, os.listdir(".")))
 
 
@@ -25,9 +25,9 @@ def number_prefix(myfile):
     return int(myfile.split("_")[0])
 
 
-def init_consts(number_of_columns, width):
+def init_consts(number_of_columns, width, path):
     # TODO: split up function to smaller pieces
-    file_list = filter_jpg()
+    file_list = filter_jpg(path)
     cols = range(number_of_columns)
     calc = xcoord(number_of_columns=number_of_columns, width=width)
     left_shifts = list(map(calc, cols))
@@ -43,8 +43,9 @@ def init_consts(number_of_columns, width):
     return page1, page2, left_shifts, rows
 
 
-def display_page(page, spaces, rows, left_shifts):
-    with cd("/tmp/koneko/2232374/1/"):
+def display_page(page, spaces, rows, left_shifts, path):
+    # TODO: rewrite with functional style map and currying
+    with cd(path):
         for (index, space) in enumerate(spaces):
             for row in rows:
                 Image(
@@ -56,29 +57,29 @@ def display_page(page, spaces, rows, left_shifts):
                 )
 
 
-def render(page1, page2, rows, left_shifts):
+def render(page1, page2, rows, left_shifts, path):
     os.system("clear")
     print("\n" * 26)  # Scroll to new 'page'
-    display_page(page1, (0, 8), rows, left_shifts)
+    display_page(page1, (0, 8), rows, left_shifts, path)
 
     print("\n" * 23)  # Scroll to new 'page'
-    display_page(page2, (0, 8, 16), rows, left_shifts)
+    display_page(page2, (0, 8, 16), rows, left_shifts, path)
 
 
-def main():
+def main(path):
     number_of_columns = 7
     total_width = 140
     width = total_width // number_of_columns
-    # TODO: how to render font?
+    # TODO: how to output font?
     fontfamily = "Hiragino-Sans-GB-W3"
     fontsize = 16
 
-    page1, page2, left_shifts, rows = init_consts(number_of_columns, width)
+    page1, page2, left_shifts, rows = init_consts(number_of_columns, width, path)
     try:
-        render(page1, page2, rows, left_shifts)
+        render(page1, page2, rows, left_shifts, path)
     except IndexError:
         pass
 
 
 if __name__ == "__main__":
-    main()
+    main("/tmp/koneko/2232374/1/")

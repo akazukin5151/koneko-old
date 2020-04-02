@@ -23,9 +23,10 @@ import re
 import itertools
 import imghdr
 from configparser import ConfigParser
-from contextlib import contextmanager
 import cytoolz
 from pixivpy3 import AppPixivAPI
+from pure import cd
+from lscat import main as lscat
 
 # - Non interactive, invisible to user (backend) functions
 # - General functions (can be applied anywhere)
@@ -45,25 +46,6 @@ def timer(func):
         return value
 
     return wrapper
-
-
-@contextmanager
-def cd(newdir):
-    """
-    Change current script directory, do something, change back to old directory
-    See https://stackoverflow.com/questions/431684/how-do-i-change-the-working-directory-in-python/24176022#24176022
-
-    Parameters
-    ----------
-    newdir : str
-        New directory to cd into inside 'with'
-    """
-    prevdir = os.getcwd()
-    os.chdir(os.path.expanduser(newdir))
-    try:
-        yield
-    finally:
-        os.chdir(prevdir)
 
 
 def spin(done):
@@ -368,7 +350,8 @@ def show_artist_illusts(path):
     """
     lscat_path = os.getcwd()
     with cd(path):
-        os.system(f"{lscat_path}/lscat")
+        #os.system(f"{lscat_path}/lscat")
+        lscat(path)
 
 
 def open_image(post_json, artist_user_id, number, current_page_num):
