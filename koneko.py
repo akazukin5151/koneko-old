@@ -1,7 +1,7 @@
 """
 TODO: handle posts with multiple images:
     Need an indicator in gallery view (need to rewrite lscat first)
-TODO: if post has multiple images, there should be a preview in image view
+IMPROVEMENT: if post has multiple images, there should be a preview in image view
 TODO: unit tests
 
 Browse pixiv in the terminal using kitty's icat to display images (in the
@@ -107,7 +107,7 @@ def get_pages_url_in_post(post_json, size="medium"):
 def get_user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
-    # TODO: Caching it (in non volatile storage) might work
+    # IMPROVEMENT: Caching it (in non volatile storage) might work
     # print("   Fetching user illustrations...", flush=True, end="\r")
     return api.user_illusts(artist_user_id)
 
@@ -242,8 +242,8 @@ def async_download_spinner(download_path, page_urls):
 def download_core(large_dir, url, filename, try_make_dir=True):
     """
     Actually downloads given url (non async, for single images)
-    TODO: duplicated with async_download()?
-    Ans: this is for downloading one image. Using threads will slow it down
+    Q: duplicated with async_download()?
+    A: this is for downloading one image. Using threads will slow it down
     Q: Reduce code duplication by using a 'async' param?
     A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
     """
@@ -308,7 +308,7 @@ def open_image(post_json, artist_user_id, number, current_page_num):
     large_dir = f"/tmp/koneko/{artist_user_id}/{current_page_num}/large/"
     download_core_spinner(large_dir, url, filename)
 
-    # TODO: non blocking command input.
+    # IMPROVEMENT: non blocking command input.
     # open medium res image
     # run download_core_spinner on a separate thread
     # in the meantime, continue:
@@ -405,7 +405,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
 
         elif image_prompt_command == "d":
             url, filename, filepath = get_full_image_details(image_id=image_id)
-            # TODO: spinner missing for all get_full_image_details()
+            # IMPROVEMENT: spinner missing for all get_full_image_details()
             # because it accepts **kwargs and that confuses the spinner decorator
             download_core(
                 f"{os.path.expanduser('~')}/Downloads/",
@@ -462,7 +462,8 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 async_download_spinner(download_path, selection2)
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
 
-                # TODO: enter {number} to jump to image number (for multi-image posts)
+                # IMPROVEMENT: enter {number} to jump to image number (for
+                # multi-image posts)
 
         elif image_prompt_command == "p":
             if not page_urls:
@@ -603,7 +604,7 @@ def gallery_prompt(
                     post_json, artist_user_id, int(gallery_command), current_page_num
                 )
 
-                # TODO: it's async now but still blocking, as the result
+                # IMPROVEMENT: it's async now but still blocking, as the result
                 # is needed to pass to function
                 # Threading won't even do anything meaningful here
                 # with ThreadPoolExecutor(max_workers=3) as executor:
@@ -795,7 +796,7 @@ def main():
     api_thread.start()  # Start logging in
 
     # During this part, the API can still be logging in but we can proceed
-    # TODO: put a cute anime girl here with icat
+    # IMPROVEMENT: put a cute anime girl here with icat
     os.system("clear")
 
     # Direct command line arguments, skip begin_prompt()
