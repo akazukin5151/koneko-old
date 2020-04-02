@@ -164,7 +164,7 @@ def prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages
     """
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     print("   Prefetching next page...", flush=True, end="\r")
-    next_url = current_page['next_url']
+    next_url = current_page["next_url"]
     if not next_url:  # this is the last page
         raise LastPageException
 
@@ -489,8 +489,11 @@ def image_prompt(image_id, artist_user_id, **kwargs):
 
 
 def gallery_prompt(
-    current_page_illusts, current_page, current_page_num, artist_user_id,
-    all_pages_cache
+    current_page_illusts,
+    current_page,
+    current_page_num,
+    artist_user_id,
+    all_pages_cache,
 ):
     """
     Gallery commands:
@@ -512,7 +515,9 @@ def gallery_prompt(
     if current_page_num == 1:
         # Prefetch the next page on first gallery load
         try:
-            all_pages_cache = prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages_cache)
+            all_pages_cache = prefetch_next_page(
+                current_page, current_page_num, artist_user_id, all_pages_cache
+            )
         except LastPageException:
             pass
     else:  # Gallery -> next -> image prompt -> back
@@ -562,7 +567,9 @@ def gallery_prompt(
             if not str(current_page_num) in all_pages_cache.keys():
                 try:
                     # After showing gallery, pre-fetch the next page
-                    all_pages_cache = prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages_cache)
+                    all_pages_cache = prefetch_next_page(
+                        current_page, current_page_num, artist_user_id, all_pages_cache
+                    )
                 except LastPageException:
                     print("This is the last page!")
                     continue
@@ -650,8 +657,11 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True):
 
     all_pages_cache = {"1": current_page}
     gallery_prompt(
-        current_page_illusts, current_page, current_page_num, artist_user_id,
-        all_pages_cache
+        current_page_illusts,
+        current_page,
+        current_page_num,
+        artist_user_id,
+        all_pages_cache,
     )
 
 
