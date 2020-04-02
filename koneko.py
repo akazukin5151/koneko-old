@@ -247,6 +247,7 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
             for (index, url) in enumerate(urls):
                 img_name = split_backslash_last(url)
 
+                # TODO: split to pure function
                 if rename_images:
                     img_ext = img_name.split(".")[-1]
                     if index < 10:
@@ -472,12 +473,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
             if current_page_num > 1:
-                # TODO: shouldn't need to do all the checks like prefetch
-                # That means all data from gallery prompt has to be passed
-                # to here
-                artist_illusts_mode(
-                    artist_user_id, current_page_num, current_page=current_page
-                )
+                show_gallery(artist_user_id, current_page_num, current_page)
             else:
                 artist_illusts_mode(artist_user_id, current_page_num)
 
@@ -718,22 +714,22 @@ def gallery_prompt(
 
 
 # - Mode and loop functions (some interactive and some not)
-def artist_illusts_mode(artist_user_id, current_page_num=1, fast=False, **kwargs):
-    if not fast:
-        if current_page_num == 1:
-            current_page = get_user_illusts_spinner(artist_user_id)
-        else:
-            current_page = kwargs["current_page"]
-        current_page_illusts = current_page["illusts"]
-        download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
-
-        download_illusts(current_page_illusts, current_page_num, artist_user_id)
+def show_gallery(artist_user_id, current_page_num, current_page):
+    download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
+    current_page_illusts = current_page['illusts']
 
     show_artist_illusts(download_path)
     gallery_prompt(
         current_page_illusts, current_page, current_page_num, artist_user_id,
     )
 
+def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
+    if current_page_num == 1:
+        current_page = get_user_illusts_spinner(artist_user_id)
+    else:
+        current_page = kwargs["current_page"]
+
+    show_gallery(artist_user_id, current_page_num, current_page)
 
 def view_post_mode(image_id):
     # illust_detail might need a spinner
