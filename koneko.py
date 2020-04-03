@@ -593,57 +593,62 @@ def gallery_prompt(
         elif gallery_command == "h":
             print(gallery_prompt.__doc__)
 
-        elif re.match(r"^\d,\d$", gallery_command):
-            number = process_coords(gallery_command, ",")
-            if not number:
-                continue
-            # TODO: Goto try block
+        else: # Open specified image
+            # Process coordinates first
+            if re.match(r"^\d,\d$", gallery_command):
+                number = process_coords(gallery_command, ",")
+                if not number:
+                    continue
+                else:
+                    selected_image_num = number
 
-        elif re.match(r"^\d \d$", gallery_command):
-            number = process_coords(gallery_command, " ")
-            if not number:
-                continue
-            # Goto
+            elif re.match(r"^\d \d$", gallery_command):
+                number = process_coords(gallery_command, " ")
+                if not number:
+                    continue
+                else:
+                    selected_image_num = number
 
-        else:  # main_command is an int
-            try:
-                current_page = all_pages_cache[str(current_page_num)]
-                current_page_illusts = current_page["illusts"]
-                post_json = current_page_illusts[int(gallery_command)]
-                image_id = post_json.id
+            else: # gallery_command is the selected img, not coordinate
+                try:
+                    selected_image_num = int(gallery_command)
+                except ValueError:
+                    print("Invalid command")
+                    print(gallery_prompt.__doc__)
 
-                open_image(
-                    post_json, artist_user_id, int(gallery_command), current_page_num
-                )
+            current_page = all_pages_cache[str(current_page_num)]
+            current_page_illusts = current_page["illusts"]
+            post_json = current_page_illusts[selected_image_num]
+            image_id = post_json.id
 
-                # IMPROVEMENT: it's async now but still blocking, as the result
-                # is needed to pass to function
-                # Threading won't even do anything meaningful here
-                # with ThreadPoolExecutor(max_workers=3) as executor:
-                #    future = executor.submit(
-                #        page_urls_in_post,
-                #        post_json
-                #    )
-                #
-                # number_of_pages, page_urls = future.result()
+            open_image(
+                post_json, artist_user_id, selected_image_num, current_page_num
+            )
 
-                number_of_pages, page_urls = page_urls_in_post(post_json, "large")
+            # IMPROVEMENT: it's async now but still blocking, as the result
+            # is needed to pass to function
+            # Threading won't even do anything meaningful here
+            # with ThreadPoolExecutor(max_workers=3) as executor:
+            #    future = executor.submit(
+            #        page_urls_in_post,
+            #        post_json
+            #    )
+            #
+            # number_of_pages, page_urls = future.result()
 
-                image_prompt(
-                    image_id,
-                    artist_user_id,
-                    current_page_num=current_page_num,
-                    current_page=current_page,
-                    page_urls=page_urls,
-                    img_post_page_num=0,
-                    number_of_pages=number_of_pages,
-                    images_already_downloaded=None,
-                    all_pages_cache=all_pages_cache
-                )
+            number_of_pages, page_urls = page_urls_in_post(post_json, "large")
 
-            except ValueError:
-                print("Invalid command")
-                print(gallery_prompt.__doc__)
+            image_prompt(
+                image_id,
+                artist_user_id,
+                current_page_num=current_page_num,
+                current_page=current_page,
+                page_urls=page_urls,
+                img_post_page_num=0,
+                number_of_pages=number_of_pages,
+                images_already_downloaded=None,
+                all_pages_cache=all_pages_cache
+            )
 
 
 # - End interactive (frontend) functions
