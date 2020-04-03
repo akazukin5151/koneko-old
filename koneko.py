@@ -455,7 +455,9 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                     all_pages_cache=all_pages_cache,
                 )
             else:
-                artist_illusts_mode(artist_user_id, current_page_num)
+                # Came from view post mode, don't know current page num
+                # Defaults to page 1
+                artist_illusts_mode(artist_user_id)
 
         elif image_prompt_command == "o":
             link = f"https://www.pixiv.net/artworks/{image_id}"
@@ -680,7 +682,7 @@ def gallery_prompt(
 # - Mode and loop functions (some interactive and some not)
 def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kwargs):
     """
-    TODO: What the hell is this even for
+    Downloads images, show if requested, instantiate all_pages_cache, prompt
     """
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     current_page_illusts = current_page["illusts"]
@@ -710,27 +712,22 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kw
     )
 
 
-def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
+def artist_illusts_mode(artist_user_id, current_page_num=1):
     """
-    Use this if user_illusts_spinner() is needed (don't have current_page
-    yet)
-    Use show_gallery() otherwise (such as, after returning from image mode
-    to gallery)
+    If artist_user_id dir exists, show immediately (without checking
+    for contents!)
+    Else, fetch current_page json and proceed download -> show -> prompt
     """
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     # If path exists, show immediately (without checking for contents!)
     if os.path.isdir(download_path):
         show_artist_illusts(download_path)
-        current_page = user_illusts_spinner(artist_user_id)
-        show_gallery(artist_user_id, current_page_num, current_page, show=False)
-
+        show = False
     else:
-        if current_page_num == 1:
-            current_page = user_illusts_spinner(artist_user_id)
-            show_gallery(artist_user_id, current_page_num, current_page)
-        else:
-            current_page = kwargs["current_page"]
-            show_gallery(artist_user_id, current_page_num, current_page)
+        show = True
+
+    current_page = user_illusts_spinner(artist_user_id)
+    show_gallery(artist_user_id, current_page_num, current_page, show=show)
 
 
 def view_post_mode(image_id):
