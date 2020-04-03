@@ -11,10 +11,6 @@ Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magi
 
 **This is still in alpha stages**. Once I finally ~~get async working~~ and ~~rewrite lscat~~ and refactor+stabilize it will be in beta (see [milestones](https://github.com/twenty5151/koneko/milestone/1)). All PRs are welcome. The current master branch is (relatively more) stable. The `testing` branch is for the latest features, fixes, and super instability. The `dev` branch is a more stable branch where commits from `testing` gets merged nightly (or less frequently).
 
-## lscat rewrite
-
-It's not possible to print the post title with the new lscat (without using the slow ImageMagick). So I just put column numbers in the bottom. You can count! Gallery prompt will now recognise coordinates `2,3` instead of `6` (both accesses the sixth picture) to assist in counting.
-
 
 # Usage
 0. Install [kitty](https://github.com/kovidgoyal/kitty), and all other requirements (just see list of imports)
@@ -57,6 +53,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 # Features
 * Artist illustration gallery (equivalent to the illustrations tab on the artist's profile)
     * Enter a number to open a post, or its coordinates in the form `x,y` (no brackets needed) or `x y` (separate with a space)
+    * 1 <= x <= 7 and 1 <= y <= 5. Note that y (rows) counts from top to bottom. For example, 5,1 means col 5 row 1 == picture 4. See [testing.py](testing.py)
 * Image view: view an image in large resolution
 * Image view can also browse through different images in a multi-image post.
 * Both gallery and image views can:
@@ -77,6 +74,18 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 * TUIs embedded with pictures of cute anime girls make you the coolest
 * Keyboard driven
 * I use arch btw
+
+
+## lscat rewrite
+
+**Note on terminology**: [lsix](https://github.com/hackerb9/lsix/) is the name of the original shell script I used, which uses libsixel. I edited it to use icat and renamed it **lscat**. Then I rewrote it with python, which is named **lscat.py**.
+
+You might have problems with image positioning with lscat.py. I wrote it to fit my screen and my terminal size, so there are 'magic numbers' (numbers that just exist) around. There's also no functionality to adjust for different terminal sizes. You can do either:
+
+1. Adjust the 'magic numbers'. There are around 4-5 types and they are commented in `lscat.py`
+2. You can revert to the old lscat script. In show_artist_illusts(), uncomment the two lines and comment out `lscat(path)`
+3. You can contribute by checking terminal size and doing all the maths. Send a PR! The only requirement is that it has to be *fast*. If not, it should be have a toggle to skip those checks.
+4. You can even use libsixel with lsix. In that case, replace the `lscat` file with [lsix](https://github.com/hackerb9/lsix/) and then do 2.
 
 
 # Developer manual
