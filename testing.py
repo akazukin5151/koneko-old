@@ -1,6 +1,9 @@
-import pure
 import os
+
 import pytest
+
+import pure
+
 
 def test_split_backslash_last():
     assert pure.split_backslash_last("https://www.pixiv.net/en/users/2232374") == "2232374"
@@ -40,6 +43,3 @@ def test_process_coords_slice():
     assert pure.process_coords_slice("o 1,1", "o") == 0
     assert pure.process_coords_slice("d 5 1", "d") == 4
     assert pure.process_coords_slice("d25", "d") == 29
-
-
-

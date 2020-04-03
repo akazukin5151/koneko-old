@@ -1,12 +1,12 @@
 import os
-import threading
-import itertools
-import funcy
-import cytoolz
-from contextlib import contextmanager
-
 import time
 import functools
+import itertools
+import threading
+from contextlib import contextmanager
+
+import funcy
+import cytoolz
 
 
 def timer(func):
