@@ -1,6 +1,4 @@
 """
-TODO: handle posts with multiple images:
-    Need an indicator in gallery view (need to rewrite lscat first)
 IMPROVEMENT: if post has multiple images, there should be a preview in image view
 TODO: unit tests
 
@@ -418,7 +416,6 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
             if current_page_num > 1:
-                breakpoint()
                 all_pages_cache = kwargs['all_pages_cache']
                 show_gallery(artist_user_id, current_page_num, current_page, all_pages_cache=all_pages_cache)
             else:
@@ -585,7 +582,6 @@ def gallery_prompt(
         elif gallery_command == "h":
             print(gallery_prompt.__doc__)
 
-        # TODO: allow xy eg 51 --> x=5, y=1
         elif re.match(r"^\d,\d$", gallery_command):
             number = process_coords(gallery_command, ",")
             if not number:
@@ -644,7 +640,6 @@ def gallery_prompt(
 
 # - Mode and loop functions (some interactive and some not)
 def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kwargs):
-    breakpoint()
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     current_page_illusts = current_page["illusts"]
 
@@ -653,6 +648,7 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kw
 
     if show:
         show_artist_illusts(download_path)
+    # TODO: gallery view should indicate posts that have multiple images
 
     if current_page_num == 1:
         all_pages_cache = {"1": current_page}
@@ -688,8 +684,7 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
             show_gallery(artist_user_id, current_page_num, current_page)
         else:
             current_page = kwargs["current_page"]
-
-        show_gallery(artist_user_id, current_page_num, current_page)
+            show_gallery(artist_user_id, current_page_num, current_page)
 
 
 def view_post_mode(image_id):
