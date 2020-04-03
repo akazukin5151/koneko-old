@@ -20,7 +20,7 @@ def filter_jpg(path):
 
 @cytoolz.curry
 def xcoord(image_number, number_of_columns, width):
-    return image_number % number_of_columns * width + 1 # Magic
+    return image_number % number_of_columns * width + 1  # Magic
 
 
 def number_prefix(myfile):
@@ -86,7 +86,7 @@ def main(path):
         render(page1, page2, cols, left_shifts, path)
     except IndexError:
         pass
-    finally: # Magic
+    finally:  # Magic
         print(
             " " * 4,
             1,
