@@ -314,6 +314,59 @@ def download_core_spinner(large_dir, url, filename):
     download_core(large_dir, url, filename)
 
 
+# - Functions that are wrappers around download functions, making them impure
+def download_from_image_view(image_id, png=False):
+    url, filename, filepath = get_full_image_details(image_id=image_id, png=png)
+    # IMPROVEMENT: spinner missing for all get_full_image_details()
+    # because it accepts **kwargs and that confuses the spinner decorator
+    download_core(
+        f"{os.path.expanduser('~')}/Downloads/", url, filename, try_make_dir=False,
+    )
+
+    png = imghdr.what(filepath)
+    if not png:
+        os.remove(filepath)
+        download_from_image_view(image_id, png=True)
+
+    print(f"Image downloaded at {filepath}\n")
+
+
+def go_next_image(
+    page_urls,
+    current_page_num_post,
+    number_of_pages,
+    list_of_names,
+    artist_user_id,
+    image_id,
+):
+    download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
+    # IDEAL: image prompt should not be blocked while downloading
+    # But I think delaying the prompt is better than waiting for an image
+    # to download when you load it
+    if not list_of_names:  # From gallery; download next image
+        selection1 = page_urls[: current_page_num_post + 1]
+        list_of_names = [split_backslash_last(url) for url in selection1]
+        async_download_spinner(download_path, selection1)
+
+    # fmt: off
+    open_image_vp(
+        artist_user_id,
+        f"{image_id}/{list_of_names[current_page_num_post]}"
+    )
+    # fmt: on
+
+    # Downloads the next image
+    selection2 = page_urls[: current_page_num_post + 2]
+    list_of_names = [split_backslash_last(url) for url in selection2]
+    # TODO: list_of_names is a list of all downloaded images
+    # should get next img name and append, rather than constructing it again
+    breakpoint()
+    async_download_spinner(download_path, selection2)
+    print(f"Page {current_page_num_post+1}/{number_of_pages}")
+
+    return list_of_names
+
+
 # - End non interactive, invisible to user (backend) functions
 
 
@@ -444,84 +497,35 @@ def image_prompt(image_id, artist_user_id, **kwargs):
             else:
                 artist_illusts_mode(artist_user_id, current_page_num)
 
-        elif image_prompt_command == "q":
-            answer = input("Are you sure you want to exit? [y/N]:\n")
-            if answer == "y" or not answer:
-                sys.exit(0)
-            else:
-                continue
-
         elif image_prompt_command == "o":
             link = f"https://www.pixiv.net/artworks/{image_id}"
             os.system(f"xdg-open {link}")
             print(f"Opened {link} in browser")
 
         elif image_prompt_command == "d":
-            url, filename, filepath = get_full_image_details(image_id=image_id)
-            # IMPROVEMENT: spinner missing for all get_full_image_details()
-            # because it accepts **kwargs and that confuses the spinner decorator
-            download_core(
-                f"{os.path.expanduser('~')}/Downloads/",
-                url,
-                filename,
-                try_make_dir=False,
-            )
+            download_from_image_view(image_id)
 
-            png = imghdr.what(filepath)
-            if not png:
-                os.remove(filepath)
-
-                url, filename, filepath = get_full_image_details(
-                    png=True, image_id=image_id
-                )
-                download_core(
-                    f"{os.path.expanduser('~')}/Downloads/",
-                    url,
-                    filename,
-                    try_make_dir=False,
-                )
-
-            print(f"Image downloaded at {filepath}\n")
-
+        # IMPROVEMENT: enter {number} to jump to image number (for
+        # multi-image posts)
         elif image_prompt_command == "n":
             if not page_urls:
                 print("This is the only page in the post!")
-                continue
             if current_page_num_post + 1 == number_of_pages:
                 print("This is the last image in the post!")
-            else:
-                download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
-                current_page_num_post += 1  # Be careful of 0 index
-                # IDEAL: image prompt should not be blocked while downloading
-                # But I think delaying the prompt is better than waiting for an image
-                # to download when you load it
-                if not list_of_names:  # From gallery; download next image
-                    selection1 = page_urls[: current_page_num_post + 1]
-                    list_of_names = [split_backslash_last(url) for url in selection1]
 
-                    async_download_spinner(download_path, selection1)
-
-                # fmt: off
-                open_image_vp(
-                    artist_user_id,
-                    f"{image_id}/{list_of_names[current_page_num_post]}"
-                )
-                # fmt: on
-
-                # Downloads the next image
-                selection2 = page_urls[: current_page_num_post + 2]
-                list_of_names = [split_backslash_last(url) for url in selection2]
-
-                async_download_spinner(download_path, selection2)
-                print(f"Page {current_page_num_post+1}/{number_of_pages}")
-
-                # IMPROVEMENT: enter {number} to jump to image number (for
-                # multi-image posts)
+            current_page_num_post += 1  # Be careful of 0 index
+            list_of_names = go_next_image(
+                page_urls,
+                current_page_num_post,
+                number_of_pages,
+                list_of_names,
+                artist_user_id,
+                image_id,
+            )
 
         elif image_prompt_command == "p":
             if not page_urls:
                 print("This is the only page in the post!")
-                continue
             if current_page_num_post == 0:
                 print("This is the first image in the post!")
             else:
@@ -533,6 +537,13 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 )
                 # fmt: on
                 print(f"Page {current_page_num_post+1}/{number_of_pages}")
+
+        elif image_prompt_command == "q":
+            answer = input("Are you sure you want to exit? [y/N]:\n")
+            if answer == "y" or not answer:
+                sys.exit(0)
+            else:
+                continue
 
         elif image_prompt_command == "h":
             print(image_prompt.__doc__)
