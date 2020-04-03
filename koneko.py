@@ -184,13 +184,12 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
 
         # Curried submit function doesn't work...
         for (i, url) in enumerate(urls_to_download):
-            executor.submit(async_download, url, oldnames[i], newnames[i])
+            executor.submit(downloadr, url, oldnames[i], newnames[i])
 
 
-def async_download(url, img_name, new_file_name=None):
+def downloadr(url, img_name, new_file_name=None):
     """
-    Actually downloads given url, rename if needed. For use inside
-    async_download_core
+    Actually downloads given url, rename if needed.
     """
     # print(f"Downloading {img_name}")
     api.download(url)
@@ -229,17 +228,13 @@ def async_download_spinner(download_path, page_urls):
 def download_core(large_dir, url, filename, try_make_dir=True):
     """
     Actually downloads given url (non async, for single images)
-    Q: duplicated with async_download()?
-    A: this is for downloading one image. Using threads will slow it down
-    Q: Reduce code duplication by using a 'async' param?
-    A: hard to do that because threads are contained with 'with ThreadPoolExecutor'
     """
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
         print("   Downloading illustration...", flush=True, end="\r")
         with cd(large_dir):
-            api.download(url)
+            downloadr(url, filename, None)
 
 
 # @timer
