@@ -25,7 +25,7 @@ import imghdr
 from configparser import ConfigParser
 import cytoolz
 from pixivpy3 import AppPixivAPI
-from pure import cd, spinner
+from pure import cd, spinner, split_backslash_last, generate_filepath, prefix_filename, process_coords, find_number_map, process_coords_slice
 from lscat import main as lscat
 
 
@@ -51,7 +51,7 @@ def setup(out_queue):
     out_queue.put(api)
 
 
-# - Other backend functions; all pure functions except for last one
+# - Other backend functions; all pure functions
 @cytoolz.curry
 def url_given_size(post_json, size):
     """
@@ -60,12 +60,6 @@ def url_given_size(post_json, size):
     """
     return post_json["image_urls"][size]
 
-
-def split_backslash_last(str):
-    """
-    Intended for splitting url to get filename, but it has lots of applications...
-    """
-    return str.split("/")[-1]
 
 
 @cytoolz.curry
@@ -103,6 +97,23 @@ def page_urls_in_post(post_json, size="medium"):
     return number_of_pages, page_urls
 
 
+def change_url_to_full(post_json, png=False):
+    url = url_given_size(post_json, "large")
+    url = re.sub(r"_p0_master\d+", "_p0", url)
+    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
+
+    # If it doesn't work, try changing to png
+    if png:
+        url = url.replace("jpg", "png")
+    return url
+
+
+
+class LastPageException(Exception):
+    pass
+
+
+# - Uses web requests, impure
 @spinner("Fetching user illustrations... ")
 def user_illusts_spinner(artist_user_id):
     # There's a delay here
@@ -125,33 +136,6 @@ def full_img_details(png=False, **kwargs):
     return url, filename, filepath
 
 
-def change_url_to_full(post_json, png=False):
-    url = url_given_size(post_json, "large")
-    url = re.sub(r"_p0_master\d+", "_p0", url)
-    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
-
-    # If it doesn't work, try changing to png
-    if png:
-        url = url.replace("jpg", "png")
-    return url
-
-
-def generate_filepath(filename):
-    filepath = f"{os.path.expanduser('~')}/Downloads/{filename}"
-    return filepath
-
-
-def prefix_filename(old_name, new_name, number):
-    img_ext = old_name.split(".")[-1]
-    number_prefix = str(number).rjust(2, "0")
-    new_file_name = f"{number_prefix}_{new_name}.{img_ext}"
-    return new_file_name
-
-
-class LastPageException(Exception):
-    pass
-
-
 @spinner("")  # No message because it conflicts with download_illusts()
 def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     """
@@ -172,60 +156,6 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
         download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
     print("  " * 26)
     return all_pages_cache
-
-
-def process_coords(input_command, split_string):
-    x, y = input_command.split(split_string)
-    x, y = int(x), int(y)
-    return find_number_map(x, y)
-
-
-def find_number_map(x, y):
-    # 7 = number of cols; 5 = number of rows
-    # 7 columns, 30 images
-    number_map = list(cytoolz.partition_all(7, range(30)))
-
-    try:
-        # coordinates are 1-based index
-        number = number_map[y - 1][x - 1]
-    except IndexError:
-        print("Invalid number!\n")
-        return False
-    return number
-
-
-def process_coords_slice(gallery_command, exclude_letter):
-    """
-    # I don't know why I spent so much time on this
-    Supports: (o x,y) (o x y) (oxy)
-    IMPROVEMENT: (o xy)
-    """
-    splitspace = gallery_command.split(" ")
-    if len(splitspace) == 1:
-        splitcomma = splitspace[0].split(",")
-        if len(splitcomma) == 1:
-            # oxy
-            xy = splitcomma[0].split(exclude_letter)[1]
-            x, y = xy[0], xy[1]
-        else:
-            # ox,y --> ['ox', 'y']
-            x = splitcomma[0][1]
-            y = splitcomma[1]
-    else:
-        if len(splitspace) == 2:
-            if len(splitspace[0]) == 1:
-                # o x,y --> ['o', 'x,y']
-                x = splitspace[1][0]
-                y = splitspace[1][2]
-            else:
-                # ox y --> ['ox', 'y']
-                x = splitspace[0][1]
-                y = splitspace[1]
-        else:
-            # o x y --> ['o', 'x', 'y']
-            x, y = splitspace[1], splitspace[2]
-
-    return find_number_map(int(x), int(y))
 
 
 # - Download functions
