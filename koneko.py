@@ -645,9 +645,8 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True):
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     current_page_illusts = current_page["illusts"]
 
-    if current_page_num == 1:
-        if not os.path.isdir(download_path):
-            download_illusts(current_page_illusts, current_page_num, artist_user_id)
+    if not os.path.isdir(download_path):
+        download_illusts(current_page_illusts, current_page_num, artist_user_id)
 
     if show:
         show_artist_illusts(download_path)
@@ -669,17 +668,21 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
     Use show_gallery() otherwise (such as, after returning from image mode
     to gallery)
     """
-    if current_page_num == 1:
-        download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
-        # If path exists, show immediately (without checking for contents!)
-        if os.path.isdir(download_path):
-            show_artist_illusts(download_path)
-
+    download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
+    # If path exists, show immediately (without checking for contents!)
+    if os.path.isdir(download_path):
+        show_artist_illusts(download_path)
         current_page = user_illusts_spinner(artist_user_id)
-    else:
-        current_page = kwargs["current_page"]
+        show_gallery(artist_user_id, current_page_num, current_page, show=False)
 
-    show_gallery(artist_user_id, current_page_num, current_page)
+    else:
+        if current_page_num == 1:
+            current_page = user_illusts_spinner(artist_user_id)
+            show_gallery(artist_user_id, current_page_num, current_page)
+        else:
+            current_page = kwargs["current_page"]
+
+        show_gallery(artist_user_id, current_page_num, current_page)
 
 
 def view_post_mode(image_id):
