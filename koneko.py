@@ -23,6 +23,7 @@ from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
 import cytoolz
+from tqdm import tqdm
 from pixivpy3 import AppPixivAPI
 
 from pure import (
@@ -174,7 +175,7 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
 
 # - Download functions
 # - Core download functions (for async)
-def async_download_core(download_path, urls, rename_images=False, file_names=None):
+def async_download_core(download_path, urls, rename_images=False, file_names=None, pbar=None):
     """
     Core logic for async downloading
     """
@@ -190,16 +191,17 @@ def async_download_core(download_path, urls, rename_images=False, file_names=Non
 
         # Curried submit function doesn't work...
         for (i, url) in enumerate(urls_to_download):
-            executor.submit(downloadr, url, oldnames[i], newnames[i])
+            executor.submit(downloadr, url, oldnames[i], newnames[i], pbar=pbar)
 
 
-def downloadr(url, img_name, new_file_name=None):
+def downloadr(url, img_name, new_file_name=None, pbar=None):
     """
     Actually downloads given url, rename if needed.
     """
-    # TODO: tqdm
     # print(f"Downloading {img_name}")
     api.download(url)
+    if pbar:
+        pbar.update(1)
     # print(f"{img_name} done!")
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
@@ -207,8 +209,8 @@ def downloadr(url, img_name, new_file_name=None):
 
 # - Wrappers around the core functions for async download
 # @timer
-@spinner(" Downloading illustrations...  ")
-def download_illusts(current_page_illusts, current_page_num, artist_user_id):
+#@spinner(" Downloading illustrations...  ")
+def download_illusts(current_page_illusts, current_page_num, artist_user_id, pbar=None):
     """
     Download the illustrations on one page of given artist id (using threads)
 
@@ -224,7 +226,7 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id):
     titles = post_titles_in_page(current_page_illusts)
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
 
-    async_download_core(download_path, urls, rename_images=True, file_names=titles)
+    async_download_core(download_path, urls, rename_images=True, file_names=titles, pbar=pbar)
 
 
 @spinner("")
@@ -680,7 +682,9 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kw
     current_page_illusts = current_page["illusts"]
 
     if not os.path.isdir(download_path):
-        download_illusts(current_page_illusts, current_page_num, artist_user_id)
+        pbar = tqdm(total=30)
+        download_illusts(current_page_illusts, current_page_num, artist_user_id, pbar=pbar)
+        pbar.close()
 
     if show:
         show_artist_illusts(download_path)
