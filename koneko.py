@@ -157,14 +157,13 @@ class LastPageException(Exception):
 
 
 @spinner("")  # No message because it conflicts with download_illusts()
-def prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages_cache):
+def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     """
     current_page_num : int
         It is the CURRENT page number, before incrementing
     """
-    download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     print("   Prefetching next page...", flush=True, end="\r")
-    next_url = current_page["next_url"]
+    next_url = all_pages_cache[str(current_page_num)]["next_url"]
     if not next_url:  # this is the last page
         raise LastPageException
 
@@ -172,9 +171,9 @@ def prefetch_next_page(current_page, current_page_num, artist_user_id, all_pages
     all_pages_cache[str(current_page_num + 1)] = parse_page
     current_page_illusts = parse_page["illusts"]
 
-    if not os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
+    download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num+1}/"
+    if not os.path.isdir(download_path):
         download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
-
     print("  " * 26)
     return all_pages_cache
 
@@ -516,7 +515,7 @@ def gallery_prompt(
         # Prefetch the next page on first gallery load
         try:
             all_pages_cache = prefetch_next_page(
-                current_page, current_page_num, artist_user_id, all_pages_cache
+                current_page_num, artist_user_id, all_pages_cache
             )
         except LastPageException:
             pass
@@ -564,15 +563,14 @@ def gallery_prompt(
             current_page_num += 1  # Only increment if successful
             print(f"Page {current_page_num}")
 
-            if not str(current_page_num) in all_pages_cache.keys():
-                try:
-                    # After showing gallery, pre-fetch the next page
-                    all_pages_cache = prefetch_next_page(
-                        current_page, current_page_num, artist_user_id, all_pages_cache
-                    )
-                except LastPageException:
-                    print("This is the last page!")
-                    continue
+            try:
+                # After showing gallery, pre-fetch the next page
+                all_pages_cache = prefetch_next_page(
+                    current_page_num, artist_user_id, all_pages_cache
+                )
+            except LastPageException:
+                print("This is the last page!")
+                continue
 
         elif gallery_command == "p":
             if current_page_num > 1:
@@ -596,9 +594,13 @@ def gallery_prompt(
         # o {x,y} o {x y} d {x,y} d {x y}
         elif re.match(r"^\d,\d$", gallery_command):
             print("Coordinate, comma")
+            x, y = gallery_command.split(",")
+            # 7 columns, 30 images
+            cytoolz.partition_all(7, range(30))
 
         elif re.match(r"^\d \d$", gallery_command):
             print("Coordinate, space")
+            x, y = gallery_command.split(" ")
 
         else:  # main_command is an int
             try:
@@ -649,7 +651,7 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True):
     current_page_illusts = current_page["illusts"]
 
     if current_page_num == 1:
-        if not os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
+        if not os.path.isdir(download_path):
             download_illusts(current_page_illusts, current_page_num, artist_user_id)
 
     if show:
@@ -675,7 +677,7 @@ def artist_illusts_mode(artist_user_id, current_page_num=1, **kwargs):
     if current_page_num == 1:
         download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
         # If path exists, show immediately (without checking for contents!)
-        if os.path.isdir(download_path) and len(os.listdir(download_path)) != 0:
+        if os.path.isdir(download_path):
             show_artist_illusts(download_path)
 
         current_page = get_user_illusts_spinner(artist_user_id)
