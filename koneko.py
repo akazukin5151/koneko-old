@@ -34,7 +34,7 @@ from pure import (
     generate_filepath,
     print_multiple_imgs,
     process_coords_slice,
-    split_backslash_last
+    split_backslash_last,
 )
 from lscat import main as lscat
 
@@ -198,9 +198,9 @@ def downloadr(url, img_name, new_file_name=None):
     Actually downloads given url, rename if needed.
     """
     # TODO: tqdm
-    #print(f"Downloading {img_name}")
+    # print(f"Downloading {img_name}")
     api.download(url)
-    #print(f"{img_name} done!")
+    # print(f"{img_name} done!")
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
 
@@ -250,6 +250,7 @@ def download_core(large_dir, url, filename, try_make_dir=True):
         with cd(large_dir):
             downloadr(url, filename, None)
 
+
 def download_from_image_view(image_id, png=False):
     """
     This downloads an image, checks if it's valid. If not, retry with png
@@ -273,7 +274,7 @@ def go_next_image(
     page_urls,
     img_post_page_num,
     number_of_pages,
-    images_already_downloaded,
+    downloaded_images,
     artist_user_id,
     image_id,
 ):
@@ -281,31 +282,38 @@ def go_next_image(
     Intended to be from image_prompt, for posts with multiple images
     Downloads next image it not downloaded, open it, download the next image
     in the background
+
+    Parameters
+    img_post_page_num : int
+        **Starts from 0**. Page number of the multi-image post.
     """
     download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
     # IDEAL: image prompt should not be blocked while downloading
     # But I think delaying the prompt is better than waiting for an image
     # to download when you load it
-    if not images_already_downloaded:  # From gallery; download next image
-        selection1 = page_urls[: img_post_page_num + 1]
-        images_already_downloaded = [split_backslash_last(url) for url in selection1]
-        async_download_spinner(download_path, selection1)
+
+    # First time from gallery; download next image
+    if not downloaded_images:
+        url = page_urls[img_post_page_num]
+        downloaded_images = [split_backslash_last(url) for url in page_urls[:2]]
+        async_download_spinner(download_path, url)
 
     # fmt: off
+    breakpoint()
     open_image_vp(
         artist_user_id,
-        f"{image_id}/{images_already_downloaded[img_post_page_num]}"
+        f"{image_id}/{downloaded_images[img_post_page_num]}"
     )
     # fmt: on
 
     # Downloads the next image
-    selection2 = page_urls[: img_post_page_num + 2]
-    images_already_downloaded = [split_backslash_last(url) for url in selection2]
-    # TODO: should get next img name and append, rather than constructing it again
-    async_download_spinner(download_path, selection2)
+    next_img_url = page_urls[img_post_page_num + 1]
+    downloaded_images.append(split_backslash_last(next_img_url))
+    async_download_spinner(download_path, next_img_url)
+    breakpoint()
     print(f"Page {img_post_page_num+1}/{number_of_pages}")
 
-    return images_already_downloaded
+    return downloaded_images
 
 
 # - End non interactive, invisible to user (backend) functions
@@ -419,7 +427,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         page_urls = kwargs["page_urls"]
         img_post_page_num = kwargs["img_post_page_num"]
         number_of_pages = kwargs["number_of_pages"]
-        images_already_downloaded = kwargs["images_already_downloaded"]
+        downloaded_images = kwargs["downloaded_images"]
     except KeyError:
         pass
 
@@ -460,11 +468,11 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 print("This is the last image in the post!")
 
             img_post_page_num += 1  # Be careful of 0 index
-            images_already_downloaded = go_next_image(
+            downloaded_images = go_next_image(
                 page_urls,
                 img_post_page_num,
                 number_of_pages,
-                images_already_downloaded,
+                downloaded_images,
                 artist_user_id,
                 image_id,
             )
@@ -479,7 +487,7 @@ def image_prompt(image_id, artist_user_id, **kwargs):
                 # fmt: off
                 open_image_vp(
                     artist_user_id,
-                    f"{image_id}/{images_already_downloaded[img_post_page_num]}"
+                    f"{image_id}/{downloaded_images[img_post_page_num]}"
                 )
                 # fmt: on
                 print(f"Page {img_post_page_num+1}/{number_of_pages}")
@@ -655,7 +663,7 @@ def gallery_prompt(
                 page_urls=page_urls,
                 img_post_page_num=0,
                 number_of_pages=number_of_pages,
-                images_already_downloaded=None,
+                downloaded_images=None,
                 all_pages_cache=all_pages_cache,
             )
 
@@ -729,12 +737,11 @@ def view_post_mode(image_id):
     number_of_pages, page_urls = page_urls_in_post(post_json, "large")
 
     if number_of_pages == 1:
-        images_already_downloaded = None
+        downloaded_images = None
     else:
-        images_already_downloaded = [split_backslash_last(url) for url in page_urls[:2]]
-
         download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
         async_download_spinner(download_path, page_urls[:2])
+        downloaded_images = [split_backslash_last(url) for url in page_urls[:2]]
 
     image_prompt(
         image_id,
@@ -742,7 +749,7 @@ def view_post_mode(image_id):
         page_urls=page_urls,
         img_post_page_num=0,
         number_of_pages=number_of_pages,
-        images_already_downloaded=images_already_downloaded,
+        downloaded_images=downloaded_images,
     )
 
     artist_illusts_mode(artist_user_id)
