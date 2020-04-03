@@ -136,3 +136,11 @@ def process_coords_slice(gallery_command, exclude_letter):
             x, y = splitspace[1], splitspace[2]
 
     return find_number_map(int(x), int(y))
+
+
+def print_multiple_imgs(illusts_json):
+    for (index, json) in enumerate(illusts_json):
+        pages = json.page_count
+        if pages > 1:
+            print(f"#{index} has {pages} pages", end=", ")
+    print("")

@@ -32,6 +32,7 @@ from pure import (
     find_number_map,
     prefix_filename,
     generate_filepath,
+    print_multiple_imgs,
     process_coords_slice,
     split_backslash_last
 )
@@ -68,7 +69,6 @@ def url_given_size(post_json, size):
         One of: ("square-medium", "medium", "large")
     """
     return post_json["image_urls"][size]
-
 
 
 @cytoolz.curry
@@ -115,7 +115,6 @@ def change_url_to_full(post_json, png=False):
     if png:
         url = url.replace("jpg", "png")
     return url
-
 
 
 class LastPageException(Exception):
@@ -310,7 +309,7 @@ def show_artist_illusts(path):
     """
     This assumes you're in the directory where both koneko.py and lscat is in
     """
-    lscat_path = os.getcwd()
+    # lscat_path = os.getcwd()
     with cd(path):
         # os.system(f"{lscat_path}/lscat")
         lscat(path)
@@ -427,8 +426,13 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
             if current_page_num > 1:
-                all_pages_cache = kwargs['all_pages_cache']
-                show_gallery(artist_user_id, current_page_num, current_page, all_pages_cache=all_pages_cache)
+                all_pages_cache = kwargs["all_pages_cache"]
+                show_gallery(
+                    artist_user_id,
+                    current_page_num,
+                    current_page,
+                    all_pages_cache=all_pages_cache,
+                )
             else:
                 artist_illusts_mode(artist_user_id, current_page_num)
 
@@ -593,7 +597,7 @@ def gallery_prompt(
         elif gallery_command == "h":
             print(gallery_prompt.__doc__)
 
-        else: # Open specified image
+        else:  # Open specified image
             # Process coordinates first
             if re.match(r"^\d,\d$", gallery_command):
                 number = process_coords(gallery_command, ",")
@@ -609,7 +613,7 @@ def gallery_prompt(
                 else:
                     selected_image_num = number
 
-            else: # gallery_command is the selected img, not coordinate
+            else:  # gallery_command is the selected img, not coordinate
                 try:
                     selected_image_num = int(gallery_command)
                 except ValueError:
@@ -621,9 +625,7 @@ def gallery_prompt(
             post_json = current_page_illusts[selected_image_num]
             image_id = post_json.id
 
-            open_image(
-                post_json, artist_user_id, selected_image_num, current_page_num
-            )
+            open_image(post_json, artist_user_id, selected_image_num, current_page_num)
 
             # IMPROVEMENT: it's async now but still blocking, as the result
             # is needed to pass to function
@@ -647,7 +649,7 @@ def gallery_prompt(
                 img_post_page_num=0,
                 number_of_pages=number_of_pages,
                 images_already_downloaded=None,
-                all_pages_cache=all_pages_cache
+                all_pages_cache=all_pages_cache,
             )
 
 
@@ -664,12 +666,12 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kw
 
     if show:
         show_artist_illusts(download_path)
-    # TODO: gallery view should indicate posts that have multiple images
+    print_multiple_imgs(current_page_illusts)
 
     if current_page_num == 1:
         all_pages_cache = {"1": current_page}
     else:
-        all_pages_cache = kwargs['all_pages_cache']
+        all_pages_cache = kwargs["all_pages_cache"]
 
     gallery_prompt(
         current_page_illusts,
