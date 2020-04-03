@@ -1,7 +1,9 @@
 import os
 import fnmatch
+
 import cytoolz
 from pixcat import Image
+
 from pure import cd
 
 
