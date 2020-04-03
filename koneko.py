@@ -286,7 +286,6 @@ def go_next_image(
     images_already_downloaded = [split_backslash_last(url) for url in selection2]
     # TODO: images_already_downloaded is a list of all downloaded images
     # should get next img name and append, rather than constructing it again
-    breakpoint()
     async_download_spinner(download_path, selection2)
     print(f"Page {img_post_page_num+1}/{number_of_pages}")
 
@@ -419,7 +418,9 @@ def image_prompt(image_id, artist_user_id, **kwargs):
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
             if current_page_num > 1:
-                show_gallery(artist_user_id, current_page_num, current_page)
+                breakpoint()
+                all_pages_cache = kwargs['all_pages_cache']
+                show_gallery(artist_user_id, current_page_num, current_page, all_pages_cache=all_pages_cache)
             else:
                 artist_illusts_mode(artist_user_id, current_page_num)
 
@@ -630,6 +631,7 @@ def gallery_prompt(
                     img_post_page_num=0,
                     number_of_pages=number_of_pages,
                     images_already_downloaded=None,
+                    all_pages_cache=all_pages_cache
                 )
 
             except ValueError:
@@ -641,7 +643,8 @@ def gallery_prompt(
 
 
 # - Mode and loop functions (some interactive and some not)
-def show_gallery(artist_user_id, current_page_num, current_page, show=True):
+def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kwargs):
+    breakpoint()
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     current_page_illusts = current_page["illusts"]
 
@@ -651,7 +654,11 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True):
     if show:
         show_artist_illusts(download_path)
 
-    all_pages_cache = {"1": current_page}
+    if current_page_num == 1:
+        all_pages_cache = {"1": current_page}
+    else:
+        all_pages_cache = kwargs['all_pages_cache']
+
     gallery_prompt(
         current_page_illusts,
         current_page,
