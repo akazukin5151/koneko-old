@@ -301,8 +301,7 @@ def go_next_image(
     # Downloads the next image
     selection2 = page_urls[: img_post_page_num + 2]
     images_already_downloaded = [split_backslash_last(url) for url in selection2]
-    # TODO: images_already_downloaded is a list of all downloaded images
-    # should get next img name and append, rather than constructing it again
+    # TODO: should get next img name and append, rather than constructing it again
     async_download_spinner(download_path, selection2)
     print(f"Page {img_post_page_num+1}/{number_of_pages}")
 
@@ -369,6 +368,7 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     # Only solution is to get image_prompt() to interrupt when it receives a
     # signal that download_core_spinner() has finished
 
+    os.system("clear")
     os.system(
         f"kitty +kitten icat --silent /tmp/koneko/{artist_user_id}/{current_page_num}/large/{filename}"
     )
@@ -748,9 +748,9 @@ def view_post_mode(image_id):
     artist_illusts_mode(artist_user_id)
 
 
-def artist_illusts_mode_loop(prompted, **kwargs):
+def artist_illusts_mode_loop(if_prompted, **kwargs):
     while True:
-        if prompted:
+        if if_prompted:
             artist_user_id = artist_user_id_prompt()
             os.system("clear")
             if "pixiv" in artist_user_id:
@@ -771,9 +771,9 @@ def artist_illusts_mode_loop(prompted, **kwargs):
         artist_illusts_mode(artist_user_id)
 
 
-def view_post_mode_loop(prompted, **kwargs):
+def view_post_mode_loop(if_prompted, **kwargs):
     while True:
-        if prompted:
+        if if_prompted:
             url_or_id = input("Enter pixiv post url or ID:\n")
             os.system("clear")
             if "pixiv" in url_or_id:
@@ -796,25 +796,27 @@ def view_post_mode_loop(prompted, **kwargs):
         view_post_mode(image_id)
 
 
-def main_loop(prompted, **kwargs):
+def main_loop(if_prompted, **kwargs):
     # IMPROVEMENT: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
     while True:
-        if prompted:
+        if if_prompted:
             main_command = begin_prompt()
         else:
             main_command = kwargs["main_command"]
 
         if main_command == "1":
             try:
-                artist_illusts_mode_loop(prompted, **kwargs)
+                artist_illusts_mode_loop(if_prompted, **kwargs)
             except KeyboardInterrupt:
+                os.system("clear")
                 continue
 
         elif main_command == "2":
             try:
-                view_post_mode_loop(prompted, **kwargs)
+                view_post_mode_loop(if_prompted, **kwargs)
             except KeyboardInterrupt:
+                os.system("clear")
                 continue
 
         elif main_command == "q":
@@ -840,8 +842,9 @@ def main():
 
     # Direct command line arguments, skip begin_prompt()
     if len(sys.argv) == 2:
-        prompted = False
+        if_prompted = False
         url = sys.argv[1]
+
         if "users" in url:
             artist_user_id = split_backslash_last(url).split("\\")[-1][1:]
             main_command = "1"
@@ -862,11 +865,11 @@ def main():
         sys.exit(1)
 
     else:
-        prompted = True
+        if_prompted = True
         kwargs = {}
 
     try:
-        main_loop(prompted, **kwargs)
+        main_loop(if_prompted, **kwargs)
     except KeyboardInterrupt:
         print("\n")
         answer = input("Are you sure you want to exit? [y/N]:\n")
