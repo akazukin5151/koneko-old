@@ -178,6 +178,60 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     return all_pages_cache
 
 
+def process_coords(input_command, split_string):
+    x, y = input_command.split(split_string)
+    x, y = int(x), int(y)
+    return find_number_map(x, y)
+
+
+def find_number_map(x, y):
+    # 7 = number of cols; 5 = number of rows
+    # 7 columns, 30 images
+    number_map = list(cytoolz.partition_all(7, range(30)))
+
+    try:
+        # coordinates are 1-based index
+        number = number_map[y - 1][x - 1]
+    except IndexError:
+        print("Invalid number!\n")
+        return False
+    return number
+
+
+def process_coords_slice(gallery_command, exclude_letter):
+    """
+    # I don't know why I spent so much time on this
+    Supports: (o x,y) (o x y) (oxy)
+    IMPROVEMENT: (o xy)
+    """
+    splitspace = gallery_command.split(" ")
+    if len(splitspace) == 1:
+        splitcomma = splitspace[0].split(",")
+        if len(splitcomma) == 1:
+            # oxy
+            xy = splitcomma[0].split(exclude_letter)[1]
+            x, y = xy[0], xy[1]
+        else:
+            # ox,y --> ['ox', 'y']
+            x = splitcomma[0][1]
+            y = splitcomma[1]
+    else:
+        if len(splitspace) == 2:
+            if len(splitspace[0]) == 1:
+                # o x,y --> ['o', 'x,y']
+                x = splitspace[1][0]
+                y = splitspace[1][2]
+            else:
+                # ox y --> ['ox', 'y']
+                x = splitspace[0][1]
+                y = splitspace[1]
+        else:
+            # o x y --> ['o', 'x', 'y']
+            x, y = splitspace[1], splitspace[2]
+
+    return find_number_map(int(x), int(y))
+
+
 # - Download functions
 # - Core download functions (for async)
 def async_download_core(download_path, urls, rename_images=False, file_names=None):
@@ -529,18 +583,23 @@ def gallery_prompt(
             answer = input("Are you sure you want to exit? [y/N]:\n")
             if answer == "y" or not answer:
                 sys.exit(0)
-            else:
-                continue
 
         elif gallery_command[0] == "o":
-            image_id = current_page_illusts[int(gallery_command[1:])]["id"]
+            number = process_coords_slice(gallery_command, "o")
+            if not number:
+                number = int(gallery_command[1:])
+
+            image_id = current_page_illusts[number]["id"]
             link = f"https://www.pixiv.net/artworks/{image_id}"
             os.system(f"xdg-open {link}")
             print(f"Opened {link}!\n")
-            continue
 
         elif gallery_command[0] == "d":
-            post_json = current_page_illusts[int(gallery_command[1:])]
+            number = process_coords_slice(gallery_command, "d")
+            if not number:
+                number = int(gallery_command[1:])
+
+            post_json = current_page_illusts[number]
 
             url, filename, filepath = get_full_image_details(post_json=post_json)
             download_core(
@@ -550,7 +609,6 @@ def gallery_prompt(
                 try_make_dir=False,
             )
             print(f"Image downloaded at {filepath}\n")
-            continue
 
         elif gallery_command == "n":
             # First time pressing n: will always be 2
@@ -570,7 +628,6 @@ def gallery_prompt(
                 )
             except LastPageException:
                 print("This is the last page!")
-                continue
 
         elif gallery_command == "p":
             if current_page_num > 1:
@@ -589,18 +646,18 @@ def gallery_prompt(
         elif gallery_command == "h":
             print(gallery_prompt.__doc__)
 
-        # TODO: accept coordinates
-        # TODO: o and d should also accept accept coordinates:
-        # o {x,y} o {x y} d {x,y} d {x y}
+        # TODO: allow xy eg 51 --> x=5, y=1
         elif re.match(r"^\d,\d$", gallery_command):
-            print("Coordinate, comma")
-            x, y = gallery_command.split(",")
-            # 7 columns, 30 images
-            cytoolz.partition_all(7, range(30))
+            number = process_coords(gallery_command, ",")
+            if not number:
+                continue
+            # TODO: Goto try block
 
         elif re.match(r"^\d \d$", gallery_command):
-            print("Coordinate, space")
-            x, y = gallery_command.split(" ")
+            number = process_coords(gallery_command, " ")
+            if not number:
+                continue
+            # Goto
 
         else:  # main_command is an int
             try:
