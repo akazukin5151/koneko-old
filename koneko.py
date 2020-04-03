@@ -91,7 +91,7 @@ def post_titles_in_page(current_page_illusts):
 @spinner("")
 def page_urls_in_post(post_json, size="medium"):
     """
-    Formerly check_multiple_images_in_post(); for when posts have multiple images
+    Get the number of pages and each of their urls
     """
     number_of_pages = post_json.page_count
     if number_of_pages > 1:
@@ -107,6 +107,10 @@ def page_urls_in_post(post_json, size="medium"):
 
 
 def change_url_to_full(post_json, png=False):
+    """
+    The 'large' resolution url isn't the largest. This uses changes the url to
+    the highest resolution available
+    """
     url = url_given_size(post_json, "large")
     url = re.sub(r"_p0_master\d+", "_p0", url)
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
@@ -127,11 +131,13 @@ def user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
     # IMPROVEMENT: Caching it (in non volatile storage) might work
-    # print("   Fetching user illustrations...", flush=True, end="\r")
     return api.user_illusts(artist_user_id)
 
 
 def full_img_details(png=False, **kwargs):
+    """
+    All in one function that gets the full-res url, filename, and filepath
+    """
     if "post_json" in kwargs.keys():
         post_json = kwargs["post_json"]
     elif "image_id" in kwargs.keys():
@@ -191,8 +197,10 @@ def downloadr(url, img_name, new_file_name=None):
     """
     Actually downloads given url, rename if needed.
     """
-    # print(f"Downloading {img_name}")
+    # TODO: tqdm
+    #print(f"Downloading {img_name}")
     api.download(url)
+    #print(f"{img_name} done!")
     if new_file_name:
         os.rename(f"{img_name}", f"{new_file_name}")
 
@@ -224,10 +232,16 @@ def async_download_spinner(download_path, page_urls):
     async_download_core(download_path, page_urls)
 
 
-# - Core function for downloading one image
+# @timer
+@spinner("")
+def download_core_spinner(large_dir, url, filename):
+    download_core(large_dir, url, filename)
+
+
+# - Functions that are wrappers around download functions, making them impure
 def download_core(large_dir, url, filename, try_make_dir=True):
     """
-    Actually downloads given url (non async, for single images)
+    Downloads one url, intended for single images only
     """
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
@@ -236,15 +250,10 @@ def download_core(large_dir, url, filename, try_make_dir=True):
         with cd(large_dir):
             downloadr(url, filename, None)
 
-
-# @timer
-@spinner("")
-def download_core_spinner(large_dir, url, filename):
-    download_core(large_dir, url, filename)
-
-
-# - Functions that are wrappers around download functions, making them impure
 def download_from_image_view(image_id, png=False):
+    """
+    This downloads an image, checks if it's valid. If not, retry with png
+    """
     url, filename, filepath = full_img_details(image_id=image_id, png=png)
     # IMPROVEMENT: spinner missing for all full_img_details()
     # because it accepts **kwargs and that confuses the spinner decorator
@@ -268,6 +277,11 @@ def go_next_image(
     artist_user_id,
     image_id,
 ):
+    """
+    Intended to be from image_prompt, for posts with multiple images
+    Downloads next image it not downloaded, open it, download the next image
+    in the background
+    """
     download_path = f"/tmp/koneko/{artist_user_id}/individual/{image_id}/"
     # IDEAL: image prompt should not be blocked while downloading
     # But I think delaying the prompt is better than waiting for an image
@@ -301,33 +315,31 @@ def go_next_image(
 # - Non interactive, visible to user functions
 # @timer
 def show_artist_illusts(path):
-    """
-    This assumes you're in the directory where both koneko.py and lscat is in
-    """
-    # lscat_path = os.getcwd()
     with cd(path):
+        # This assumes you're in the directory where both koneko.py and lscat is in
+        # lscat_path = os.getcwd()
         # os.system(f"{lscat_path}/lscat")
         lscat(path)
 
 
-def open_image(post_json, artist_user_id, number, current_page_num):
+def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     Opens image given by the number (medium-res), downloads large-res and
-    display that
+    then display that
 
     Parameters
     ----------
     post_json : JsonDict
         description
-    number : int
+    number_prefix : int
         The number prefixed in each image
     artist_user_id : int
     current_page_num : int
     """
-    if number < 10:
-        search_string = f"0{number}_"
+    if number_prefix < 10:
+        search_string = f"0{number_prefix}_"
     else:
-        search_string = f"{number}_"
+        search_string = f"{number_prefix}_"
 
     # display the already-downloaded medium-res image first, then download and
     # display the large-res
@@ -653,6 +665,9 @@ def gallery_prompt(
 
 # - Mode and loop functions (some interactive and some not)
 def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kwargs):
+    """
+    TODO: What the hell is this even for
+    """
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
     current_page_illusts = current_page["illusts"]
 
