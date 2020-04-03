@@ -13,17 +13,28 @@ Uses [pixivpy](https://github.com/upbit/pixivpy/), install with
 """
 
 import os
-import sys
-import threading
-import queue
-from concurrent.futures import ThreadPoolExecutor
 import re
-import itertools
+import sys
+import queue
 import imghdr
+import itertools
+import threading
 from configparser import ConfigParser
+from concurrent.futures import ThreadPoolExecutor
+
 import cytoolz
 from pixivpy3 import AppPixivAPI
-from pure import cd, spinner, split_backslash_last, generate_filepath, prefix_filename, process_coords, find_number_map, process_coords_slice
+
+from pure import (
+    cd,
+    spinner,
+    process_coords,
+    find_number_map,
+    prefix_filename,
+    generate_filepath,
+    process_coords_slice,
+    split_backslash_last
+)
 from lscat import main as lscat
 
 
@@ -769,8 +780,8 @@ def view_post_mode_loop(prompted, **kwargs):
 
 
 def main_loop(prompted, **kwargs):
-    # TODO: gallery mode - if tmp has artist id and '1' dir, immediately
-    # show it without trying to log in or download
+    # IMPROVEMENT: gallery mode - if tmp has artist id and '1' dir,
+    # immediately show it without trying to log in or download
     while True:
         if prompted:
             main_command = begin_prompt()
