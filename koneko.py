@@ -35,7 +35,7 @@ from pure import (
     generate_filepath,
     print_multiple_imgs,
     process_coords_slice,
-    split_backslash_last,
+    split_backslash_last
 )
 from lscat import main as lscat
 
@@ -175,7 +175,9 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
 
 # - Download functions
 # - Core download functions (for async)
-def async_download_core(download_path, urls, rename_images=False, file_names=None, pbar=None):
+def async_download_core(
+    download_path, urls, rename_images=False, file_names=None, pbar=None
+):
     """
     Core logic for async downloading
     """
@@ -209,7 +211,7 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
 
 # - Wrappers around the core functions for async download
 # @timer
-#@spinner(" Downloading illustrations...  ")
+# @spinner(" Downloading illustrations...  ")
 def download_illusts(current_page_illusts, current_page_num, artist_user_id, pbar=None):
     """
     Download the illustrations on one page of given artist id (using threads)
@@ -226,7 +228,9 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id, pba
     titles = post_titles_in_page(current_page_illusts)
     download_path = f"/tmp/koneko/{artist_user_id}/{current_page_num}/"
 
-    async_download_core(download_path, urls, rename_images=True, file_names=titles, pbar=pbar)
+    async_download_core(
+        download_path, urls, rename_images=True, file_names=titles, pbar=pbar
+    )
 
 
 @spinner("")
@@ -683,7 +687,9 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kw
 
     if not os.path.isdir(download_path):
         pbar = tqdm(total=30)
-        download_illusts(current_page_illusts, current_page_num, artist_user_id, pbar=pbar)
+        download_illusts(
+            current_page_illusts, current_page_num, artist_user_id, pbar=pbar
+        )
         pbar.close()
 
     if show:
