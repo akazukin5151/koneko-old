@@ -9,45 +9,7 @@ Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magi
 
 **Why the name Koneko?** Koneko (こねこ) means kitten, which is icat is, a kitty +kitten
 
-**This is still in alpha stages**. Once I finally ~~get async working~~ and ~~rewrite lscat~~ and refactor+stabilize it will be in beta (see [milestones](https://github.com/twenty5151/koneko/milestone/1)). All PRs are welcome. The current master branch is (relatively more) stable. The `testing` branch is for the latest features, fixes, and super instability. The `dev` branch is a more stable branch where commits from `testing` gets merged nightly (or less frequently).
-
-
-# Usage
-0. Install [kitty](https://github.com/kovidgoyal/kitty), and all other requirements (just see list of imports)
-    * [pixivpy](https://github.com/upbit/pixivpy): `pip install pixivpy`
-    * [pixcat](https://github.com/mirukana/pixcat): `pip install pixcat`
-1. `mkdir ~/.config/koneko/ && touch ~/.config/koneko/config.ini`
-2. `vim ~/.config/koneko/config.ini` and fill it out with your pixiv username and password like this:
-
-```ini
-[Credentials]
-Username = XXX
-Password = XXX
-```
-
-3. 
-```sh
-git clone https://github.com/twenty5151/koneko.git && cd koneko
-python koneko.py
-```
-
-Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. (Contains "artworks" and "member" respectively). Example:
-
-```sh
-python koneko.py https://www.pixiv.net/en/users/2232374
-```
-
-```sh
-python koneko.py https://www.pixiv.net/en/artworks/78823485
-```
-
-## `Dev` branch
-
-Use the `dev` branch for latest features/fixes that will be merged to `master` soon:
-
-```sh
-git clone -b dev https://github.com/twenty5151/koneko.git
-```
+**This is still in alpha stages**. Once I finally ~~get async working~~ and ~~rewrite lscat~~ and refactor+stabilize it will be in beta (see [milestones](https://github.com/twenty5151/koneko/milestone/1)). All PRs are welcome. The current master branch is (supposed to be) stable, but it's still alpha. The `testing` branch is for the latest features, fixes, and super instability. It is merged with the `dev` branch nightly (or less frequently). In turn, `dev` is merge with `master` the next day, so essentially `master` is just `testing` delayed by two days.
 
 
 # Features
@@ -76,6 +38,38 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 * I use arch btw
 
 
+# Usage
+0. Install [kitty](https://github.com/kovidgoyal/kitty), and all other requirements (just see list of imports)
+    * [pixivpy](https://github.com/upbit/pixivpy): `pip install pixivpy`
+    * [pixcat](https://github.com/mirukana/pixcat): `pip install pixcat`
+1. `mkdir ~/.config/koneko/ && touch ~/.config/koneko/config.ini`
+2. `vim ~/.config/koneko/config.ini` and fill it out with your pixiv username and password like this:
+
+```ini
+[Credentials]
+Username = XXX
+Password = XXX
+```
+
+3. Run:
+```sh
+git clone https://github.com/twenty5151/koneko.git && cd koneko
+python koneko.py
+```
+
+4. As of now there are two modes of operation:
+    1. Show artist illustrations: equivalent to going to the artist page in pixie
+    2. View post: equivalent to going directly to a post (think getting a 'sauce' link)
+Enter either 1 or 2 to proceed. Then, paste in the corresponding pixiv url. See below for url examples
+
+Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. Example:
+
+```sh
+python koneko.py https://www.pixiv.net/en/users/2232374
+
+python koneko.py https://www.pixiv.net/en/artworks/78823485
+```
+
 ## lscat rewrite
 
 **Note on terminology**: [lsix](https://github.com/hackerb9/lsix/) is the name of the original shell script I used, which uses libsixel. I edited it to use icat and renamed it **lscat**. Then I rewrote it with python, which is named **lscat.py**.
@@ -83,51 +77,24 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 You might have problems with image positioning with lscat.py. I wrote it to fit my screen and my terminal size, so there are 'magic numbers' (numbers that just exist) around. There's also no functionality to adjust for different terminal sizes. You can do either:
 
 1. Adjust the 'magic numbers'. There are around 4-5 types and they are commented in `lscat.py`
-2. You can revert to the old lscat script. In show_artist_illusts(), uncomment the two lines and comment out `lscat(path)`
+2. You can revert to the old lscat script. In `show_artist_illusts()`, uncomment the two lines and comment out `lscat(path)`
 3. You can contribute by checking terminal size and doing all the maths. Send a PR! The only requirement is that it has to be *fast*. If not, it should be have a toggle to skip those checks.
 4. You can even use libsixel with lsix. In that case, replace the `lscat` file with [lsix](https://github.com/hackerb9/lsix/) and then do 2.
 
 
-# Developer manual
-As of now there are two modes of operation:
+## `Dev` branch
 
-1. Show artist illustrations: equivalent to going to the artist page in pixie
-2. View post: equivalent to going directly to a post (think getting a 'sauce' link)
+Use the `dev` branch for latest features/fixes that will be merged to `master` soon:
 
-Those two modes are represented by:
-
-1. `artist_illusts_mode()`
-2. `view_post_mode()`
-
-* Frontend, interactive functions (with an input()); has word 'prompt'
-    * `begin_prompt()`
-    * `artist_user_id_prompt()`
-    * `gallery_prompt()`
-    * `image_prompt()`
-
-* Non interactive functions:
-    * Not visible to user (backend):
-        * `setup()`
-        * `download_illusts()`   (only if 'downloading img' messages are disabled)
-        * `download_large()`, `download_large_vp()`
-            * `make_path_and_download()`
-        * `download_full()`
-            * `download_full_core()`
-            * `get_url_and_filename()`
-
-    * Visible to user. Leads to (--->) an interactive prompt:
-        * `show_artist_illusts()` ---> `gallery_prompt()`
-        * `open_image()` ---> `image_prompt()`
-        * `open_image_vp()` ---^
-
-Misc functions:
-* `main()` starts `setup()` asynchronously, so it log ins in the background while the user pick between modes and enters the IDs
-* `timer()` is just a custom decorator to roughly profile the code
-* `cd()` is a context manager for changing current dir then restoring the old one
-
-Here's a random shell command to get (but not download) and display any pixiv image url
-`curl -e 'https://www.pixiv.net' "https://i.pximg.net/img-original/img/2019/12/21/20/13/12/78403815_p0.jpg" | convert - -geometry 800x480 jpg:- | kitty +kitten icat --align left --place 800x480@0x5`
+```sh
+git clone -b dev https://github.com/twenty5151/koneko.git
+```
 
 ## Unit tests
-The few lines of unit tests can be ran with `pytest testing.py`
+Use `pytest testing.py`
 
+
+Here's a random shell command to get (but not download) and display any pixiv image url:
+```sh
+curl -e 'https://www.pixiv.net' "https://i.pximg.net/img-original/img/2019/12/21/20/13/12/78403815_p0.jpg" | kitty +kitten icat --align left --place 800x480@0x5
+```
