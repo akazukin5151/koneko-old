@@ -60,7 +60,7 @@ python koneko.py
 4. As of now there are two modes of operation:
     1. Show artist illustrations: equivalent to going to the artist page in pixie
     2. View post: equivalent to going directly to a post (think getting a 'sauce' link)
-Enter either 1 or 2 to proceed. Then, paste in the corresponding pixiv url. See below for url examples
+Enter either 1 or 2 to proceed. Then, paste in the corresponding pixiv url. See below for url examples. Pressing ctrl+c in a prompt bring you back to the 'home' prompt.
 
 Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. Example:
 
