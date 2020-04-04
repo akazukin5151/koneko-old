@@ -169,13 +169,9 @@ def async_download_spinner(download_path, page_urls):
     async_download_core(download_path, page_urls)
 
 
+# - Functions that are wrappers around download functions, making them impure
 # @timer
 @pure.spinner("")
-def download_core_spinner(large_dir, url, filename, try_make_dir=True):
-    download_core(large_dir, url, filename, try_make_dir)
-
-
-# - Functions that are wrappers around download functions, making them impure
 def download_core(large_dir, url, filename, try_make_dir=True):
     """
     Downloads one url, intended for single images only
@@ -194,7 +190,7 @@ def download_from_image_view(image_id, png=False):
     """
     url, filename, filepath = full_img_details(image_id=image_id, png=png)
     homepath = os.path.expanduser("~")
-    download_core_spinner(
+    download_core(
         f"{homepath}/Downloads/", url, filename, try_make_dir=False,
     )
 
@@ -295,22 +291,22 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     filename = pure.split_backslash_last(url)
 
     large_dir = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/"
-    download_core_spinner(large_dir, url, filename)
+    download_core(large_dir, url, filename)
 
     # IMPROVEMENT: non blocking command input.
     # open medium res image
-    # run download_core_spinner on a separate thread
+    # run download_core on a separate thread
     # in the meantime, continue:
     #   run pure.page_urls_in_post()
     #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
-    # when download_core_spinner finishes, display the large image (run below command)
+    # when download_core finishes, display the large image (run below command)
 
     # Can't put input into separate thread, as it will not correctly receive
     # the input
     # Can't display large image on a separate thread, as icat doesn't detect
     # kitty and fails
     # Only solution is to get image_prompt() to interrupt when it receives a
-    # signal that download_core_spinner() has finished
+    # signal that download_core() has finished
 
     os.system("clear")
     os.system(
@@ -512,7 +508,7 @@ def gallery_prompt(
             url, filename, filepath = full_img_details(post_json=post_json)
 
             homepath = os.path.expanduser("~")
-            download_core_spinner(
+            download_core(
                 f"{homepath}/Downloads/", url, filename, try_make_dir=False,
             )
             print(f"Image downloaded at {filepath}\n")
@@ -684,7 +680,7 @@ def view_post_mode(image_id):
         large_dir = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
 
     # tqdm trickery
-    download_core_spinner(large_dir, url, filename)
+    download_core(large_dir, url, filename)
     open_image_vp(f"{large_dir}{filename}")
 
     if number_of_pages != 1:
