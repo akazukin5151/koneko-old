@@ -92,7 +92,7 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     all_pages_cache[str(current_page_num + 1)] = parse_page
     current_page_illusts = parse_page["illusts"]
 
-    download_path = f"{DIR}/{artist_user_id}/{current_page_num+1}/"
+    download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
     if not os.path.isdir(download_path):
         download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
     print("  " * 26)  # Magic
@@ -153,7 +153,7 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id, pba
     """
     urls = pure.medium_urls(current_page_illusts)
     titles = pure.post_titles_in_page(current_page_illusts)
-    download_path = f"{DIR}/{artist_user_id}/{current_page_num}/"
+    download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
 
     async_download_core(
         download_path, urls, rename_images=True, file_names=titles, pbar=pbar
@@ -221,7 +221,7 @@ def go_next_image(
     img_post_page_num : int
         **Starts from 0**. Page number of the multi-image post.
     """
-    download_path = f"{DIR}/{artist_user_id}/individual/{image_id}/"
+    download_path = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
     # IDEAL: image prompt should not be blocked while downloading
     # But I think delaying the prompt is better than waiting for an image
     # to download when you load it
@@ -284,13 +284,13 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     # display the large-res
     os.system("clear")
     os.system(
-        f"kitty +kitten icat --silent {DIR}/{artist_user_id}/{current_page_num}/{search_string}*"
+        f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
     )
 
     url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
 
-    large_dir = f"{DIR}/{artist_user_id}/{current_page_num}/large/"
+    large_dir = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/"
     download_core_spinner(large_dir, url, filename)
 
     # IMPROVEMENT: non blocking command input.
@@ -310,13 +310,13 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
 
     os.system("clear")
     os.system(
-        f"kitty +kitten icat --silent {DIR}/{artist_user_id}/{current_page_num}/large/{filename}"
+        f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
     )
 
 
 def open_image_vp(artist_user_id, filename):
     os.system(
-        f"kitty +kitten icat --silent {DIR}/{artist_user_id}/individual/{filename}"
+        f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/individual/{filename}"
     )
 
 
@@ -515,7 +515,7 @@ def gallery_prompt(
 
         elif gallery_command == "n":
             # First time pressing n: will always be 2
-            download_path = f"{DIR}/{artist_user_id}/{current_page_num+1}/"
+            download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
             try:
                 show_artist_illusts(download_path)
             except FileNotFoundError:
@@ -541,7 +541,7 @@ def gallery_prompt(
                 current_page_illusts = current_page["illusts"]
                 current_page_num -= 1
                 # download_path should already be set
-                download_path = f"{DIR}/{artist_user_id}/{current_page_num}/"
+                download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
                 show_artist_illusts(download_path)
                 print(f"Page {current_page_num}")
 
@@ -617,7 +617,7 @@ def show_gallery(
     """
     Downloads images, show if requested, instantiate all_pages_cache, prompt.
     """
-    download_path = f"{DIR}/{artist_user_id}/{current_page_num}/"
+    download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
     current_page_illusts = current_page["illusts"]
 
     if not os.path.isdir(download_path):
@@ -649,7 +649,7 @@ def artist_illusts_mode(artist_user_id, current_page_num=1):
     for contents!)
     Else, fetch current_page json and proceed download -> show -> prompt
     """
-    download_path = f"{DIR}/{artist_user_id}/{current_page_num}/"
+    download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
     # If path exists, show immediately (without checking for contents!)
     if os.path.isdir(download_path):
         show_artist_illusts(download_path)
@@ -668,7 +668,7 @@ def view_post_mode(image_id):
     filename = pure.split_backslash_last(url)
     artist_user_id = post_json["user"]["id"]
 
-    large_dir = f"{DIR}/{artist_user_id}/individual/"
+    large_dir = f"{KONEKODIR}/{artist_user_id}/individual/"
     download_core_spinner(large_dir, url, filename)
     open_image_vp(artist_user_id, filename)
 
@@ -677,7 +677,7 @@ def view_post_mode(image_id):
     if number_of_pages == 1:
         downloaded_images = None
     else:
-        download_path = f"{DIR}/{artist_user_id}/individual/{image_id}/"
+        download_path = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
         async_download_spinner(download_path, page_urls[:2])
         downloaded_images = [pure.split_backslash_last(url) for url in page_urls[:2]]
 
@@ -767,8 +767,8 @@ def main_loop(if_prompted, main_command=None, artist_user_id=None, image_id=None
 
 
 def main():
-    global DIR
-    DIR = "/tmp/koneko"
+    global KONEKODIR
+    KONEKODIR = "/tmp/koneko"
     # It'll never be changed after logging in
     global api, api_queue, api_thread
     api_queue = queue.Queue()
