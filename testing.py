@@ -125,6 +125,7 @@ def test_change_url_to_full():
         == "https://i.pximg.net/img-original/img/2020/03/10/04/07/08/80017594_p0.png"
     )
 
+
 # From lscat.py
 def test_is_jpg():
     assert lscat.is_jpg("testing/04_祝！！！.jpg") == True
@@ -133,27 +134,25 @@ def test_is_jpg():
 
 
 def test_filter_jpg():
-    assert lscat.filter_jpg("testing/") == ['04_祝！！！.jpg', '17_ミコニャン.jpg']
+    assert lscat.filter_jpg("testing/") == ["04_祝！！！.jpg", "17_ミコニャン.jpg"]
 
-mywidth = 90 // 7 # == 12
+
+mywidth = 90 // 7  # == 12
+
 
 def test_xcoord():
     assert lscat.xcoord(1, 7, mywidth) == 13
+
 
 def test_number_prefix():
     assert lscat.number_prefix("02_file.png") == 2
     assert lscat.number_prefix("11_file.png") == 11
 
+
 def test_init_constants():
-    page1, page2, left_shifts, cols = lscat.init_consts(7, mywidth, 'testing/')
-    assert page1 == [('04_祝！！！.jpg', '17_ミコニャン.jpg')]
+    page1, page2, left_shifts, cols = lscat.init_consts(7, mywidth, "testing/")
+    assert page1 == [("04_祝！！！.jpg", "17_ミコニャン.jpg")]
     assert page2 == []
     assert left_shifts == [1, 13, 25, 37, 49, 61, 73]
     assert cols == range(7)
-
-
-
-
-
-
 
