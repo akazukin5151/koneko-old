@@ -24,16 +24,7 @@ import cytoolz
 from tqdm import tqdm
 from pixivpy3 import AppPixivAPI
 
-from pure import (
-    cd,
-    spinner,
-    process_coords,
-    prefix_filename,
-    generate_filepath,
-    print_multiple_imgs,
-    process_coords_slice,
-    split_backslash_last,
-)
+import pure
 from lscat import main as lscat
 
 
@@ -86,7 +77,7 @@ def post_titles_in_page(current_page_illusts):
     return titles
 
 
-@spinner("")
+@pure.spinner("")
 def page_urls_in_post(post_json, size="medium"):
     """Get the number of pages and each of their urls in a multi-image post."""
     number_of_pages = post_json.page_count
@@ -122,7 +113,7 @@ class LastPageException(Exception):
 
 
 # - Uses web requests, impure
-@spinner("Fetching user illustrations... ")
+@pure.spinner("Fetching user illustrations... ")
 def user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
@@ -139,12 +130,12 @@ def full_img_details(png=False, post_json=None, image_id=None):
         post_json = current_image.illust
 
     url = change_url_to_full(post_json, png)
-    filename = split_backslash_last(url)
-    filepath = generate_filepath(filename)
+    filename = pure.split_backslash_last(url)
+    filepath = pure.generate_filepath(filename)
     return url, filename, filepath
 
 
-@spinner("")  # No message because it conflicts with download_illusts()
+@pure.spinner("")  # No message because it conflicts with download_illusts()
 def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     """
     current_page_num : int
@@ -172,14 +163,14 @@ def async_download_core(
     download_path, urls, rename_images=False, file_names=None, pbar=None
 ):
     """Core logic for async downloading."""
-    oldnames = list(map(split_backslash_last, urls))
+    oldnames = list(map(pure.split_backslash_last, urls))
     if rename_images:
-        newnames = list(map(prefix_filename, oldnames, file_names, enumerate(urls)))
+        newnames = list(map(pure.prefix_filename, oldnames, file_names, enumerate(urls)))
     else:
         newnames = oldnames
 
     os.makedirs(download_path, exist_ok=True)
-    with cd(download_path):
+    with pure.cd(download_path):
         with ThreadPoolExecutor(max_workers=30) as executor:
             urls_to_download = list(itertools.filterfalse(os.path.isfile, urls))
             # Curried submit function doesn't work...
@@ -203,7 +194,7 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
 
 # - Wrappers around the core functions for async download
 # @timer
-# @spinner(" Downloading illustrations...  ")
+# @pure.spinner(" Downloading illustrations...  ")
 def download_illusts(current_page_illusts, current_page_num, artist_user_id, pbar=None):
     """
     Download the illustrations on one page of given artist id (using threads)
@@ -225,13 +216,13 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id, pba
     )
 
 
-@spinner("")
+@pure.spinner("")
 def async_download_spinner(download_path, page_urls):
     async_download_core(download_path, page_urls)
 
 
 # @timer
-@spinner("")
+@pure.spinner("")
 def download_core_spinner(large_dir, url, filename):
     download_core(large_dir, url, filename)
 
@@ -245,7 +236,7 @@ def download_core(large_dir, url, filename, try_make_dir=True):
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
         print("   Downloading illustration...", flush=True, end="\r")
-        with cd(large_dir):
+        with pure.cd(large_dir):
             downloadr(url, filename, None)
 
 
@@ -294,7 +285,7 @@ def go_next_image(
     # First time from gallery; download next image
     if not downloaded_images:
         url = page_urls[img_post_page_num]
-        downloaded_images = [split_backslash_last(url) for url in page_urls[:2]]
+        downloaded_images = [pure.split_backslash_last(url) for url in page_urls[:2]]
         async_download_spinner(download_path, url)
 
     # fmt: off
@@ -306,7 +297,7 @@ def go_next_image(
 
     # Downloads the next image
     next_img_url = page_urls[img_post_page_num + 1]
-    downloaded_images.append(split_backslash_last(next_img_url))
+    downloaded_images.append(pure.split_backslash_last(next_img_url))
     async_download_spinner(download_path, next_img_url)
     print(f"Page {img_post_page_num+1}/{number_of_pages}")
 
@@ -319,7 +310,7 @@ def go_next_image(
 # - Non interactive, visible to user functions
 # @timer
 def show_artist_illusts(path):
-    with cd(path):
+    with pure.cd(path):
         # This assumes you're in the directory where both koneko.py and lscat is in
         # lscat_path = os.getcwd()
         # os.system(f"{lscat_path}/lscat")
@@ -353,7 +344,7 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     )
 
     url = url_given_size(post_json, "large")
-    filename = split_backslash_last(url)
+    filename = pure.split_backslash_last(url)
 
     large_dir = f"{DIR}/{artist_user_id}/{current_page_num}/large/"
     download_core_spinner(large_dir, url, filename)
@@ -552,7 +543,7 @@ def gallery_prompt(
                 sys.exit(0)
 
         elif gallery_command[0] == "o":
-            number = process_coords_slice(gallery_command)
+            number = pure.process_coords_slice(gallery_command)
             if not number:
                 number = int(gallery_command[1:])
 
@@ -562,7 +553,7 @@ def gallery_prompt(
             print(f"Opened {link}!\n")
 
         elif gallery_command[0] == "d":
-            number = process_coords_slice(gallery_command)
+            number = pure.process_coords_slice(gallery_command)
             if not number:
                 number = int(gallery_command[1:])
 
@@ -620,14 +611,14 @@ def gallery_prompt(
         else:  # Open specified image
             # Process coordinates first
             if re.match(r"^\d,\d$", gallery_command):
-                number = process_coords(gallery_command, ",")
+                number = pure.process_coords(gallery_command, ",")
                 if not number:
                     continue
                 else:
                     selected_image_num = number
 
             elif re.match(r"^\d \d$", gallery_command):
-                number = process_coords(gallery_command, " ")
+                number = pure.process_coords(gallery_command, " ")
                 if not number:
                     continue
                 else:
@@ -695,7 +686,7 @@ def show_gallery(
 
     if show:
         show_artist_illusts(download_path)
-    print_multiple_imgs(current_page_illusts)
+    pure.print_multiple_imgs(current_page_illusts)
 
     if not all_pages_cache:
         all_pages_cache = {"1": current_page}
@@ -731,7 +722,7 @@ def view_post_mode(image_id):
     # illust_detail might need a spinner
     post_json = api.illust_detail(image_id)["illust"]
     url = url_given_size(post_json, "large")
-    filename = split_backslash_last(url)
+    filename = pure.split_backslash_last(url)
     artist_user_id = post_json["user"]["id"]
 
     large_dir = f"{DIR}/{artist_user_id}/individual/"
@@ -745,7 +736,7 @@ def view_post_mode(image_id):
     else:
         download_path = f"{DIR}/{artist_user_id}/individual/{image_id}/"
         async_download_spinner(download_path, page_urls[:2])
-        downloaded_images = [split_backslash_last(url) for url in page_urls[:2]]
+        downloaded_images = [pure.split_backslash_last(url) for url in page_urls[:2]]
 
     image_prompt(
         image_id,
@@ -765,7 +756,7 @@ def artist_illusts_mode_loop(if_prompted, artist_user_id=None):
             artist_user_id = artist_user_id_prompt()
             os.system("clear")
             if "pixiv" in artist_user_id:
-                artist_user_id = split_backslash_last(artist_user_id)
+                artist_user_id = pure.split_backslash_last(artist_user_id)
             # After the if, input must either be int or invalid
             try:
                 int(artist_user_id)
@@ -786,7 +777,7 @@ def view_post_mode_loop(if_prompted, image_id=None):
             url_or_id = input("Enter pixiv post url or ID:\n")
             os.system("clear")
             if "pixiv" in url_or_id:
-                image_id = split_backslash_last(url_or_id)
+                image_id = pure.split_backslash_last(url_or_id)
             else:
                 image_id = url_or_id
             # After the if, input must either be int or invalid
@@ -852,11 +843,11 @@ def main():
         url = sys.argv[1]
 
         if "users" in url:
-            artist_user_id = split_backslash_last(url).split("\\")[-1][1:]
+            artist_user_id = pure.split_backslash_last(url).split("\\")[-1][1:]
             main_command = "1"
 
         elif "artworks" in url:
-            image_id = split_backslash_last(url).split("\\")[0]
+            image_id = pure.split_backslash_last(url).split("\\")[0]
             main_command = "2"
 
         elif "illust_id" in url:
