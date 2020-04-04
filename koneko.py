@@ -108,7 +108,7 @@ def async_download_core(
     oldnames = list(map(pure.split_backslash_last, urls))
     if rename_images:
         newnames = list(
-            map(pure.prefix_filename, oldnames, file_names, enumerate(urls))
+            map(pure.prefix_filename, oldnames, file_names, range(len((urls))))
         )
     else:
         newnames = oldnames
