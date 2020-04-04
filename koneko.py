@@ -83,6 +83,7 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     current_page_num : int
         It is the CURRENT page number, before incrementing
     """
+    # TODO: prefetch only half of the next page, use tqdm
     print("   Prefetching next page...", flush=True, end="\r")
     next_url = all_pages_cache[str(current_page_num)]["next_url"]
     if not next_url:  # this is the last page
@@ -684,17 +685,20 @@ def view_post_mode(image_id):
     filename = pure.split_backslash_last(url)
     artist_user_id = post_json["user"]["id"]
 
-    large_dir = f"{KONEKODIR}/{artist_user_id}/individual/"
+    # If it's a multi-image post, download the first pic in individual/{image_id}
+    # So it won't be duplicated later
+    number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
+    if number_of_pages == 1:
+        large_dir = f"{KONEKODIR}/{artist_user_id}/individual/"
+        downloaded_images = None
+    else:
+        large_dir = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
+
     download_core_spinner(large_dir, url, filename)
     open_image_vp(artist_user_id, f"{large_dir}{filename}")
 
-    number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
-
-    if number_of_pages == 1:
-        downloaded_images = None
-    else:
-        download_path = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
-        async_download_spinner(download_path, page_urls[:2])
+    if number_of_pages != 1:
+        async_download_spinner(large_dir, page_urls[:2])
         downloaded_images = [pure.split_backslash_last(url) for url in page_urls[:2]]
 
     image_prompt(
@@ -704,8 +708,10 @@ def view_post_mode(image_id):
         img_post_page_num=0,
         number_of_pages=number_of_pages,
         downloaded_images=downloaded_images,
-        download_path=download_path
+        download_path=large_dir
     )
+    # Will only be used for multi-image posts, so it's safe to use large_dir
+    # Without checking for number_of_pages
 
     artist_illusts_mode(artist_user_id)
 
