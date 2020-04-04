@@ -155,4 +155,3 @@ def test_init_constants():
     assert page2 == []
     assert left_shifts == [1, 13, 25, 37, 49, 61, 73]
     assert cols == range(7)
-
