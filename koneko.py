@@ -51,14 +51,6 @@ def setup(out_queue):
 
 
 # - Other backend functions; all pure functions
-@cytoolz.curry
-def url_given_size(post_json, size):
-    """
-    size : str
-        One of: ("square-medium", "medium", "large")
-    """
-    return post_json["image_urls"][size]
-
 
 @cytoolz.curry
 def post_title(current_page_illusts, post_number):
@@ -66,7 +58,7 @@ def post_title(current_page_illusts, post_number):
 
 
 def medium_urls(current_page_illusts):
-    get_medium_url = url_given_size(size="medium")
+    get_medium_url = pure.url_given_size(size="medium")
     urls = list(map(get_medium_url, current_page_illusts))
     return urls
 
@@ -86,7 +78,7 @@ def page_urls_in_post(post_json, size="medium"):
         list_of_pages = post_json.meta_pages
         page_urls = []
         for i in range(number_of_pages):
-            page_urls.append(url_given_size(list_of_pages[i], size))
+            page_urls.append(pure.url_given_size(list_of_pages[i], size))
     else:
         page_urls = None
 
@@ -98,7 +90,7 @@ def change_url_to_full(post_json, png=False):
     The 'large' resolution url isn't the largest. This uses changes the url to
     the highest resolution available
     """
-    url = url_given_size(post_json, "large")
+    url = pure.url_given_size(post_json, "large")
     url = re.sub(r"_p0_master\d+", "_p0", url)
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
 
@@ -345,7 +337,7 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
         f"kitty +kitten icat --silent {DIR}/{artist_user_id}/{current_page_num}/{search_string}*"
     )
 
-    url = url_given_size(post_json, "large")
+    url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
 
     large_dir = f"{DIR}/{artist_user_id}/{current_page_num}/large/"
@@ -722,7 +714,7 @@ def artist_illusts_mode(artist_user_id, current_page_num=1):
 def view_post_mode(image_id):
     # illust_detail might need a spinner
     post_json = api.illust_detail(image_id)["illust"]
-    url = url_given_size(post_json, "large")
+    url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
     artist_user_id = post_json["user"]["id"]
 

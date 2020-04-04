@@ -3,6 +3,7 @@ import os
 import pytest
 
 import pure
+from page_json import * # Imports the current_page (dict) stored in disk
 
 
 def test_split_backslash_last():
@@ -56,3 +57,8 @@ def test_process_coords_slice():
     assert pure.process_coords_slice("d  7 4") == 27
     assert pure.process_coords_slice("o 71") == 6
     assert pure.process_coords_slice("o 7 5") == False
+
+def test_url_given_size():
+    assert pure.url_given_size(page_json['illusts'][0], 'medium') == "https://i.pximg.net/c/540x540_70/img-master/img/2020/03/10/04/07/08/80017594_p0_master1200.jpg"
+    assert pure.url_given_size(page_json['illusts'][1], 'large') == "https://i.pximg.net/c/600x1200_90_webp/img-master/img/2020/02/29/19/09/35/79799236_p0_master1200.jpg"
+
