@@ -3,11 +3,12 @@ import os
 import pytest
 
 import pure
+import lscat
 from page_json import *  # Imports the current_page (dict) stored in disk
 
 page_illusts = page_json["illusts"]
 
-
+# From pure.py
 def test_cd():
     current_dir = os.getcwd()
     with pure.cd(current_dir):
@@ -123,3 +124,38 @@ def test_change_url_to_full():
         pure.change_url_to_full(page_illusts[0], png=True)
         == "https://i.pximg.net/img-original/img/2020/03/10/04/07/08/80017594_p0.png"
     )
+
+# From lscat.py
+#def test_is_jpg():
+    # Need a sample jpg file
+
+#def test_filter_jpg():
+    # Needs at least two sample jpg files
+
+mywidth = 90 // 7 # == 12
+
+def test_xcoord():
+    assert lscat.xcoord(1, 7, mywidth) == 13
+
+def test_number_prefix():
+    assert lscat.number_prefix("02_file.png") == 2
+    assert lscat.number_prefix("11_file.png") == 11
+
+#def test_init_constants():
+    # Needs the two sample jpg files
+    #assert lscat.init_consts(7, mywidth, path)
+
+#def test_render(capsys):
+    # Needs the params
+#    captured = capsys.readouterr()
+#    first_page = '\n' * 26
+#    second_page = '\n' * 23
+#    lscat.render(page1, page2, cols, left_shifts, path)
+#    assert captured.out == f"{first_page}{second_page}"
+
+
+
+
+
+
+

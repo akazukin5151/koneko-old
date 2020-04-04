@@ -161,7 +161,7 @@
     <p id="t108" class="mis show_mis"><span class="n"><a href="#t108">108</a></span><span class="t">    <span class="nam">oldnames</span> <span class="op">=</span> <span class="nam">list</span><span class="op">(</span><span class="nam">map</span><span class="op">(</span><span class="nam">pure</span><span class="op">.</span><span class="nam">split_backslash_last</span><span class="op">,</span> <span class="nam">urls</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p id="t109" class="mis show_mis"><span class="n"><a href="#t109">109</a></span><span class="t">    <span class="key">if</span> <span class="nam">rename_images</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p id="t110" class="mis show_mis"><span class="n"><a href="#t110">110</a></span><span class="t">        <span class="nam">newnames</span> <span class="op">=</span> <span class="nam">list</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p id="t111" class="pln"><span class="n"><a href="#t111">111</a></span><span class="t">            <span class="nam">map</span><span class="op">(</span><span class="nam">pure</span><span class="op">.</span><span class="nam">prefix_filename</span><span class="op">,</span> <span class="nam">oldnames</span><span class="op">,</span> <span class="nam">file_names</span><span class="op">,</span> <span class="nam">enumerate</span><span class="op">(</span><span class="nam">urls</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p id="t111" class="pln"><span class="n"><a href="#t111">111</a></span><span class="t">            <span class="nam">map</span><span class="op">(</span><span class="nam">pure</span><span class="op">.</span><span class="nam">prefix_filename</span><span class="op">,</span> <span class="nam">oldnames</span><span class="op">,</span> <span class="nam">file_names</span><span class="op">,</span> <span class="nam">range</span><span class="op">(</span><span class="nam">len</span><span class="op">(</span><span class="op">(</span><span class="nam">urls</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p id="t112" class="pln"><span class="n"><a href="#t112">112</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p id="t113" class="pln"><span class="n"><a href="#t113">113</a></span><span class="t">    <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p id="t114" class="mis show_mis"><span class="n"><a href="#t114">114</a></span><span class="t">        <span class="nam">newnames</span> <span class="op">=</span> <span class="nam">oldnames</span>&nbsp;</span><span class="r"></span></p>
@@ -874,7 +874,7 @@
     <div class="content">
         <p>
             <a class="nav" href="index.html">&#xab; index</a> &nbsp; &nbsp; <a class="nav" href="https://coverage.readthedocs.io">coverage.py v5.0.4</a>,
-            created at 2020-04-04 14:37
+            created at 2020-04-04 16:57
         </p>
     </div>
 </div>
