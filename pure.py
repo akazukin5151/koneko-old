@@ -65,11 +65,11 @@ def spinner(call, message=""):
     return result
 
 
-def split_backslash_last(str):
+def split_backslash_last(string):
     """
     Intended for splitting url to get filename, but it has lots of applications...
     """
-    return str.split("/")[-1]
+    return string.split("/")[-1]
 
 
 def generate_filepath(filename):
@@ -123,7 +123,7 @@ def process_coords_slice(gallery_command):
 
 def print_multiple_imgs(illusts_json):
     for (index, json) in enumerate(illusts_json):
-        pages = json['page_count']
+        pages = json["page_count"]
         if pages > 1:
             print(f"#{index} has {pages} pages", end=", ")
     print("")

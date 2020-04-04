@@ -33,7 +33,6 @@ def init_consts(number_of_columns, width, path):
     cols = range(number_of_columns)
     calc = xcoord(number_of_columns=number_of_columns, width=width)
     left_shifts = list(map(calc, cols))
-    rows = range(-(-len(file_list) // number_of_columns))  # Round up
 
     partition_file_list = list(cytoolz.partition_all(number_of_columns, file_list))
 
