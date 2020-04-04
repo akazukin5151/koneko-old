@@ -42,7 +42,7 @@ def setup(out_queue):
     api = AppPixivAPI()
     # Read config.ini file
     config_object = ConfigParser()
-    config_path = os.path.expanduser('~/.config/koneko/')
+    config_path = os.path.expanduser("~/.config/koneko/")
     config_object.read(f"{config_path}config.ini")
     config = config_object["Credentials"]
 
@@ -153,7 +153,7 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     download_path = f"{DIR}/{artist_user_id}/{current_page_num+1}/"
     if not os.path.isdir(download_path):
         download_illusts(current_page_illusts, current_page_num + 1, artist_user_id)
-    print("  " * 26) # Magic
+    print("  " * 26)  # Magic
     return all_pages_cache
 
 
@@ -165,7 +165,9 @@ def async_download_core(
     """Core logic for async downloading."""
     oldnames = list(map(pure.split_backslash_last, urls))
     if rename_images:
-        newnames = list(map(pure.prefix_filename, oldnames, file_names, enumerate(urls)))
+        newnames = list(
+            map(pure.prefix_filename, oldnames, file_names, enumerate(urls))
+        )
     else:
         newnames = oldnames
 
@@ -183,7 +185,7 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
     try:
         # print(f"Downloading {img_name}")
         api.download(url)
-    except RemoteDisconnected as e: # TODO: retry
+    except RemoteDisconnected as e:  # TODO: retry
         print(f"Network error! Caught {e}")
     if pbar:
         pbar.update(1)
@@ -247,7 +249,7 @@ def download_from_image_view(image_id, png=False):
     url, filename, filepath = full_img_details(image_id=image_id, png=png)
     # IMPROVEMENT: spinner missing for all full_img_details()
     # because it accepts **kwargs and that confuses the spinner decorator
-    homepath = os.path.expanduser('~')
+    homepath = os.path.expanduser("~")
     download_core(
         f"{homepath}/Downloads/", url, filename, try_make_dir=False,
     )
@@ -398,7 +400,9 @@ def artist_user_id_prompt():
 
 
 # - Prompt functions with logic
-def image_prompt(image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs):
+def image_prompt(
+    image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
+):
     """
     Image view commands:
     b -- go back to the gallery
@@ -561,12 +565,9 @@ def gallery_prompt(
 
             url, filename, filepath = full_img_details(post_json=post_json)
 
-            homepath = os.path.expanduser('~')
+            homepath = os.path.expanduser("~")
             download_core(
-                f"{homepath}/Downloads/",
-                url,
-                filename,
-                try_make_dir=False,
+                f"{homepath}/Downloads/", url, filename, try_make_dir=False,
             )
             print(f"Image downloaded at {filepath}\n")
 
@@ -678,7 +679,7 @@ def show_gallery(
     current_page_illusts = current_page["illusts"]
 
     if not os.path.isdir(download_path):
-        pbar = tqdm(total=30) # Number of images in one gallery page
+        pbar = tqdm(total=30)  # Number of images in one gallery page
         download_illusts(
             current_page_illusts, current_page_num, artist_user_id, pbar=pbar
         )
