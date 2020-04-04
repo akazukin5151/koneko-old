@@ -1,4 +1,5 @@
-# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Coverage](coverage.svg)](testing.py)
+
 Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
 ![Gallery view](gallery_view.png)
@@ -8,8 +9,6 @@ Browse pixiv in the terminal using kitty's icat to display images (in the termin
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html). Actually, `lscat.py` uses [pixcat](https://github.com/mirukana/pixcat), which is a Python API for icat.
 
 **Why the name Koneko?** Koneko (こねこ) means kitten, which is icat is, a kitty +kitten
-
-**This is still in alpha stages**. Once I finally ~~get async working~~ and ~~rewrite lscat~~ and refactor+stabilize it will be in beta (see [milestones](https://github.com/twenty5151/koneko/milestone/1)). All PRs are welcome. The current master branch is (supposed to be) stable, but it's still alpha. The `testing` branch is for the latest features, fixes, and super instability. It is merged with the `dev` branch nightly (or less frequently). In turn, `dev` is merge with `master` the next day, so essentially `master` is just `testing` delayed by two days.
 
 
 # Features
@@ -25,7 +24,7 @@ Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magi
 
 # Rationale
 * Terminal user interfaces are minimalist, fast, and doesn't load Javascript that slows down your entire browser or track you
-    * Image loading is *so* much faster
+    * Image loading is *so* much faster, especially if you don't delete the cache
 
 I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get logged out
 
@@ -72,15 +71,28 @@ python koneko.py https://www.pixiv.net/en/artworks/78823485
 
 ## lscat rewrite
 
-**Note on terminology**: [lsix](https://github.com/hackerb9/lsix/) is the name of the original shell script I used, which uses libsixel. I edited it to use icat and renamed it **lscat**. Then I rewrote it with python, which is named **lscat.py**.
+**Note on terminology**: [lsix](https://github.com/hackerb9/lsix/) is the name of the original shell script I used, which uses sixel. I edited it to use icat and renamed it **lscat**. Then I rewrote it with python, which is named **lscat.py**. **lscat.py is the default renderer and the fastest.**
 
-You might have problems with image positioning with lscat.py. I wrote it to fit my screen and my terminal size, so there are 'magic numbers' (numbers that just exist) around. There's also no functionality to adjust for different terminal sizes. You can do either:
+You might have problems with image positioning with lscat.py. I wrote it to fit my screen and my terminal size, so there is no functionality to adjust for different terminal size. There are also 'magic numbers' (numbers that just exist) around. If you encounter problems, there are four things you can do, in order of least to most effort:
 
-1. Adjust the 'magic numbers'. There are around 4-5 types and they are commented in `lscat.py`
-2. You can revert to the old lscat script. In `show_artist_illusts()`, uncomment the two lines and comment out `lscat(path)`
-3. You can contribute by checking terminal size and doing all the maths. Send a PR! The only requirement is that it has to be *fast*. If not, it should be have a toggle to skip those checks.
-4. You can even use libsixel with lsix. In that case, replace the `lscat` file with [lsix](https://github.com/hackerb9/lsix/) and then do 2.
+* Revert to the old lscat shell script.
 
+    1. In `show_artist_illusts()` (`koneko.py`), change `renderer="lscat"` to `renderer="lscat old"`.
+
+* Revert to the original lsix script. This would be more reliable than 1., because it has all the checks for terminal sizes. However, you cannot use kitty; xterm works.
+
+    1. Make sure you're cd'ed into the koneko dir, then `curl "https://raw.githubusercontent.com/hackerb9/lsix/master/lsix" -o legacy/lsix && chmod +x legacy/lsix`
+
+    2. In `show_artist_illusts()` (`koneko.py`), change `renderer="lscat"` to `renderer="lsix"`.
+
+* Adjust the 'magic numbers'. There are around 4-5 types and they are commented in `lscat.py`
+* You can contribute to `lscat.py` by checking terminal size and doing all the maths and send a PR
+
+| Feature  | lscat.py | legacy/lscat | [hackerb9/lsix](https://github.com/hackerb9/lsix/) |
+| --- | --- | --- | --- |
+| Speed  | Fastest | Slower | Slowest
+| Reliability (eg, resizing the terminal) | Poor | Medium | Good
+| Adaptability | Poor | Poor | Good
 
 ## `Dev` branch
 
@@ -91,7 +103,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 ```
 
 ## Unit tests
-Use `pytest testing.py`
+Use `pytest testing.py` or `coverage run -m pytest *.py` to also generate a code coverage report. Use `coverage report` or `coverage html -d testing/htmlcov/` to view. The coverage badge can be generated with `rm coverage.svg && coverage-badge -o coverage.svg`.
 
 
 Here's a random shell command to get (but not download) and display any pixiv image url:
