@@ -38,9 +38,7 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 
 
 # Usage
-0. Install [kitty](https://github.com/kovidgoyal/kitty), and all other requirements (just see list of imports)
-    * [pixivpy](https://github.com/upbit/pixivpy): `pip install pixivpy`
-    * [pixcat](https://github.com/mirukana/pixcat): `pip install pixcat`
+0. Install [kitty](https://github.com/kovidgoyal/kitty)
 1. `mkdir ~/.config/koneko/ && touch ~/.config/koneko/config.ini`
 2. `vim ~/.config/koneko/config.ini` and fill it out with your pixiv username and password like this:
 
@@ -53,6 +51,7 @@ Password = XXX
 3. Run:
 ```sh
 git clone https://github.com/twenty5151/koneko.git && cd koneko
+pip install -r requirements.txt
 python koneko.py
 ```
 
