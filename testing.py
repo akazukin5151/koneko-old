@@ -34,9 +34,8 @@ def test_find_number_map():
     assert pure.find_number_map(7, 4) == 27
     assert pure.find_number_map(7, 1) == 6
     assert pure.find_number_map(7, 5) == False
-    with pytest.raises(AssertionError):
-        pure.find_number_map(-1, -1)
-        pure.find_number_map(0, 0)
+    assert pure.find_number_map(-1, -1) == False
+    assert pure.find_number_map(0, 0) == False
 
 
 def test_process_coords():
@@ -46,12 +45,14 @@ def test_process_coords():
     assert pure.process_coords("7 4", " ") == 27
     assert pure.process_coords("7,1", ",") == 6
     assert pure.process_coords("7 5", " ") == False
-    with pytest.raises(AssertionError):
-        pure.process_coords("-1,-1", ",")
-        pure.process_coords("0 0", " ")
+    assert pure.process_coords("-1 -1", " ") == False
+    assert pure.process_coords("0,0", ",") == False
 
 
 def test_process_coords_slice():
-    assert pure.process_coords_slice("o 1,1", "o") == 0
-    assert pure.process_coords_slice("d 5 1", "d") == 4
-    assert pure.process_coords_slice("d25", "d") == 29
+    assert pure.process_coords_slice("o 1,1") == 0
+    assert pure.process_coords_slice("d 5 1") == 4
+    assert pure.process_coords_slice("d25") == 29
+    assert pure.process_coords_slice("d  7 4") == 27
+    assert pure.process_coords_slice("o 71") == 6
+    assert pure.process_coords_slice("o 7 5") == False
