@@ -123,7 +123,7 @@ def process_coords_slice(gallery_command):
 
 def print_multiple_imgs(illusts_json):
     for (index, json) in enumerate(illusts_json):
-        pages = json.page_count
+        pages = json['page_count']
         if pages > 1:
             print(f"#{index} has {pages} pages", end=", ")
     print("")
