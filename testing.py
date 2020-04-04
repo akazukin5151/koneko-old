@@ -8,6 +8,14 @@ from page_json import *  # Imports the current_page (dict) stored in disk
 page_illusts = page_json["illusts"]
 
 
+def test_cd():
+    current_dir = os.getcwd()
+    with pure.cd(current_dir):
+        testdir = os.getcwd()
+
+    assert testdir == os.getcwd()
+
+
 def test_split_backslash_last():
     assert (
         pure.split_backslash_last("https://www.pixiv.net/en/users/2232374") == "2232374"
@@ -60,6 +68,7 @@ def test_process_coords_slice():
     assert pure.process_coords_slice("o 71") == 6
     assert pure.process_coords_slice("o 7 5") == False
     assert pure.process_coords_slice("kljjl") == False
+
 
 def test_print_multiple_imgs(capsys):
     assert pure.print_multiple_imgs(page_illusts) == None
