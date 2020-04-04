@@ -118,11 +118,11 @@
     <p id="t65" class="run"><span class="n"><a href="#t65">65</a></span><span class="t">    <span class="key">return</span> <span class="nam">result</span>&nbsp;</span><span class="r"></span></p>
     <p id="t66" class="pln"><span class="n"><a href="#t66">66</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p id="t67" class="pln"><span class="n"><a href="#t67">67</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p id="t68" class="run"><span class="n"><a href="#t68">68</a></span><span class="t"><span class="key">def</span> <span class="nam">split_backslash_last</span><span class="op">(</span><span class="nam">str</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p id="t68" class="run"><span class="n"><a href="#t68">68</a></span><span class="t"><span class="key">def</span> <span class="nam">split_backslash_last</span><span class="op">(</span><span class="nam">string</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p id="t69" class="pln"><span class="n"><a href="#t69">69</a></span><span class="t">    <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
     <p id="t70" class="pln"><span class="n"><a href="#t70">70</a></span><span class="t"><span class="str">    Intended for splitting url to get filename, but it has lots of applications...</span>&nbsp;</span><span class="r"></span></p>
     <p id="t71" class="pln"><span class="n"><a href="#t71">71</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
-    <p id="t72" class="run"><span class="n"><a href="#t72">72</a></span><span class="t">    <span class="key">return</span> <span class="nam">str</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">"/"</span><span class="op">)</span><span class="op">[</span><span class="op">-</span><span class="num">1</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p id="t72" class="run"><span class="n"><a href="#t72">72</a></span><span class="t">    <span class="key">return</span> <span class="nam">string</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">"/"</span><span class="op">)</span><span class="op">[</span><span class="op">-</span><span class="num">1</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p id="t73" class="pln"><span class="n"><a href="#t73">73</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p id="t74" class="pln"><span class="n"><a href="#t74">74</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p id="t75" class="run"><span class="n"><a href="#t75">75</a></span><span class="t"><span class="key">def</span> <span class="nam">generate_filepath</span><span class="op">(</span><span class="nam">filename</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -176,7 +176,7 @@
     <p id="t123" class="pln"><span class="n"><a href="#t123">123</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p id="t124" class="run"><span class="n"><a href="#t124">124</a></span><span class="t"><span class="key">def</span> <span class="nam">print_multiple_imgs</span><span class="op">(</span><span class="nam">illusts_json</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p id="t125" class="run"><span class="n"><a href="#t125">125</a></span><span class="t">    <span class="key">for</span> <span class="op">(</span><span class="nam">index</span><span class="op">,</span> <span class="nam">json</span><span class="op">)</span> <span class="key">in</span> <span class="nam">enumerate</span><span class="op">(</span><span class="nam">illusts_json</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p id="t126" class="run"><span class="n"><a href="#t126">126</a></span><span class="t">        <span class="nam">pages</span> <span class="op">=</span> <span class="nam">json</span><span class="op">[</span><span class="str">'page_count'</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p id="t126" class="run"><span class="n"><a href="#t126">126</a></span><span class="t">        <span class="nam">pages</span> <span class="op">=</span> <span class="nam">json</span><span class="op">[</span><span class="str">"page_count"</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p id="t127" class="run"><span class="n"><a href="#t127">127</a></span><span class="t">        <span class="key">if</span> <span class="nam">pages</span> <span class="op">></span> <span class="num">1</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p id="t128" class="run"><span class="n"><a href="#t128">128</a></span><span class="t">            <span class="nam">print</span><span class="op">(</span><span class="str">f"#{index} has {pages} pages"</span><span class="op">,</span> <span class="nam">end</span><span class="op">=</span><span class="str">", "</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p id="t129" class="run"><span class="n"><a href="#t129">129</a></span><span class="t">    <span class="nam">print</span><span class="op">(</span><span class="str">""</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -242,7 +242,7 @@
     <div class="content">
         <p>
             <a class="nav" href="index.html">&#xab; index</a> &nbsp; &nbsp; <a class="nav" href="https://coverage.readthedocs.io">coverage.py v5.0.4</a>,
-            created at 2020-04-04 17:44
+            created at 2020-04-04 23:17
         </p>
     </div>
 </div>

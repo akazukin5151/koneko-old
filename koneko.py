@@ -16,12 +16,10 @@ import re
 import sys
 import queue
 import imghdr
-import itertools
 import threading
 from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
-import cytoolz
 from tqdm import tqdm
 from pixivpy3 import AppPixivAPI
 
@@ -38,17 +36,18 @@ def setup(out_queue):
     Parameters
     ----------
     out_queue : queue.Queue()
-        queue for storing logged-in api object
+        queue for storing logged-in API object
     """
-    api = AppPixivAPI()
+    global API
+    API = AppPixivAPI()
     # Read config.ini file
     config_object = ConfigParser()
     config_path = os.path.expanduser("~/.config/koneko/")
     config_object.read(f"{config_path}config.ini")
     config = config_object["Credentials"]
 
-    api.login(config["Username"], config["Password"])
-    out_queue.put(api)
+    API.login(config["Username"], config["Password"])
+    out_queue.put(API)
 
 
 class LastPageException(ValueError):
@@ -61,7 +60,7 @@ def user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
     # IMPROVEMENT: Caching it (in non volatile storage) might work
-    return api.user_illusts(artist_user_id)
+    return API.user_illusts(artist_user_id)
 
 
 def full_img_details(png=False, post_json=None, image_id=None):
@@ -69,7 +68,7 @@ def full_img_details(png=False, post_json=None, image_id=None):
     All in one function that gets the full-res url, filename, and filepath.
     """
     if (not post_json) and image_id:
-        current_image = api.illust_detail(image_id)
+        current_image = API.illust_detail(image_id)
         post_json = current_image.illust
 
     url = pure.change_url_to_full(post_json, png)
@@ -90,7 +89,7 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     if not next_url:  # this is the last page
         raise LastPageException
 
-    parse_page = api.user_illusts(**api.parse_qs(next_url))
+    parse_page = API.user_illusts(**API.parse_qs(next_url))
     all_pages_cache[str(current_page_num + 1)] = parse_page
     current_page_illusts = parse_page["illusts"]
 
@@ -125,15 +124,12 @@ def async_download_core(
                     )
 
 
-import time
-
-
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads given url, rename if needed."""
     try:  # This seemed to hide PixivError
         # print(f"Downloading {img_name}")
         # Sometimes didn't download unless if there's a breakpoint here...
-        api.download(url)
+        API.download(url)
     except RemoteDisconnected as e:  # TODO: retry
         print(f"Network error! Caught {e}")
     if pbar:
@@ -212,13 +208,7 @@ def download_from_image_view(image_id, png=False):
 
 
 def go_next_image(
-    page_urls,
-    img_post_page_num,
-    number_of_pages,
-    downloaded_images,
-    artist_user_id,
-    current_page_num,
-    download_path,
+    page_urls, img_post_page_num, number_of_pages, downloaded_images, download_path,
 ):
     """
     Intended to be from image_prompt, for posts with multiple images.
@@ -241,7 +231,6 @@ def go_next_image(
 
     # fmt: off
     open_image_vp(
-        artist_user_id,
         f"{download_path}{downloaded_images[img_post_page_num]}"
     )
     # fmt: on
@@ -330,7 +319,7 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     )
 
 
-def open_image_vp(artist_user_id, filepath):
+def open_image_vp(filepath):
     os.system(f"kitty +kitten icat --silent {filepath}")
 
 
@@ -423,8 +412,6 @@ def image_prompt(
                 img_post_page_num,
                 number_of_pages,
                 downloaded_images,
-                artist_user_id,
-                current_page_num,
                 download_path=kwargs["download_path"],
             )
 
@@ -439,7 +426,6 @@ def image_prompt(
                 img_post_page_num -= 1
                 # fmt: off
                 open_image_vp(
-                    artist_user_id,
                     f"{download_path}{downloaded_images[img_post_page_num]}"
                 )
                 # fmt: on
@@ -684,7 +670,7 @@ def artist_illusts_mode(artist_user_id, current_page_num=1):
 
 def view_post_mode(image_id):
     # illust_detail might need a spinner
-    post_json = api.illust_detail(image_id)["illust"]
+    post_json = API.illust_detail(image_id)["illust"]
     url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
     artist_user_id = post_json["user"]["id"]
@@ -699,7 +685,7 @@ def view_post_mode(image_id):
         large_dir = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
 
     download_core_spinner(large_dir, url, filename)
-    open_image_vp(artist_user_id, f"{large_dir}{filename}")
+    open_image_vp(f"{large_dir}{filename}")
 
     if number_of_pages != 1:
         async_download_spinner(large_dir, page_urls[:2])
@@ -734,9 +720,9 @@ def artist_illusts_mode_loop(if_prompted, artist_user_id=None):
                 print("Invalid user ID!")
                 continue
 
-        api_thread.join()  # Wait for api to finish
-        global api
-        api = api_queue.get()  # Assign api to PixivAPI object
+        API_THREAD.join()  # Wait for API to finish
+        global API
+        API = API_QUEUE.get()  # Assign API to PixivAPI object
 
         artist_illusts_mode(artist_user_id)
 
@@ -757,9 +743,9 @@ def view_post_mode_loop(if_prompted, image_id=None):
                 print("Invalid image ID!")
                 continue
 
-        api_thread.join()  # Wait for api to finish
-        global api
-        api = api_queue.get()  # Assign api to PixivAPI object
+        API_THREAD.join()  # Wait for API to finish
+        global API
+        API = API_QUEUE.get()  # Assign API to PixivAPI object
 
         view_post_mode(image_id)
 
@@ -797,10 +783,10 @@ def main():
     global KONEKODIR
     KONEKODIR = "/tmp/koneko"
     # It'll never be changed after logging in
-    global api, api_queue, api_thread
-    api_queue = queue.Queue()
-    api_thread = threading.Thread(target=setup, args=(api_queue,))
-    api_thread.start()  # Start logging in
+    global API, API_QUEUE, API_THREAD
+    API_QUEUE = queue.Queue()
+    API_THREAD = threading.Thread(target=setup, args=(API_QUEUE,))
+    API_THREAD.start()  # Start logging in
 
     # During this part, the API can still be logging in but we can proceed
     # IMPROVEMENT: put a cute anime girl here with icat
