@@ -4,7 +4,7 @@ import pytest
 
 import pure
 from page_json import * # Imports the current_page (dict) stored in disk
-
+page_illusts = page_json['illusts']
 
 def test_split_backslash_last():
     assert (
@@ -59,6 +59,25 @@ def test_process_coords_slice():
     assert pure.process_coords_slice("o 7 5") == False
 
 def test_url_given_size():
-    assert pure.url_given_size(page_json['illusts'][0], 'medium') == "https://i.pximg.net/c/540x540_70/img-master/img/2020/03/10/04/07/08/80017594_p0_master1200.jpg"
-    assert pure.url_given_size(page_json['illusts'][1], 'large') == "https://i.pximg.net/c/600x1200_90_webp/img-master/img/2020/02/29/19/09/35/79799236_p0_master1200.jpg"
+    assert pure.url_given_size(page_illusts[0], 'medium') == "https://i.pximg.net/c/540x540_70/img-master/img/2020/03/10/04/07/08/80017594_p0_master1200.jpg"
+    assert pure.url_given_size(page_illusts[1], 'large') == "https://i.pximg.net/c/600x1200_90_webp/img-master/img/2020/02/29/19/09/35/79799236_p0_master1200.jpg"
+
+def test_post_title():
+    assert pure.post_title(page_illusts, 0) == "310"
+    assert pure.post_title(page_illusts, 1) == "Midnight Sun"
+
+def test_medium_urls():
+    assert len(pure.medium_urls(page_illusts)) == 30
+    assert pure.medium_urls(page_illusts)[0] == "https://i.pximg.net/c/540x540_70/img-master/img/2020/03/10/04/07/08/80017594_p0_master1200.jpg"
+
+def test_page_urls_in_post():
+    assert len(pure.page_urls_in_post(page_illusts[14], size="medium")) == 2
+    assert pure.page_urls_in_post(page_illusts[14], size="medium")[0] == 8
+    assert len(pure.page_urls_in_post(page_illusts[14], size="medium")[1]) == 8
+
+def test_change_url_to_full():
+    assert pure.change_url_to_full(page_illusts[0], png=False) == "https://i.pximg.net/img-original/img/2020/03/10/04/07/08/80017594_p0.jpg"
+    # Isn't actually needed for this image, but just testing
+    assert pure.change_url_to_full(page_illusts[0], png=True) == "https://i.pximg.net/img-original/img/2020/03/10/04/07/08/80017594_p0.png"
+
 
