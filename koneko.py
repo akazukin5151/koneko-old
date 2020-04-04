@@ -35,7 +35,7 @@ from pure import (
     generate_filepath,
     print_multiple_imgs,
     process_coords_slice,
-    split_backslash_last
+    split_backslash_last,
 )
 from lscat import main as lscat
 
@@ -538,7 +538,9 @@ def gallery_prompt(
         d9  --->    Download the ninth image, in large resolution
     """
     # Fixes: Gallery -> next page -> image prompt -> back -> prev page
-    if current_page_num == 1:
+    # Gallery -> Image -> back still retains all_pages_cache, no need to
+    # prefetch again
+    if len(all_pages_cache) == 1:
         # Prefetch the next page on first gallery load
         try:
             all_pages_cache = prefetch_next_page(
@@ -595,13 +597,15 @@ def gallery_prompt(
             current_page_num += 1  # Only increment if successful
             print(f"Page {current_page_num}")
 
-            try:
-                # After showing gallery, pre-fetch the next page
-                all_pages_cache = prefetch_next_page(
-                    current_page_num, artist_user_id, all_pages_cache
-                )
-            except LastPageException:
-                print("This is the last page!")
+            # Skip prefetching again for cases like next -> prev -> next
+            if str(current_page_num + 1) not in all_pages_cache.keys():
+                try:
+                    # After showing gallery, pre-fetch the next page
+                    all_pages_cache = prefetch_next_page(
+                        current_page_num, artist_user_id, all_pages_cache
+                    )
+                except LastPageException:
+                    print("This is the last page!")
 
         elif gallery_command == "p":
             if current_page_num > 1:
@@ -680,7 +684,9 @@ def gallery_prompt(
 
 
 # - Mode and loop functions (some interactive and some not)
-def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kwargs):
+def show_gallery(
+    artist_user_id, current_page_num, current_page, show=True, all_pages_cache=None
+):
     """
     Downloads images, show if requested, instantiate all_pages_cache, prompt
     """
@@ -698,10 +704,8 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True, **kw
         show_artist_illusts(download_path)
     print_multiple_imgs(current_page_illusts)
 
-    if current_page_num == 1:
+    if not all_pages_cache:
         all_pages_cache = {"1": current_page}
-    else:
-        all_pages_cache = kwargs["all_pages_cache"]
 
     gallery_prompt(
         current_page_illusts,
