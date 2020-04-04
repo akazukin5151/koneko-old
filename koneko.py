@@ -50,57 +50,7 @@ def setup(out_queue):
     out_queue.put(api)
 
 
-# - Other backend functions; all pure functions
-
-@cytoolz.curry
-def post_title(current_page_illusts, post_number):
-    return current_page_illusts[post_number]["title"]
-
-
-def medium_urls(current_page_illusts):
-    get_medium_url = pure.url_given_size(size="medium")
-    urls = list(map(get_medium_url, current_page_illusts))
-    return urls
-
-
-def post_titles_in_page(current_page_illusts):
-    post_titles = post_title(current_page_illusts)
-    titles = list(map(post_titles, enumerate(current_page_illusts)))
-    return titles
-
-
-@pure.spinner("")
-def page_urls_in_post(post_json, size="medium"):
-    """Get the number of pages and each of their urls in a multi-image post."""
-    number_of_pages = post_json.page_count
-    if number_of_pages > 1:
-        print(f"Page 1/{number_of_pages}")
-        list_of_pages = post_json.meta_pages
-        page_urls = []
-        for i in range(number_of_pages):
-            page_urls.append(pure.url_given_size(list_of_pages[i], size))
-    else:
-        page_urls = None
-
-    return number_of_pages, page_urls
-
-
-def change_url_to_full(post_json, png=False):
-    """
-    The 'large' resolution url isn't the largest. This uses changes the url to
-    the highest resolution available
-    """
-    url = pure.url_given_size(post_json, "large")
-    url = re.sub(r"_p0_master\d+", "_p0", url)
-    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
-
-    # If it doesn't work, try changing to png
-    if png:
-        url = url.replace("jpg", "png")
-    return url
-
-
-class LastPageException(Exception):
+class LastPageException(ValueError):
     pass
 
 
@@ -121,7 +71,7 @@ def full_img_details(png=False, post_json=None, image_id=None):
         current_image = api.illust_detail(image_id)
         post_json = current_image.illust
 
-    url = change_url_to_full(post_json, png)
+    url = pure.change_url_to_full(post_json, png)
     filename = pure.split_backslash_last(url)
     filepath = pure.generate_filepath(filename)
     return url, filename, filepath
@@ -201,8 +151,8 @@ def download_illusts(current_page_illusts, current_page_num, artist_user_id, pba
         Page as in artist illustration profile pages. Starts from 1
     artist_user_id : int
     """
-    urls = medium_urls(current_page_illusts)
-    titles = post_titles_in_page(current_page_illusts)
+    urls = pure.medium_urls(current_page_illusts)
+    titles = pure.post_titles_in_page(current_page_illusts)
     download_path = f"{DIR}/{artist_user_id}/{current_page_num}/"
 
     async_download_core(
@@ -347,7 +297,7 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     # open medium res image
     # run download_core_spinner on a separate thread
     # in the meantime, continue:
-    #   run page_urls_in_post()
+    #   run pure.page_urls_in_post()
     #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
     # when download_core_spinner finishes, display the large image (run below command)
 
@@ -636,13 +586,13 @@ def gallery_prompt(
             # Threading won't even do anything meaningful here
             # with ThreadPoolExecutor(max_workers=3) as executor:
             #    future = executor.submit(
-            #        page_urls_in_post,
+            #        pure.page_urls_in_post,
             #        post_json
             #    )
             #
             # number_of_pages, page_urls = future.result()
 
-            number_of_pages, page_urls = page_urls_in_post(post_json, "large")
+            number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
 
             image_prompt(
                 image_id,
@@ -722,7 +672,7 @@ def view_post_mode(image_id):
     download_core_spinner(large_dir, url, filename)
     open_image_vp(artist_user_id, filename)
 
-    number_of_pages, page_urls = page_urls_in_post(post_json, "large")
+    number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
 
     if number_of_pages == 1:
         downloaded_images = None
