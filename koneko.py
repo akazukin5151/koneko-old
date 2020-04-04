@@ -7,7 +7,6 @@ magical `kitty +kitten icat` 'kitten' to display images.
 
 IMPROVEMENT: if post has multiple images, there should be a preview in image view
 TODO: unit tests
-TODO: replace kwargs with argument=None
 IMPROVEMENT: get rid of for loops
 """
 
@@ -38,7 +37,7 @@ from pure import (
 from lscat import main as lscat
 
 
-# - Logging in functions
+# - Logging in function
 # @timer
 def setup(out_queue):
     """
@@ -131,14 +130,12 @@ def user_illusts_spinner(artist_user_id):
     return api.user_illusts(artist_user_id)
 
 
-def full_img_details(png=False, **kwargs):
+def full_img_details(png=False, post_json=None, image_id=None):
     """
     All in one function that gets the full-res url, filename, and filepath.
     """
-    if "post_json" in kwargs.keys():
-        post_json = kwargs["post_json"]
-    elif "image_id" in kwargs.keys():
-        current_image = api.illust_detail(kwargs["image_id"])
+    if (not post_json) and image_id:
+        current_image = api.illust_detail(image_id)
         post_json = current_image.illust
 
     url = change_url_to_full(post_json, png)
@@ -192,8 +189,11 @@ def async_download_core(
 
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads given url, rename if needed."""
-    # print(f"Downloading {img_name}")
-    api.download(url)
+    try:
+        # print(f"Downloading {img_name}")
+        api.download(url)
+    except RemoteDisconnected as e: # TODO: retry
+        print(f"Network error! Caught {e}")
     if pbar:
         pbar.update(1)
     # print(f"{img_name} done!")
@@ -258,7 +258,7 @@ def download_from_image_view(image_id, png=False):
     # because it accepts **kwargs and that confuses the spinner decorator
     homepath = os.path.expanduser('~')
     download_core(
-        f"{home}/Downloads/", url, filename, try_make_dir=False,
+        f"{homepath}/Downloads/", url, filename, try_make_dir=False,
     )
 
     png = imghdr.what(filepath)
@@ -407,7 +407,7 @@ def artist_user_id_prompt():
 
 
 # - Prompt functions with logic
-def image_prompt(image_id, artist_user_id, **kwargs):
+def image_prompt(image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs):
     """
     Image view commands:
     b -- go back to the gallery
@@ -420,6 +420,11 @@ def image_prompt(image_id, artist_user_id, **kwargs):
     q -- quit (with confirmation)
 
     """
+    """
+    current_page and current_page_num is for gallery view -> next page(s) ->
+    image prompt -> back
+    kwargs are to store info for posts with multiple pages/images
+    """
     try:  # Posts with multiple pages
         page_urls = kwargs["page_urls"]
         img_post_page_num = kwargs["img_post_page_num"]
@@ -428,16 +433,10 @@ def image_prompt(image_id, artist_user_id, **kwargs):
     except KeyError:
         pass
 
-    try:  # Gallery view -> next page(s) -> image prompt -> back
-        current_page_num = kwargs["current_page_num"]
-        current_page = kwargs["current_page"]
-    except KeyError:  # Comes from mode 2
-        current_page_num = 1
-
     while True:
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
-            if current_page_num > 1:
+            if current_page_num > 1 and current_page:
                 all_pages_cache = kwargs["all_pages_cache"]
                 show_gallery(
                     artist_user_id,
@@ -760,9 +759,9 @@ def view_post_mode(image_id):
     artist_illusts_mode(artist_user_id)
 
 
-def artist_illusts_mode_loop(if_prompted, **kwargs):
+def artist_illusts_mode_loop(if_prompted, artist_user_id=None):
     while True:
-        if if_prompted:
+        if if_prompted and not artist_user_id:
             artist_user_id = artist_user_id_prompt()
             os.system("clear")
             if "pixiv" in artist_user_id:
@@ -773,8 +772,6 @@ def artist_illusts_mode_loop(if_prompted, **kwargs):
             except ValueError:
                 print("Invalid user ID!")
                 continue
-        else:
-            artist_user_id = kwargs["artist_user_id"]
 
         api_thread.join()  # Wait for api to finish
         global api
@@ -783,9 +780,9 @@ def artist_illusts_mode_loop(if_prompted, **kwargs):
         artist_illusts_mode(artist_user_id)
 
 
-def view_post_mode_loop(if_prompted, **kwargs):
+def view_post_mode_loop(if_prompted, image_id=None):
     while True:
-        if if_prompted:
+        if if_prompted and not image_id:
             url_or_id = input("Enter pixiv post url or ID:\n")
             os.system("clear")
             if "pixiv" in url_or_id:
@@ -798,8 +795,6 @@ def view_post_mode_loop(if_prompted, **kwargs):
             except ValueError:
                 print("Invalid image ID!")
                 continue
-        else:
-            image_id = kwargs["image_id"]
 
         api_thread.join()  # Wait for api to finish
         global api
@@ -808,24 +803,22 @@ def view_post_mode_loop(if_prompted, **kwargs):
         view_post_mode(image_id)
 
 
-def main_loop(if_prompted, **kwargs):
+def main_loop(if_prompted, main_command=None, artist_user_id=None, image_id=None):
     # IMPROVEMENT: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
     while True:
-        if if_prompted:
+        if if_prompted and not main_command:
             main_command = begin_prompt()
-        else:
-            main_command = kwargs["main_command"]
 
         if main_command == "1":
             try:
-                artist_illusts_mode_loop(if_prompted, **kwargs)
+                artist_illusts_mode_loop(if_prompted, artist_user_id)
             except KeyboardInterrupt:
                 os.system("clear")
 
         elif main_command == "2":
             try:
-                view_post_mode_loop(if_prompted, **kwargs)
+                view_post_mode_loop(if_prompted, image_id)
             except KeyboardInterrupt:
                 os.system("clear")
 
@@ -852,6 +845,7 @@ def main():
     # IMPROVEMENT: put a cute anime girl here with icat
     os.system("clear")
 
+    artist_user_id, image_id = None, None
     # Direct command line arguments, skip begin_prompt()
     if len(sys.argv) == 2:
         if_prompted = False
@@ -860,17 +854,14 @@ def main():
         if "users" in url:
             artist_user_id = split_backslash_last(url).split("\\")[-1][1:]
             main_command = "1"
-            kwargs = {"artist_user_id": artist_user_id, "main_command": main_command}
 
         elif "artworks" in url:
             image_id = split_backslash_last(url).split("\\")[0]
             main_command = "2"
-            kwargs = {"image_id": image_id, "main_command": main_command}
 
         elif "illust_id" in url:
             image_id = re.findall(r"&illust_id.*", url)[0].split("=")[-1]
             main_command = "2"
-            kwargs = {"image_id": image_id, "main_command": main_command}
 
     elif len(sys.argv) > 3:
         print("Too many arguments!")
@@ -878,10 +869,10 @@ def main():
 
     else:
         if_prompted = True
-        kwargs = {}
+        main_command = None
 
     try:
-        main_loop(if_prompted, **kwargs)
+        main_loop(if_prompted, main_command, artist_user_id, image_id)
     except KeyboardInterrupt:
         print("\n")
         answer = input("Are you sure you want to exit? [y/N]:\n")
