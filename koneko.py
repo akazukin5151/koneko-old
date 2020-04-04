@@ -253,12 +253,17 @@ def go_next_image(
 
 # - Non interactive, visible to user functions
 # @timer
-def show_artist_illusts(path):
+def show_artist_illusts(path, renderer="lscat"):
+    if renderer != "lscat":
+        lscat_path = os.getcwd()
+
     with pure.cd(path):
-        # This assumes you're in the directory where both koneko.py and lscat is in
-        # lscat_path = os.getcwd()
-        # os.system(f"{lscat_path}/lscat")
-        lscat(path)
+        if renderer == "lscat":
+            lscat(path)
+        elif renderer == "lscat old":
+            os.system(f"{lscat_path}/legacy/lscat")
+        elif renderer == "lsix":
+            os.system(f"{lscat_path}/legacy/lsix")
 
 
 def open_image(post_json, artist_user_id, number_prefix, current_page_num):
