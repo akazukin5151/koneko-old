@@ -6,8 +6,9 @@ Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the
 magical `kitty +kitten icat` 'kitten' to display images.
 
 IMPROVEMENT: if post has multiple images, there should be a preview in image view
+No more features before beta release
+IMPROVEMENT: option to use pillow or wand to edit numbers on pics
 TODO: unit tests
-IMPROVEMENT: get rid of for loops
 """
 
 import os
@@ -83,7 +84,7 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     current_page_num : int
         It is the CURRENT page number, before incrementing
     """
-    # TODO: prefetch only half of the next page, use tqdm
+    # IMPROVEMENT: prefetch only half of the next page, use tqdm
     print("   Prefetching next page...", flush=True, end="\r")
     next_url = all_pages_cache[str(current_page_num)]["next_url"]
     if not next_url:  # this is the last page
@@ -117,14 +118,19 @@ def async_download_core(
     os.makedirs(download_path, exist_ok=True)
     with pure.cd(download_path):
         with ThreadPoolExecutor(max_workers=30) as executor:
-            for (i,n) in enumerate(newnames):
+            for (i, n) in enumerate(newnames):
                 if not os.path.isfile(n):
-                    executor.submit(downloadr, urls[i], oldnames[i], newnames[i], pbar=pbar)
+                    executor.submit(
+                        downloadr, urls[i], oldnames[i], newnames[i], pbar=pbar
+                    )
+
 
 import time
+
+
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads given url, rename if needed."""
-    try: # This seemed to hide PixivError
+    try:  # This seemed to hide PixivError
         # print(f"Downloading {img_name}")
         # Sometimes didn't download unless if there's a breakpoint here...
         api.download(url)
@@ -212,7 +218,7 @@ def go_next_image(
     downloaded_images,
     artist_user_id,
     current_page_num,
-    download_path
+    download_path,
 ):
     """
     Intended to be from image_prompt, for posts with multiple images.
@@ -325,9 +331,7 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
 
 
 def open_image_vp(artist_user_id, filepath):
-    os.system(
-        f"kitty +kitten icat --silent {filepath}"
-    )
+    os.system(f"kitty +kitten icat --silent {filepath}")
 
 
 # - End non interactive, visible to user functions
@@ -372,7 +376,7 @@ def image_prompt(
     image prompt -> back
     kwargs are to store info for posts with multiple pages/images
     """
-    if len(kwargs) > 0: # Posts with multiple pages
+    if len(kwargs) > 0:  # Posts with multiple pages
         page_urls = kwargs["page_urls"]
         img_post_page_num = kwargs["img_post_page_num"]
         number_of_pages = kwargs["number_of_pages"]
@@ -421,7 +425,7 @@ def image_prompt(
                 downloaded_images,
                 artist_user_id,
                 current_page_num,
-                download_path=kwargs['download_path']
+                download_path=kwargs["download_path"],
             )
 
         elif image_prompt_command == "p":
@@ -431,7 +435,7 @@ def image_prompt(
                 print("This is the first image in the post!")
 
             else:
-                download_path = kwargs['download_path']
+                download_path = kwargs["download_path"]
                 img_post_page_num -= 1
                 # fmt: off
                 open_image_vp(
@@ -620,7 +624,7 @@ def gallery_prompt(
                 number_of_pages=number_of_pages,
                 downloaded_images=None,
                 all_pages_cache=all_pages_cache,
-                download_path=f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/"
+                download_path=f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/",
             )
 
 
@@ -708,7 +712,7 @@ def view_post_mode(image_id):
         img_post_page_num=0,
         number_of_pages=number_of_pages,
         downloaded_images=downloaded_images,
-        download_path=large_dir
+        download_path=large_dir,
     )
     # Will only be used for multi-image posts, so it's safe to use large_dir
     # Without checking for number_of_pages
