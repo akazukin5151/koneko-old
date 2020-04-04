@@ -63,11 +63,12 @@ def user_illusts_spinner(artist_user_id):
     return API.user_illusts(artist_user_id)
 
 
+@pure.spinner("Getting full image details... ")
 def full_img_details(png=False, post_json=None, image_id=None):
     """
     All in one function that gets the full-res url, filename, and filepath.
     """
-    if (not post_json) and image_id:
+    if image_id and not post_json:
         current_image = API.illust_detail(image_id)
         post_json = current_image.illust
 
@@ -170,8 +171,8 @@ def async_download_spinner(download_path, page_urls):
 
 # @timer
 @pure.spinner("")
-def download_core_spinner(large_dir, url, filename):
-    download_core(large_dir, url, filename)
+def download_core_spinner(large_dir, url, filename, try_make_dir=True):
+    download_core(large_dir, url, filename, try_make_dir)
 
 
 # - Functions that are wrappers around download functions, making them impure
@@ -192,10 +193,8 @@ def download_from_image_view(image_id, png=False):
     This downloads an image, checks if it's valid. If not, retry with png.
     """
     url, filename, filepath = full_img_details(image_id=image_id, png=png)
-    # IMPROVEMENT: spinner missing for all full_img_details()
-    # because it accepts **kwargs and that confuses the spinner decorator
     homepath = os.path.expanduser("~")
-    download_core(
+    download_core_spinner(
         f"{homepath}/Downloads/", url, filename, try_make_dir=False,
     )
 
@@ -375,7 +374,7 @@ def image_prompt(
     while True:
         image_prompt_command = input("Enter an image view command: ")
         if image_prompt_command == "b":
-            if current_page_num > 1 and current_page:
+            if current_page_num > 1 or current_page:
                 all_pages_cache = kwargs["all_pages_cache"]
                 show_gallery(
                     artist_user_id,
@@ -513,7 +512,7 @@ def gallery_prompt(
             url, filename, filepath = full_img_details(post_json=post_json)
 
             homepath = os.path.expanduser("~")
-            download_core(
+            download_core_spinner(
                 f"{homepath}/Downloads/", url, filename, try_make_dir=False,
             )
             print(f"Image downloaded at {filepath}\n")
@@ -684,6 +683,7 @@ def view_post_mode(image_id):
     else:
         large_dir = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
 
+    # tqdm trickery
     download_core_spinner(large_dir, url, filename)
     open_image_vp(f"{large_dir}{filename}")
 
