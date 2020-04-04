@@ -1,0 +1,6 @@
+PixivPy==3.5.6
+pytest==5.4.1
+funcy==1.14
+pixcat==0.1.4
+tqdm==4.42.1
+cytoolz==0.10.1
