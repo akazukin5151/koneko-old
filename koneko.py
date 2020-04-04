@@ -552,7 +552,7 @@ def gallery_prompt(
                 sys.exit(0)
 
         elif gallery_command[0] == "o":
-            number = process_coords_slice(gallery_command, "o")
+            number = process_coords_slice(gallery_command)
             if not number:
                 number = int(gallery_command[1:])
 
@@ -562,7 +562,7 @@ def gallery_prompt(
             print(f"Opened {link}!\n")
 
         elif gallery_command[0] == "d":
-            number = process_coords_slice(gallery_command, "d")
+            number = process_coords_slice(gallery_command)
             if not number:
                 number = int(gallery_command[1:])
 
