@@ -1,3 +1,4 @@
+import re
 import os
 import time
 import functools
@@ -135,4 +136,42 @@ def url_given_size(post_json, size):
         One of: ("square-medium", "medium", "large")
     """
     return post_json["image_urls"][size]
+
+@cytoolz.curry
+def post_title(current_page_illusts, post_number):
+    return current_page_illusts[post_number]["title"]
+
+def medium_urls(current_page_illusts):
+    get_medium_url = url_given_size(size="medium")
+    urls = list(map(get_medium_url, current_page_illusts))
+    return urls
+
+@spinner("")
+def page_urls_in_post(post_json, size="medium"):
+    """Get the number of pages and each of their urls in a multi-image post."""
+    number_of_pages = post_json['page_count']
+    if number_of_pages > 1:
+        print(f"Page 1/{number_of_pages}")
+        list_of_pages = post_json['meta_pages']
+        page_urls = []
+        for i in range(number_of_pages):
+            page_urls.append(url_given_size(list_of_pages[i], size))
+    else:
+        page_urls = None
+
+    return number_of_pages, page_urls
+
+def change_url_to_full(post_json, png=False):
+    """
+    The 'large' resolution url isn't the largest. This uses changes the url to
+    the highest resolution available
+    """
+    url = url_given_size(post_json, "large")
+    url = re.sub(r"_p0_master\d+", "_p0", url)
+    url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
+
+    # If it doesn't work, try changing to png
+    if png:
+        url = url.replace("jpg", "png")
+    return url
 
