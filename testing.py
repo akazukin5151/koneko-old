@@ -59,6 +59,12 @@ def test_process_coords_slice():
     assert pure.process_coords_slice("d  7 4") == 27
     assert pure.process_coords_slice("o 71") == 6
     assert pure.process_coords_slice("o 7 5") == False
+    assert pure.process_coords_slice("kljjl") == False
+
+def test_print_multiple_imgs(capsys):
+    assert pure.print_multiple_imgs(page_illusts) == None
+    captured = capsys.readouterr()
+    assert captured.out == "#14 has 8 pages, #25 has 50 pages, \n"
 
 
 def test_url_given_size():
@@ -89,6 +95,7 @@ def test_page_urls_in_post():
     assert len(pure.page_urls_in_post(page_illusts[14], size="medium")) == 2
     assert pure.page_urls_in_post(page_illusts[14], size="medium")[0] == 8
     assert len(pure.page_urls_in_post(page_illusts[14], size="medium")[1]) == 8
+    assert pure.page_urls_in_post(page_illusts[0], size="medium") == (1, None)
 
 
 def test_post_titles_in_page():
