@@ -90,7 +90,8 @@ def process_coords(input_command, split_string):
 
 
 def find_number_map(x, y):
-    assert x >= 1 and y >= 1
+    if not (x >= 1 and y >= 1):
+        return False
     # 7 = number of cols; 5 = number of rows
     # 7 columns, 30 images
     number_map = list(cytoolz.partition_all(7, range(30)))
@@ -104,37 +105,18 @@ def find_number_map(x, y):
     return number
 
 
-def process_coords_slice(gallery_command, exclude_letter):
+def process_coords_slice(gallery_command):
     """
     # I don't know why I spent so much time on this
-    Supports: (o x,y) (o x y) (oxy)
-    IMPROVEMENT: (o xy)
+    Supports: (o x,y) (o x y) (oxy) (o xy)
+    and any other combination of whitespace and commas
     """
-    splitspace = gallery_command.split(" ")
-    if len(splitspace) == 1:
-        splitcomma = splitspace[0].split(",")
-        if len(splitcomma) == 1:
-            # oxy
-            xy = splitcomma[0].split(exclude_letter)[1]
-            x, y = xy[0], xy[1]
-        else:
-            # ox,y --> ['ox', 'y']
-            x = splitcomma[0][1]
-            y = splitcomma[1]
-    else:
-        if len(splitspace) == 2:
-            if len(splitspace[0]) == 1:
-                # o x,y --> ['o', 'x,y']
-                x = splitspace[1][0]
-                y = splitspace[1][2]
-            else:
-                # ox y --> ['ox', 'y']
-                x = splitspace[0][1]
-                y = splitspace[1]
-        else:
-            # o x y --> ['o', 'x', 'y']
-            x, y = splitspace[1], splitspace[2]
+    three_letters = gallery_command.replace(" ", "").replace(",", "")
+    if len(three_letters) != 3:
+        return False
 
+    x = three_letters[1]
+    y = three_letters[2]
     return find_number_map(int(x), int(y))
 
 
