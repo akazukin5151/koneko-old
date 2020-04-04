@@ -126,3 +126,13 @@ def print_multiple_imgs(illusts_json):
         if pages > 1:
             print(f"#{index} has {pages} pages", end=", ")
     print("")
+
+
+@cytoolz.curry
+def url_given_size(post_json, size):
+    """
+    size : str
+        One of: ("square-medium", "medium", "large")
+    """
+    return post_json["image_urls"][size]
+
