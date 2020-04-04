@@ -126,11 +126,14 @@ def test_change_url_to_full():
     )
 
 # From lscat.py
-#def test_is_jpg():
-    # Need a sample jpg file
+def test_is_jpg():
+    assert lscat.is_jpg("testing/04_祝！！！.jpg") == True
+    assert lscat.is_jpg("testing/17_ミコニャン.jpg") == True
+    assert lscat.is_jpg("testing/77803142_p0.png") == False
 
-#def test_filter_jpg():
-    # Needs at least two sample jpg files
+
+def test_filter_jpg():
+    assert lscat.filter_jpg("testing/") == ['04_祝！！！.jpg', '17_ミコニャン.jpg']
 
 mywidth = 90 // 7 # == 12
 
@@ -141,17 +144,12 @@ def test_number_prefix():
     assert lscat.number_prefix("02_file.png") == 2
     assert lscat.number_prefix("11_file.png") == 11
 
-#def test_init_constants():
-    # Needs the two sample jpg files
-    #assert lscat.init_consts(7, mywidth, path)
-
-#def test_render(capsys):
-    # Needs the params
-#    captured = capsys.readouterr()
-#    first_page = '\n' * 26
-#    second_page = '\n' * 23
-#    lscat.render(page1, page2, cols, left_shifts, path)
-#    assert captured.out == f"{first_page}{second_page}"
+def test_init_constants():
+    page1, page2, left_shifts, cols = lscat.init_consts(7, mywidth, 'testing/')
+    assert page1 == [('04_祝！！！.jpg', '17_ミコニャン.jpg')]
+    assert page2 == []
+    assert left_shifts == [1, 13, 25, 37, 49, 61, 73]
+    assert cols == range(7)
 
 
 
