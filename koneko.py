@@ -665,8 +665,13 @@ def artist_illusts_mode(artist_user_id, current_page_num=1):
 
 
 def view_post_mode(image_id):
-    # illust_detail might need a spinner
-    post_json = API.illust_detail(image_id)["illust"]
+    try:
+        print("Fetching illust details...")
+        post_json = API.illust_detail(image_id)["illust"]
+    except KeyError:
+        print("Work has been deleted or the ID does not exist!")
+        sys.exit(1)
+
     url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
     artist_user_id = post_json["user"]["id"]
@@ -728,10 +733,15 @@ def view_post_mode_loop(prompted, image_id=None):
         if prompted and not image_id:
             url_or_id = input("Enter pixiv post url or ID:\n")
             os.system("clear")
-            if "pixiv" in url_or_id:
+
+            # Need to process complex url first
+            if "illust_id" in url_or_id:
+                image_id = re.findall(r"&illust_id.*", url_or_id)[0].split("=")[-1]
+            elif "pixiv" in url_or_id:
                 image_id = pure.split_backslash_last(url_or_id)
             else:
                 image_id = url_or_id
+
             # After the if, input must either be int or invalid
             try:
                 int(image_id)
@@ -788,6 +798,8 @@ def main():
 
     # During this part, the API can still be logging in but we can proceed
     os.system("clear")
+    if len(sys.argv) == 2:
+        print("Logging in...")
 
     artist_user_id, image_id = None, None
     # Direct command line arguments, skip begin_prompt()
@@ -796,7 +808,10 @@ def main():
         url = sys.argv[1]
 
         if "users" in url:
-            artist_user_id = pure.split_backslash_last(url).split("\\")[-1][1:]
+            if "\\" in url:
+                artist_user_id = pure.split_backslash_last(url).split("\\")[-1][1:]
+            else:
+                artist_user_id = pure.split_backslash_last(url)
             main_command = "1"
 
         elif "artworks" in url:
@@ -805,6 +820,7 @@ def main():
 
         elif "illust_id" in url:
             image_id = re.findall(r"&illust_id.*", url)[0].split("=")[-1]
+            image_id = int(image_id)
             main_command = "2"
 
     elif len(sys.argv) > 3:

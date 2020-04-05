@@ -55,7 +55,10 @@ def render_page(page_space, page, rowspaces, cols, left_shifts, path):
     Hence, the need to plot each row of images in order
     """
     print("\n" * page_space)  # Scroll to new 'page'
-    display_page(page, rowspaces, cols, left_shifts, path)
+    try:
+        display_page(page, rowspaces, cols, left_shifts, path)
+    except IndexError:
+        pass
 
 
 def main(path):
@@ -82,7 +85,7 @@ def main(path):
     left_shifts = list(map(calc, cols))
 
     each_row = cytoolz.partition_all(number_of_columns, file_list)
-    pages_list = list(cytoolz.partition(2, each_row))
+    pages_list = list(cytoolz.partition(2, each_row, pad=None))
     # len(pages_list) == number of pages
     # len(pages_list[i]) == number of rows in each page (for each i)
 
