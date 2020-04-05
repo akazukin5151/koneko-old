@@ -331,12 +331,14 @@ def begin_prompt():
         "Select an action:",
         "1. View artist illustrations",
         "2. Open pixiv post\n",
+        "?. Info",
         "q. Quit"
     )
     for message in messages:
         print(" " * 20, message)
+
     pixcat.Image("pics/71471144_p0.png").thumbnail(400).show(align='left', y=0)
-    command = input("Enter a number: ")
+    command = input("Enter a command: ")
     return command
 
 
@@ -778,6 +780,36 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
             except KeyboardInterrupt:
                 os.system("clear")
                 main_command = begin_prompt()
+
+
+        elif main_command == "?":
+            os.system('clear')
+            messages = (
+                "",
+                "koneko version 0.1 beta\n",
+                "Browse pixiv in the terminal using kitty's icat to display images",
+                "with images embedded in the terminal\n",
+                "Thank you for using koneko!",
+                "Please report bugs and contribute in:",
+                "https://github.com/twenty5151/koneko",
+                "License: GPLv3\n",
+                "Credits to amasyrup (甘城なつき):",
+                "Welcome image: https://www.pixiv.net/en/artworks/71471144",
+                "Current image: https://www.pixiv.net/en/artworks/79494300",
+            )
+
+            for message in messages:
+                print(" " * 20, message)
+
+            pixcat.Image("pics/79494300_p0.png").thumbnail(600).show(align='left', y=0)
+
+            while True:
+                help_command = input("Press enter to return: ")
+                if help_command == "" or "q":
+                    os.system('clear')
+                    main_command = begin_prompt()
+                    break
+
 
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
