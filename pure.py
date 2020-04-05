@@ -84,9 +84,8 @@ def process_coords(input_command, split_string):
 def find_number_map(x, y):
     if not (x >= 1 and y >= 1):
         return False
-    # 7 = number of cols; 5 = number of rows
-    # 7 columns, 30 images
-    number_map = list(cytoolz.partition_all(7, range(30)))
+    # 5 = number of cols; 6 = number of rows, 30 images
+    number_map = list(cytoolz.partition_all(5, range(30)))
 
     try:
         # coordinates are 1-based index
