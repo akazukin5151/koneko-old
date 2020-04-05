@@ -1,10 +1,10 @@
-# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Coverage](coverage.svg)](testing.py)
+# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Coverage](pics/coverage.svg)](testing.py)
 
 Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
-![Gallery view](gallery_view.png)
+![Gallery view](pics/gallery_view.png)
 
-![Image_view](image_view.png)
+![Image_view](pics/image_view.png)
 
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html). Actually, `lscat.py` uses [pixcat](https://github.com/mirukana/pixcat), which is a Python API for icat.
 
@@ -28,7 +28,7 @@ Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magi
 
 I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get logged out
 
-<a href="url"><img src="pixiv_ublock.png" height="350"></a>
+<a href="url"><img src="pics/pixiv_ublock.png" height="350"></a>
 
 * TUIs make you cool
 * TUIs *with embedded pictures* make you even cooler
