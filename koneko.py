@@ -83,8 +83,6 @@ def full_img_details(png=False, post_json=None, image_id=None):
     return url, filename, filepath
 
 
-
-
 # - Download functions
 # - Core download functions (for async)
 def async_download_core(
@@ -186,13 +184,13 @@ def download_from_image_view(image_id, png=False):
     print(f"Image downloaded at {filepath}\n")
 
 
-#@pure.spinner("")  # No message because it conflicts with download_illusts()
+# @pure.spinner("")  # No message because it conflicts with download_illusts()
 def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     """
     current_page_num : int
         It is the CURRENT page number, before incrementing
     """
-    #print("   Prefetching next page...", flush=True, end="\r")
+    # print("   Prefetching next page...", flush=True, end="\r")
     next_url = all_pages_cache[str(current_page_num)]["next_url"]
     if not next_url:  # this is the last page
         raise LastPageException
@@ -204,9 +202,12 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
     if not os.path.isdir(download_path):
         pbar = tqdm(total=len(current_page_illusts), smoothing=0)
-        download_illusts(current_page_illusts, current_page_num + 1, artist_user_id, pbar=pbar)
+        download_illusts(
+            current_page_illusts, current_page_num + 1, artist_user_id, pbar=pbar
+        )
         pbar.close
     return all_pages_cache
+
 
 def go_next_image(
     page_urls, img_post_page_num, number_of_pages, downloaded_images, download_path,
