@@ -85,9 +85,7 @@ def main(path):
     for (i, page) in enumerate(pages_list):
         render_page(page_spaces[i], page, rowspaces, cols, left_shifts, path)
 
-    print(
-        " " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n"
-    )
+    print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")
 
 
 if __name__ == "__main__":

@@ -170,5 +170,3 @@ def change_url_to_full(post_json, png=False):
     if png:
         url = url.replace("jpg", "png")
     return url
-
-
