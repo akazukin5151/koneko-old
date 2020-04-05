@@ -1,3 +1,8 @@
+"""
+Collection of functions that are pure and side effect free
+    (Excluding print)
+"""
+
 import re
 import os
 import time
@@ -8,20 +13,6 @@ from contextlib import contextmanager
 
 import funcy
 import cytoolz
-
-
-def timer(func):
-    @functools.wraps(func)  # Preserve original func.__name__
-    def wrapper(*args, **kwargs):
-        t0 = time.time()
-        value = func(*args, **kwargs)
-        t1 = time.time()
-        total = t1 - t0
-        with open("/home/twenty/Workspace/pixiv/time.txt", "a") as the_file:
-            the_file.write(f"{func.__name__!r}() time: {total}\n")
-        return value
-
-    return wrapper
 
 
 @contextmanager
@@ -65,11 +56,11 @@ def spinner(call, message=""):
     return result
 
 
-def split_backslash_last(str):
+def split_backslash_last(string):
     """
     Intended for splitting url to get filename, but it has lots of applications...
     """
-    return str.split("/")[-1]
+    return string.split("/")[-1]
 
 
 def generate_filepath(filename):
@@ -93,9 +84,8 @@ def process_coords(input_command, split_string):
 def find_number_map(x, y):
     if not (x >= 1 and y >= 1):
         return False
-    # 7 = number of cols; 5 = number of rows
-    # 7 columns, 30 images
-    number_map = list(cytoolz.partition_all(7, range(30)))
+    # 5 = number of cols; 6 = number of rows, 30 images
+    number_map = list(cytoolz.partition_all(5, range(30)))
 
     try:
         # coordinates are 1-based index
@@ -123,7 +113,7 @@ def process_coords_slice(gallery_command):
 
 def print_multiple_imgs(illusts_json):
     for (index, json) in enumerate(illusts_json):
-        pages = json['page_count']
+        pages = json["page_count"]
         if pages > 1:
             print(f"#{index} has {pages} pages", end=", ")
     print("")
@@ -144,7 +134,7 @@ def post_title(current_page_illusts, post_number):
 
 
 def medium_urls(current_page_illusts):
-    get_medium_url = url_given_size(size="medium")
+    get_medium_url = url_given_size(size="square_medium")
     urls = list(map(get_medium_url, current_page_illusts))
     return urls
 

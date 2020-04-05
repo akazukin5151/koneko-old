@@ -4,6 +4,7 @@ import pytest
 
 import pure
 import lscat
+import koneko
 from page_json import *  # Imports the current_page (dict) stored in disk
 
 page_illusts = page_json["illusts"]
@@ -97,7 +98,7 @@ def test_medium_urls():
     assert len(pure.medium_urls(page_illusts)) == 30
     assert (
         pure.medium_urls(page_illusts)[0]
-        == "https://i.pximg.net/c/540x540_70/img-master/img/2020/03/10/04/07/08/80017594_p0_master1200.jpg"
+        == "https://i.pximg.net/c/540x540_10_webp/img-master/img/2020/03/10/04/07/08/80017594_p0_square1200.jpg"
     )
 
 
@@ -141,7 +142,7 @@ mywidth = 90 // 7  # == 12
 
 
 def test_xcoord():
-    assert lscat.xcoord(1, 7, mywidth) == 13
+    assert lscat.xcoord(1, 7, mywidth) == 14
 
 
 def test_number_prefix():
@@ -149,9 +150,16 @@ def test_number_prefix():
     assert lscat.number_prefix("11_file.png") == 11
 
 
-def test_init_constants():
-    page1, page2, left_shifts, cols = lscat.init_consts(7, mywidth, "testing/")
-    assert page1 == [("04_祝！！！.jpg", "17_ミコニャン.jpg")]
-    assert page2 == []
-    assert left_shifts == [1, 13, 25, 37, 49, 61, 73]
-    assert cols == range(7)
+# From koneko.py
+def test_begin_prompt(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda x: "1")
+    myinput = koneko.begin_prompt()
+    assert myinput == "1"
+
+
+def test_artist_user_id_prompt(monkeypatch):
+    monkeypatch.setattr(
+        "builtins.input", lambda x: "https://www.pixiv.net/en/users/2232374"
+    )
+    myinput = koneko.artist_user_id_prompt()
+    assert myinput == "https://www.pixiv.net/en/users/2232374"

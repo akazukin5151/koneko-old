@@ -1,14 +1,14 @@
-# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Coverage](coverage.svg)](testing.py)
+# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Coverage](pics/coverage.svg)](testing.py)
 
 Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
-![Gallery view](gallery_view.png)
+![Gallery view](pics/gallery_view.png)
 
-![Image_view](image_view.png)
+![Image_view](pics/image_view.png)
 
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html). Actually, `lscat.py` uses [pixcat](https://github.com/mirukana/pixcat), which is a Python API for icat.
 
-**Why the name Koneko?** Koneko (こねこ) means kitten, which is icat is, a kitty +kitten
+**Why the name Koneko?** Koneko (こねこ) means kitten, which is what `icat` is, a kitty `+kitten`
 
 
 # Features
@@ -28,7 +28,7 @@ Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magi
 
 I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get logged out
 
-<a href="url"><img src="pixiv_ublock.png" height="350"></a>
+<a href="url"><img src="pics/pixiv_ublock.png" height="350"></a>
 
 * TUIs make you cool
 * TUIs *with embedded pictures* make you even cooler
@@ -38,9 +38,7 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 
 
 # Usage
-0. Install [kitty](https://github.com/kovidgoyal/kitty), and all other requirements (just see list of imports)
-    * [pixivpy](https://github.com/upbit/pixivpy): `pip install pixivpy`
-    * [pixcat](https://github.com/mirukana/pixcat): `pip install pixcat`
+0. Install [kitty](https://github.com/kovidgoyal/kitty)
 1. `mkdir ~/.config/koneko/ && touch ~/.config/koneko/config.ini`
 2. `vim ~/.config/koneko/config.ini` and fill it out with your pixiv username and password like this:
 
@@ -50,15 +48,17 @@ Username = XXX
 Password = XXX
 ```
 
-3. Run:
+3. Run: (or use `git clone -b 'v0.1' --depth 1 https://github.com/twenty5151/koneko.git` for the 'stable' release)
 ```sh
 git clone https://github.com/twenty5151/koneko.git && cd koneko
+pip install -r requirements.txt
 python koneko.py
 ```
 
 4. As of now there are two modes of operation:
     1. Show artist illustrations: equivalent to going to the artist page in pixie
     2. View post: equivalent to going directly to a post (think getting a 'sauce' link)
+
 Enter either 1 or 2 to proceed. Then, paste in the corresponding pixiv url. See below for url examples. Pressing ctrl+c in a prompt bring you back to the 'home' prompt.
 
 Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. Example:
@@ -90,9 +90,26 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 | Feature  | lscat.py | legacy/lscat | [hackerb9/lsix](https://github.com/hackerb9/lsix/) |
 | --- | --- | --- | --- |
-| Speed  | Fastest | Slower | Slowest
+| Speed  | Fastest | Slow\* | Slow\*
 | Reliability (eg, resizing the terminal) | Poor | Medium | Good
-| Adaptability | Poor | Poor | Good
+| Adaptability (eg, other terminals, tmux) | Poor | Poor | Medium
+
+\* lsix will appear faster because the images are much smaller. Once you scale them up, lsix will be the slowest.
+
+# Roadmap
+
+## Features
+
+* Search for pixiv artist feature. Show their profile pictures with lscat.py
+* Image view should preview the next few images in multi-image posts
+* For multi-image posts in image view, enter a number to jump to the post's page
+* Option to use pillow or wand to edit numbers on pics
+* Support [ueberzug](https://github.com/seebye/ueberzug)
+
+## Speed
+
+* Cache API.user_illusts()
+* If files already downloaded, show them immediately before logging in
 
 ## `Dev` branch
 
@@ -103,7 +120,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 ```
 
 ## Unit tests
-Use `pytest testing.py` or `coverage run -m pytest *.py` to also generate a code coverage report. Use `coverage report` or `coverage html -d testing/htmlcov/` to view. The coverage badge can be generated with `rm coverage.svg && coverage-badge -o coverage.svg`.
+Use `pytest testing.py` or `coverage run -m pytest *.py -v` to also generate a code coverage report. Use `coverage report` or `coverage html -d testing/htmlcov/` to view. The coverage badge can be generated with `rm coverage.svg; coverage-badge -o coverage.svg`.
 
 
 Here's a random shell command to get (but not download) and display any pixiv image url:
