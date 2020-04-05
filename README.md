@@ -89,9 +89,26 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 | Feature  | lscat.py | legacy/lscat | [hackerb9/lsix](https://github.com/hackerb9/lsix/) |
 | --- | --- | --- | --- |
-| Speed  | Fastest | Slower | Slowest
+| Speed  | Fastest | Slow\* | Slow\*
 | Reliability (eg, resizing the terminal) | Poor | Medium | Good
-| Adaptability | Poor | Poor | Good
+| Adaptability (eg, other terminals, tmux) | Poor | Poor | Medium
+
+\* lsix will appear faster because the images are much smaller. Once you scale them up, lsix will be the slowest.
+
+# Roadmap
+
+## Features
+
+* Search for pixiv artist feature. Show their profile pictures with lscat.py
+* Image view should preview the next few images in multi-image posts
+* For multi-image posts in image view, enter a number to jump to the post's page
+* Option to use pillow or wand to edit numbers on pics
+* Support [ueberzug](https://github.com/seebye/ueberzug)
+
+## Speed
+
+* Cache API.user_illusts()
+* If files already downloaded, show them immediately before logging in
 
 ## `Dev` branch
 

@@ -1,3 +1,7 @@
+"""
+The default image renderer for koneko.
+"""
+
 import os
 import fnmatch
 
@@ -5,6 +9,7 @@ import cytoolz
 from pixcat import Image
 
 from pure import cd
+
 
 # - Pure functions
 def is_jpg(myfile):
