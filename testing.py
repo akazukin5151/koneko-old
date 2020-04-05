@@ -97,7 +97,7 @@ def test_medium_urls():
     assert len(pure.medium_urls(page_illusts)) == 30
     assert (
         pure.medium_urls(page_illusts)[0]
-        == "https://i.pximg.net/c/540x540_70/img-master/img/2020/03/10/04/07/08/80017594_p0_master1200.jpg"
+        == "https://i.pximg.net/c/540x540_10_webp/img-master/img/2020/03/10/04/07/08/80017594_p0_square1200.jpg"
     )
 
 
@@ -141,7 +141,7 @@ mywidth = 90 // 7  # == 12
 
 
 def test_xcoord():
-    assert lscat.xcoord(1, 7, mywidth) == 13
+    assert lscat.xcoord(1, 7, mywidth) == 14
 
 
 def test_number_prefix():
@@ -150,8 +150,9 @@ def test_number_prefix():
 
 
 def test_init_constants():
-    page1, page2, left_shifts, cols = lscat.init_consts(7, mywidth, "testing/")
+    page1, page2, page3, left_shifts, cols = lscat.init_consts(7, mywidth, "testing/")
     assert page1 == [("04_祝！！！.jpg", "17_ミコニャン.jpg")]
     assert page2 == []
-    assert left_shifts == [1, 13, 25, 37, 49, 61, 73]
+    assert page3 == []
+    assert left_shifts == [2, 14, 26, 38, 50, 62, 74]
     assert cols == range(7)
