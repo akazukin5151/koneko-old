@@ -5,10 +5,15 @@ terminal!)
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the
 magical `kitty +kitten icat` 'kitten' to display images.
 
-IMPROVEMENT: if post has multiple images, there should be a preview in image view
-No more features before beta release
-IMPROVEMENT: option to use pillow or wand to edit numbers on pics
+FEATURE: if post has multiple images, there should be a preview in image view
+FEATURE: option to use pillow or wand to edit numbers on pics
 TODO: unit tests
+
+Capitalized tag definitions:
+    TODO: to-do, high priority
+    SPEED: speed things up, high priority
+    FEATURE: extra feature, low priority
+    BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 """
 
 import os
@@ -59,7 +64,7 @@ class LastPageException(ValueError):
 def user_illusts_spinner(artist_user_id):
     # There's a delay here
     # Threading won't do anything meaningful here...
-    # IMPROVEMENT: Caching it (in non volatile storage) might work
+    # SPEED: Caching it (in non volatile storage) might work
     return API.user_illusts(artist_user_id)
 
 
@@ -84,7 +89,7 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     current_page_num : int
         It is the CURRENT page number, before incrementing
     """
-    # IMPROVEMENT: prefetch only half of the next page, use tqdm
+    # SPEED: prefetch only half of the next page, use tqdm
     print("   Prefetching next page...", flush=True, end="\r")
     next_url = all_pages_cache[str(current_page_num)]["next_url"]
     if not next_url:  # this is the last page
@@ -293,7 +298,7 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     large_dir = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/"
     download_core(large_dir, url, filename)
 
-    # IMPROVEMENT: non blocking command input.
+    # BLOCKING: non blocking command input.
     # open medium res image
     # run download_core on a separate thread
     # in the meantime, continue:
@@ -391,7 +396,7 @@ def image_prompt(
         elif image_prompt_command == "d":
             download_from_image_view(image_id)
 
-        # IMPROVEMENT: enter {number} to jump to image number (for
+        # FEATURE: enter {number} to jump to image number (for
         # multi-image posts)
         elif image_prompt_command == "n":
             if not page_urls:
@@ -582,7 +587,7 @@ def gallery_prompt(
 
             open_image(post_json, artist_user_id, selected_image_num, current_page_num)
 
-            # IMPROVEMENT: it's async now but still blocking, as the result
+            # BLOCKING: it's async now but still blocking, as the result
             # is needed to pass to function
             # Threading won't even do anything meaningful here
             # with ThreadPoolExecutor(max_workers=3) as executor:
@@ -747,7 +752,7 @@ def view_post_mode_loop(if_prompted, image_id=None):
 
 
 def main_loop(if_prompted, main_command=None, artist_user_id=None, image_id=None):
-    # IMPROVEMENT: gallery mode - if tmp has artist id and '1' dir,
+    # SPEED: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
     while True:
         if if_prompted and not main_command:
@@ -787,7 +792,7 @@ def main():
     API_THREAD.start()  # Start logging in
 
     # During this part, the API can still be logging in but we can proceed
-    # IMPROVEMENT: put a cute anime girl here with icat
+    # FEATURE: put a cute anime girl here with icat
     os.system("clear")
 
     artist_user_id, image_id = None, None
