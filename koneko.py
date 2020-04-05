@@ -203,10 +203,9 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
 
     download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
     if not os.path.isdir(download_path):
-        pbar = tqdm(total=30)
+        pbar = tqdm(total=len(current_page_illusts), smoothing=0)
         download_illusts(current_page_illusts, current_page_num + 1, artist_user_id, pbar=pbar)
         pbar.close
-    print("\n")
     return all_pages_cache
 
 def go_next_image(
@@ -629,7 +628,7 @@ def show_gallery(
     current_page_illusts = current_page["illusts"]
 
     if not os.path.isdir(download_path):
-        pbar = tqdm(total=30)  # Number of images in one gallery page
+        pbar = tqdm(total=len(current_page_illusts), smoothing=0)
         download_illusts(
             current_page_illusts, current_page_num, artist_user_id, pbar=pbar
         )
