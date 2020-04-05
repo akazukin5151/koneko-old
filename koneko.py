@@ -187,13 +187,11 @@ def download_from_image_view(image_id, png=False):
 
 
 #@pure.spinner("")  # No message because it conflicts with download_illusts()
-def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache, half=1):
+def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     """
     current_page_num : int
         It is the CURRENT page number, before incrementing
     """
-    # SPEED: prefetch only half of the next page
-    # Need to offset rename
     #print("   Prefetching next page...", flush=True, end="\r")
     next_url = all_pages_cache[str(current_page_num)]["next_url"]
     if not next_url:  # this is the last page
@@ -202,19 +200,13 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache, half=1
     parse_page = API.user_illusts(**API.parse_qs(next_url))
     all_pages_cache[str(current_page_num + 1)] = parse_page
     current_page_illusts = parse_page["illusts"]
-    if half == 1:
-        myhalf, _ = pure.split_list(current_page_illusts)
-    else:
-        _, myhalf = pure.split_list(current_page_illusts)
 
     download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
-    # Half page means losing this
     if not os.path.isdir(download_path):
-        # Use myhalf
         pbar = tqdm(total=30)
         download_illusts(current_page_illusts, current_page_num + 1, artist_user_id, pbar=pbar)
         pbar.close
-    #print("  " * 26)  # Magic
+    print("\n")
     return all_pages_cache
 
 def go_next_image(
@@ -487,7 +479,7 @@ def gallery_prompt(
         # Prefetch the next page on first gallery load
         try:
             all_pages_cache = prefetch_next_page(
-                current_page_num, artist_user_id, all_pages_cache, half=1
+                current_page_num, artist_user_id, all_pages_cache
             )
         except LastPageException:
             pass
@@ -529,10 +521,6 @@ def gallery_prompt(
             print(f"Image downloaded at {filepath}\n")
 
         elif gallery_command == "n":
-            # First time pressing n: will always be 2
- #           all_pages_cache = prefetch_next_page(
- #               current_page_num, artist_user_id, all_pages_cache, half=2
- #           )
             download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
             try:
                 show_artist_illusts(download_path)
@@ -547,7 +535,7 @@ def gallery_prompt(
                 try:
                     # After showing gallery, pre-fetch the next page
                     all_pages_cache = prefetch_next_page(
-                        current_page_num, artist_user_id, all_pages_cache, half=1
+                        current_page_num, artist_user_id, all_pages_cache
                     )
                 except LastPageException:
                     print("This is the last page!")
