@@ -149,17 +149,18 @@ def test_number_prefix():
     assert lscat.number_prefix("02_file.png") == 2
     assert lscat.number_prefix("11_file.png") == 11
 
+
 # From koneko.py
 def test_begin_prompt(monkeypatch):
-    monkeypatch.setattr('builtins.input', lambda x: "1")
+    monkeypatch.setattr("builtins.input", lambda x: "1")
     myinput = koneko.begin_prompt()
     assert myinput == "1"
 
+
 def test_artist_user_id_prompt(monkeypatch):
-    monkeypatch.setattr('builtins.input', lambda x: "https://www.pixiv.net/en/users/2232374")
+    monkeypatch.setattr(
+        "builtins.input", lambda x: "https://www.pixiv.net/en/users/2232374"
+    )
     myinput = koneko.artist_user_id_prompt()
     assert myinput == "https://www.pixiv.net/en/users/2232374"
-
-
-
 
