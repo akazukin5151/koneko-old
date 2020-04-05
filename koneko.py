@@ -29,7 +29,6 @@ from lscat import main as lscat
 
 
 # - Logging in function
-# @timer
 def setup(out_queue):
     """
     Logins to pixiv in the background, using credentials from config file.
@@ -124,7 +123,6 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
 
 
 # - Wrappers around the core functions for async download
-# @timer
 @pure.spinner(" Downloading illustrations...  ")
 def download_page(current_page_illusts, current_page_num, artist_user_id, pbar=None):
     """
@@ -154,7 +152,6 @@ def async_download_spinner(download_path, page_urls):
 
 
 # - Wrappers around the core functions for downloading one image
-# @timer
 @pure.spinner("")
 def download_core(large_dir, url, filename, try_make_dir=True):
     """
@@ -254,7 +251,6 @@ def go_next_image(
 
 
 # - Non interactive, visible to user functions
-# @timer
 def show_artist_illusts(path, renderer="lscat"):
     if renderer != "lscat":
         lscat_path = os.getcwd()
