@@ -147,12 +147,3 @@ def test_xcoord():
 def test_number_prefix():
     assert lscat.number_prefix("02_file.png") == 2
     assert lscat.number_prefix("11_file.png") == 11
-
-
-def test_init_constants():
-    page1, page2, page3, left_shifts, cols = lscat.init_consts(7, mywidth, "testing/")
-    assert page1 == [("04_祝！！！.jpg", "17_ミコニャン.jpg")]
-    assert page2 == []
-    assert page3 == []
-    assert left_shifts == [2, 14, 26, 38, 50, 62, 74]
-    assert cols == range(7)
