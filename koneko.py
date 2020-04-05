@@ -226,7 +226,7 @@ def go_next_image(
     # First time from gallery; download next image
     if img_post_page_num == 1:
         url = page_urls[img_post_page_num]
-        downloaded_images = [pure.split_backslash_last(url) for url in page_urls[:2]]
+        downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
         async_download_spinner(download_path, [url])
 
     # fmt: off
@@ -690,7 +690,7 @@ def view_post_mode(image_id):
 
     if number_of_pages != 1:
         async_download_spinner(large_dir, page_urls[:2])
-        downloaded_images = [pure.split_backslash_last(url) for url in page_urls[:2]]
+        downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
 
     image_prompt(
         image_id,
