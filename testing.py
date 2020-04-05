@@ -163,4 +163,3 @@ def test_artist_user_id_prompt(monkeypatch):
     )
     myinput = koneko.artist_user_id_prompt()
     assert myinput == "https://www.pixiv.net/en/users/2232374"
-
