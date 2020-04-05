@@ -786,13 +786,13 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
             os.system('clear')
             messages = (
                 "",
-                "koneko version 0.1 beta\n",
+                "koneko こねこ version 0.1 beta\n",
                 "Browse pixiv in the terminal using kitty's icat to display images",
                 "with images embedded in the terminal\n",
                 "Thank you for using koneko!",
-                "Please report bugs and contribute in:",
+                "Please star, report bugs and contribute in:",
                 "https://github.com/twenty5151/koneko",
-                "License: GPLv3\n",
+                "GPLv3 licensed\n",
                 "Credits to amasyrup (甘城なつき):",
                 "Welcome image: https://www.pixiv.net/en/artworks/71471144",
                 "Current image: https://www.pixiv.net/en/artworks/79494300",
