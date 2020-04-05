@@ -8,7 +8,7 @@ Browse pixiv in the terminal using kitty's icat to display images (in the termin
 
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html). Actually, `lscat.py` uses [pixcat](https://github.com/mirukana/pixcat), which is a Python API for icat.
 
-**Why the name Koneko?** Koneko (こねこ) means kitten, which is icat is, a kitty +kitten
+**Why the name Koneko?** Koneko (こねこ) means kitten, which is what `icat` is, a kitty `+kitten`
 
 
 # Features
