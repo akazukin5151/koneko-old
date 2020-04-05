@@ -20,7 +20,7 @@ def filter_jpg(path):
 
 @cytoolz.curry
 def xcoord(image_number, number_of_columns, width):
-    return image_number % number_of_columns * width + 1  # Magic
+    return image_number % number_of_columns * width + 2  # Magic
 
 
 def number_prefix(myfile):
@@ -36,13 +36,12 @@ def init_consts(number_of_columns, width, path):
 
     partition_file_list = list(cytoolz.partition_all(number_of_columns, file_list))
 
-    # 2 rows in page 1, 3 rows in page 2
-    page1 = partition_file_list[:2]
-    page2 = partition_file_list[2:]
-    return page1, page2, left_shifts, cols
+    page1 = partition_file_list[:2] # First 2; 0-4 and 5-9
+    page2 = partition_file_list[2:4] # 10-14 and 15-19
+    page3 = partition_file_list[4:] # 20-24 and 25-29
+    return page1, page2, page3, left_shifts, cols
 
-
-def display_page(page, spaces, cols, left_shifts, path):
+def display_page(page, vertspaces, cols, left_shifts, path):
     """
     The reason why it has to this complicated thing, is because every time
     something in a different row is displayed, the entire terminal shifts.
@@ -54,53 +53,56 @@ def display_page(page, spaces, cols, left_shifts, path):
                                 this.
     Hence, the need to plot each row of images in order
 
-    Spaces : tuple of int
+    vertspaces : tuple of int
         Vertical spacing between rows
     """
     # TODO: rewrite with functional style map and currying
     with cd(path):
-        for (index, space) in enumerate(spaces):
+        for (index, space) in enumerate(vertspaces):
             for col in cols:
-                Image(page[index][col]).thumbnail(300).show(
+                Image(page[index][col]).thumbnail(310).show(
                     align="left", x=left_shifts[col], y=space
                 )
 
 
-def render(page1, page2, cols, left_shifts, path):
+def render(page1, page2, page3, cols, left_shifts, path):
+    """
+    Each page has 2 rows. A page means printing those blank lines to move the
+    cursor down (and the terminal screen).
+    """
     os.system("clear")
     print("\n" * 26)  # Scroll to new 'page'
-    display_page(page1, (0, 8), cols, left_shifts, path)
+    display_page(page1, (0, 9), cols, left_shifts, path)
 
-    print("\n" * 23)  # Magic
-    display_page(page2, (0, 8, 16), cols, left_shifts, path)
+    print("\n" * 24)  # Magic
+    display_page(page2, (0, 9), cols, left_shifts, path)
+    #breakpoint()
+    print("\n" * 24)  # Magic
+    display_page(page3, (0, 9), cols, left_shifts, path)
 
 
 def main(path):
-    number_of_columns = 7  # Magic
+    number_of_columns = 5  # Magic
     total_width = 90
     width = total_width // number_of_columns
 
-    page1, page2, left_shifts, cols = init_consts(number_of_columns, width, path)
+    page1, page2, page3, left_shifts, cols = init_consts(number_of_columns, width, path)
     try:
-        render(page1, page2, cols, left_shifts, path)
+        render(page1, page2, page3, cols, left_shifts, path)
     except IndexError:
         pass
     finally:  # Magic
         print(
-            " " * 4,
+            " " * 8,
             1,
-            " " * 10,
+            " " * 15,
             2,
-            " " * 9,
+            " " * 15,
             3,
-            " " * 9,
+            " " * 15,
             4,
-            " " * 9,
+            " " * 15,
             5,
-            " " * 9,
-            6,
-            " " * 9,
-            7,
         )
 
 

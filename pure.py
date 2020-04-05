@@ -10,20 +10,6 @@ import funcy
 import cytoolz
 
 
-def timer(func):
-    @functools.wraps(func)  # Preserve original func.__name__
-    def wrapper(*args, **kwargs):
-        t0 = time.time()
-        value = func(*args, **kwargs)
-        t1 = time.time()
-        total = t1 - t0
-        with open("/home/twenty/Workspace/pixiv/time.txt", "a") as the_file:
-            the_file.write(f"{func.__name__!r}() time: {total}\n")
-        return value
-
-    return wrapper
-
-
 @contextmanager
 def cd(newdir):
     """
@@ -144,7 +130,7 @@ def post_title(current_page_illusts, post_number):
 
 
 def medium_urls(current_page_illusts):
-    get_medium_url = url_given_size(size="medium")
+    get_medium_url = url_given_size(size="square_medium")
     urls = list(map(get_medium_url, current_page_illusts))
     return urls
 
@@ -184,3 +170,9 @@ def change_url_to_full(post_json, png=False):
     if png:
         url = url.replace("jpg", "png")
     return url
+
+def split_list(mylist):
+    mid = len(mylist) // 2
+    return mylist[:mid], mylist[mid:]
+
+
