@@ -37,16 +37,16 @@ def setup(out_queue):
     Parameters
     ----------
     out_queue : queue.Queue()
-        queue for storing logged-in API object
+        queue for storing logged-in API object. Needed for threading
     """
-    global API
-    API = AppPixivAPI()
     # Read config.ini file
     config_object = ConfigParser()
     config_path = os.path.expanduser("~/.config/koneko/")
     config_object.read(f"{config_path}config.ini")
     config = config_object["Credentials"]
 
+    global API
+    API = AppPixivAPI()
     API.login(config["Username"], config["Password"])
     out_queue.put(API)
 
@@ -67,7 +67,8 @@ def user_illusts_spinner(artist_user_id):
 @pure.spinner("Getting full image details... ")
 def full_img_details(png=False, post_json=None, image_id=None):
     """
-    All in one function that gets the full-res url, filename, and filepath.
+    All in one function that gets the full-resolution url, filename, and
+    filepath of given image id. Or it can get the id given the post json
     """
     if image_id and not post_json:
         current_image = API.illust_detail(image_id)
@@ -84,7 +85,10 @@ def full_img_details(png=False, post_json=None, image_id=None):
 def async_download_core(
     download_path, urls, rename_images=False, file_names=None, pbar=None
 ):
-    """Core logic for async downloading."""
+    """
+    Core logic for async downloading. Rename files with given new name
+    if needed. Submit each url to the ThreadPoolExecutor.
+    """
     oldnames = list(map(pure.split_backslash_last, urls))
     if rename_images:
         newnames = list(
@@ -104,13 +108,14 @@ def async_download_core(
 
 
 def downloadr(url, img_name, new_file_name=None, pbar=None):
-    """Actually downloads given url, rename if needed."""
+    """Actually downloads one pic given the single url, rename if needed."""
     try:  # This seemed to hide PixivError
         # print(f"Downloading {img_name}")
         # Sometimes didn't download unless if there's a breakpoint here...
         API.download(url)
     except RemoteDisconnected as e:  # TODO: retry
         print(f"Network error! Caught {e}")
+
     if pbar:
         pbar.update(1)
     # print(f"{img_name} done!")
@@ -120,15 +125,16 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
 
 # - Wrappers around the core functions for async download
 # @timer
-# @pure.spinner(" Downloading illustrations...  ")
-def download_illusts(current_page_illusts, current_page_num, artist_user_id, pbar=None):
+@pure.spinner(" Downloading illustrations...  ")
+def download_page(current_page_illusts, current_page_num, artist_user_id, pbar=None):
     """
-    Download the illustrations on one page of given artist id (using threads)
+    Download the illustrations on one page of given artist id (using threads),
+    rename them based on the post title
 
     Parameters
     ----------
     current_page_illusts : JsonDict
-        JsonDict holding lots of info on all the images in the current page
+        JsonDict holding lots of info on all the posts in the current page
     current_page_num : int
         Page as in artist illustration profile pages. Starts from 1
     artist_user_id : int
@@ -147,7 +153,7 @@ def async_download_spinner(download_path, page_urls):
     async_download_core(download_path, page_urls)
 
 
-# - Functions that are wrappers around download functions, making them impure
+# - Wrappers around the core functions for downloading one image
 # @timer
 @pure.spinner("")
 def download_core(large_dir, url, filename, try_make_dir=True):
@@ -180,7 +186,8 @@ def download_from_image_view(image_id, png=False):
     print(f"Image downloaded at {filepath}\n")
 
 
-# @pure.spinner("")  # No message because it conflicts with download_illusts()
+# - Functions that are wrappers around download functions, making them impure
+# @pure.spinner("")  # No message because it conflicts with download_page()
 def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     """
     current_page_num : int
@@ -198,7 +205,7 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
     if not os.path.isdir(download_path):
         pbar = tqdm(total=len(current_page_illusts), smoothing=0)
-        download_illusts(
+        download_page(
             current_page_illusts, current_page_num + 1, artist_user_id, pbar=pbar
         )
         pbar.close
@@ -244,9 +251,6 @@ def go_next_image(
     print(f"Page {img_post_page_num+1}/{number_of_pages}")
 
     return downloaded_images
-
-
-# - End non interactive, invisible to user (backend) functions
 
 
 # - Non interactive, visible to user functions
@@ -319,9 +323,6 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
 
 def open_image_vp(filepath):
     os.system(f"kitty +kitten icat --silent {filepath}")
-
-
-# - End non interactive, visible to user functions
 
 
 # - Interactive functions (frontend)
@@ -624,7 +625,7 @@ def show_gallery(
 
     if not os.path.isdir(download_path):
         pbar = tqdm(total=len(current_page_illusts), smoothing=0)
-        download_illusts(
+        download_page(
             current_page_illusts, current_page_num, artist_user_id, pbar=pbar
         )
         pbar.close()
@@ -701,9 +702,9 @@ def view_post_mode(image_id):
     artist_illusts_mode(artist_user_id)
 
 
-def artist_illusts_mode_loop(if_prompted, artist_user_id=None):
+def artist_illusts_mode_loop(prompted, artist_user_id=None):
     while True:
-        if if_prompted and not artist_user_id:
+        if prompted and not artist_user_id:
             artist_user_id = artist_user_id_prompt()
             os.system("clear")
             if "pixiv" in artist_user_id:
@@ -722,9 +723,9 @@ def artist_illusts_mode_loop(if_prompted, artist_user_id=None):
         artist_illusts_mode(artist_user_id)
 
 
-def view_post_mode_loop(if_prompted, image_id=None):
+def view_post_mode_loop(prompted, image_id=None):
     while True:
-        if if_prompted and not image_id:
+        if prompted and not image_id:
             url_or_id = input("Enter pixiv post url or ID:\n")
             os.system("clear")
             if "pixiv" in url_or_id:
@@ -745,23 +746,23 @@ def view_post_mode_loop(if_prompted, image_id=None):
         view_post_mode(image_id)
 
 
-def main_loop(if_prompted, main_command=None, artist_user_id=None, image_id=None):
+def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
     # SPEED: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
     while True:
-        if if_prompted and not main_command:
+        if prompted and not main_command:
             main_command = begin_prompt()
 
         if main_command == "1":
             try:
-                artist_illusts_mode_loop(if_prompted, artist_user_id)
+                artist_illusts_mode_loop(prompted, artist_user_id)
             except KeyboardInterrupt:
                 os.system("clear")
                 main_command = begin_prompt()
 
         elif main_command == "2":
             try:
-                view_post_mode_loop(if_prompted, image_id)
+                view_post_mode_loop(prompted, image_id)
             except KeyboardInterrupt:
                 os.system("clear")
                 main_command = begin_prompt()
@@ -791,7 +792,7 @@ def main():
     artist_user_id, image_id = None, None
     # Direct command line arguments, skip begin_prompt()
     if len(sys.argv) == 2:
-        if_prompted = False
+        prompted = False
         url = sys.argv[1]
 
         if "users" in url:
@@ -811,11 +812,11 @@ def main():
         sys.exit(1)
 
     else:
-        if_prompted = True
+        prompted = True
         main_command = None
 
     try:
-        main_loop(if_prompted, main_command, artist_user_id, image_id)
+        main_loop(prompted, main_command, artist_user_id, image_id)
     except KeyboardInterrupt:
         print("\n")
         answer = input("Are you sure you want to exit? [y/N]:\n")
