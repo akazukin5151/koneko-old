@@ -332,13 +332,13 @@ def begin_prompt(printmessage=True):
         "1. View artist illustrations",
         "2. Open pixiv post\n",
         "?. Info",
-        "q. Quit"
+        "q. Quit",
     )
     if printmessage:
         for message in messages:
             print(" " * 20, message)
 
-    pixcat.Image("pics/71471144_p0.png").thumbnail(400).show(align='left', y=0)
+    pixcat.Image("pics/71471144_p0.png").thumbnail(400).show(align="left", y=0)
     command = input("Enter a command: ")
     return command
 
@@ -630,9 +630,7 @@ def show_gallery(
 
     if not os.path.isdir(download_path):
         pbar = tqdm(total=len(current_page_illusts), smoothing=0)
-        download_page(
-            current_page_illusts, current_page_num, artist_user_id, pbar=pbar
-        )
+        download_page(current_page_illusts, current_page_num, artist_user_id, pbar=pbar)
         pbar.close()
 
     if show:
@@ -783,9 +781,8 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
                 os.system("clear")
                 main_command = begin_prompt()
 
-
         elif main_command == "?":
-            os.system('clear')
+            os.system("clear")
             messages = (
                 "",
                 "koneko こねこ version 0.1 beta\n",
@@ -805,15 +802,14 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
             for message in messages:
                 print(" " * 23, message)
 
-            pixcat.Image("pics/79494300_p0.png").thumbnail(650).show(align='left', y=0)
+            pixcat.Image("pics/79494300_p0.png").thumbnail(650).show(align="left", y=0)
 
             while True:
                 help_command = input("\n\nPress any key to return: ")
                 if help_command or help_command == "":
                     printmessage = True
-                    os.system('clear')
+                    os.system("clear")
                     break
-
 
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
