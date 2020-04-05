@@ -1,3 +1,8 @@
+"""
+Collection of functions that are pure and side effect free
+    (Excluding print)
+"""
+
 import re
 import os
 import time

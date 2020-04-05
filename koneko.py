@@ -5,10 +5,6 @@ terminal!)
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the
 magical `kitty +kitten icat` 'kitten' to display images.
 
-FEATURE: if post has multiple images, there should be a preview in image view
-FEATURE: option to use pillow or wand to edit numbers on pics
-TODO: unit tests
-
 Capitalized tag definitions:
     TODO: to-do, high priority
     SPEED: speed things up, high priority
@@ -398,8 +394,6 @@ def image_prompt(
         elif image_prompt_command == "d":
             download_from_image_view(image_id)
 
-        # FEATURE: enter {number} to jump to image number (for
-        # multi-image posts)
         elif image_prompt_command == "n":
             if not page_urls:
                 print("This is the only page in the post!")
@@ -685,7 +679,6 @@ def view_post_mode(image_id):
     else:
         large_dir = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
 
-    # SPEED: tqdm trickery
     download_core(large_dir, url, filename)
     open_image_vp(f"{large_dir}{filename}")
 
@@ -793,7 +786,6 @@ def main():
     API_THREAD.start()  # Start logging in
 
     # During this part, the API can still be logging in but we can proceed
-    # FEATURE: put a cute anime girl here with icat
     os.system("clear")
 
     artist_user_id, image_id = None, None
