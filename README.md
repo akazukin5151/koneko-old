@@ -48,7 +48,7 @@ Username = XXX
 Password = XXX
 ```
 
-3. Run:
+3. Run: (or use `git clone -b 'v0.1' --depth 1 https://github.com/twenty5151/koneko.git` for the 'stable' release)
 ```sh
 git clone https://github.com/twenty5151/koneko.git && cd koneko
 pip install -r requirements.txt

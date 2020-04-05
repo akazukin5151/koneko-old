@@ -324,7 +324,7 @@ def open_image_vp(filepath):
 
 # - Interactive functions (frontend)
 # - Prompt functions
-def begin_prompt():
+def begin_prompt(printmessage=True):
     messages = (
         "",
         "Welcome to koneko v0.1\n",
@@ -334,8 +334,9 @@ def begin_prompt():
         "?. Info",
         "q. Quit"
     )
-    for message in messages:
-        print(" " * 20, message)
+    if printmessage:
+        for message in messages:
+            print(" " * 20, message)
 
     pixcat.Image("pics/71471144_p0.png").thumbnail(400).show(align='left', y=0)
     command = input("Enter a command: ")
@@ -763,9 +764,10 @@ def view_post_mode_loop(prompted, image_id=None):
 def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
     # SPEED: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
+    printmessage = True
     while True:
-        if prompted and not main_command:
-            main_command = begin_prompt()
+        if prompted:
+            main_command = begin_prompt(printmessage)
 
         if main_command == "1":
             try:
@@ -789,6 +791,8 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
                 "koneko こねこ version 0.1 beta\n",
                 "Browse pixiv in the terminal using kitty's icat to display images",
                 "with images embedded in the terminal\n",
+                "View a gallery of an artist's illustrations with mode 1",
+                "View a post with mode 2. Posts support one or multiple images\n",
                 "Thank you for using koneko!",
                 "Please star, report bugs and contribute in:",
                 "https://github.com/twenty5151/koneko",
@@ -799,15 +803,15 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
             )
 
             for message in messages:
-                print(" " * 20, message)
+                print(" " * 23, message)
 
-            pixcat.Image("pics/79494300_p0.png").thumbnail(600).show(align='left', y=0)
+            pixcat.Image("pics/79494300_p0.png").thumbnail(650).show(align='left', y=0)
 
             while True:
-                help_command = input("Press enter to return: ")
-                if help_command == "" or "q":
+                help_command = input("\n\nPress any key to return: ")
+                if help_command or help_command == "":
+                    printmessage = True
                     os.system('clear')
-                    main_command = begin_prompt()
                     break
 
 
@@ -815,9 +819,13 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
             answer = input("Are you sure you want to exit? [y/N]:\n")
             if answer == "y" or not answer:
                 break
+            else:
+                printmessage = False
+                continue
 
         else:
-            print("Invalid command!")
+            print("\nInvalid command!")
+            printmessage = False
             continue
 
 
