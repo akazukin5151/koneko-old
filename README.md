@@ -102,7 +102,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 ```
 
 ## Unit tests
-Use `pytest testing.py` or `coverage run -m pytest *.py` to also generate a code coverage report. Use `coverage report` or `coverage html -d testing/htmlcov/` to view. The coverage badge can be generated with `rm coverage.svg; coverage-badge -o coverage.svg`.
+Use `pytest testing.py` or `coverage run -m pytest *.py -v` to also generate a code coverage report. Use `coverage report` or `coverage html -d testing/htmlcov/` to view. The coverage badge can be generated with `rm coverage.svg; coverage-badge -o coverage.svg`.
 
 
 Here's a random shell command to get (but not download) and display any pixiv image url:
