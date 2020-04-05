@@ -171,8 +171,4 @@ def change_url_to_full(post_json, png=False):
         url = url.replace("jpg", "png")
     return url
 
-def split_list(mylist):
-    mid = len(mylist) // 2
-    return mylist[:mid], mylist[mid:]
-
 

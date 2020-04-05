@@ -86,7 +86,7 @@ def main(path):
         render_page(page_spaces[i], page, rowspaces, cols, left_shifts, path)
 
     print(
-        " " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5,
+        " " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n"
     )
 
 
