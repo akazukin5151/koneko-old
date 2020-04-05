@@ -4,6 +4,8 @@ Browse pixiv in the terminal using kitty's icat to display images (in the termin
 
 ![Gallery view](pics/gallery_view.png)
 
+![Gallery view_square_medium](pics/gallery_view_square_medium.png)
+
 ![Image_view](pics/image_view.png)
 
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html). Actually, `lscat.py` uses [pixcat](https://github.com/mirukana/pixcat), which is a Python API for icat.
