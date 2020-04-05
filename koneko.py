@@ -714,7 +714,7 @@ def artist_illusts_mode_loop(if_prompted, artist_user_id=None):
                 int(artist_user_id)
             except ValueError:
                 print("Invalid user ID!")
-                continue
+                break
 
         API_THREAD.join()  # Wait for API to finish
         global API
@@ -737,7 +737,7 @@ def view_post_mode_loop(if_prompted, image_id=None):
                 int(image_id)
             except ValueError:
                 print("Invalid image ID!")
-                continue
+                break
 
         API_THREAD.join()  # Wait for API to finish
         global API
@@ -758,12 +758,14 @@ def main_loop(if_prompted, main_command=None, artist_user_id=None, image_id=None
                 artist_illusts_mode_loop(if_prompted, artist_user_id)
             except KeyboardInterrupt:
                 os.system("clear")
+                main_command = begin_prompt()
 
         elif main_command == "2":
             try:
                 view_post_mode_loop(if_prompted, image_id)
             except KeyboardInterrupt:
                 os.system("clear")
+                main_command = begin_prompt()
 
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
