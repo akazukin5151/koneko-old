@@ -21,6 +21,7 @@ import threading
 from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
+import pixcat
 from tqdm import tqdm
 from pixivpy3 import AppPixivAPI
 
@@ -112,7 +113,7 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
         # print(f"Downloading {img_name}")
         # Sometimes didn't download unless if there's a breakpoint here...
         API.download(url)
-    except RemoteDisconnected as e:  # TODO: retry
+    except (RemoteDisconnected, ConnectionError, PixivError) as e:  # TODO: retry
         print(f"Network error! Caught {e}")
 
     if pbar:
@@ -324,12 +325,17 @@ def open_image_vp(filepath):
 # - Interactive functions (frontend)
 # - Prompt functions
 def begin_prompt():
-    print(
-        "\n        Select action:\n\
-        1. View artist illustrations\n\
-        2. Open pixiv post\n\n\
-        q. Quit\n"
+    messages = (
+        "",
+        "Welcome to koneko v0.1\n",
+        "Select an action:",
+        "1. View artist illustrations",
+        "2. Open pixiv post\n",
+        "q. Quit"
     )
+    for message in messages:
+        print(" " * 20, message)
+    pixcat.Image("pics/71471144_p0.png").thumbnail(400).show(align='left', y=0)
     command = input("Enter a number: ")
     return command
 
