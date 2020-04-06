@@ -342,6 +342,7 @@ def artist_user_id_prompt():
     artist_user_id = input("Enter artist ID or url:\n")
     return artist_user_id
 
+
 def quit():
     with term.cbreak():
         while True:
@@ -350,6 +351,7 @@ def quit():
                 sys.exit(0)
             elif ans:
                 break
+
 
 # - Prompt functions with logic
 def image_prompt(
@@ -604,9 +606,7 @@ def gallery_prompt(
                     if keyseqs[0] == "O":
                         open_link(selected_image_num, current_page_illusts)
                     elif keyseqs[0] == "D":
-                        download_from_gallery(
-                            selected_image_num, current_page_illusts
-                        )
+                        download_from_gallery(selected_image_num, current_page_illusts)
                     elif keyseqs[0] == "i":
                         (
                             image_id,
@@ -871,6 +871,7 @@ def view_post_mode_loop(prompted, image_id=None):
         API = API_QUEUE.get()  # Assign API to PixivAPI object
 
         view_post_mode(image_id)
+
 
 @pure.catch_ctrl_c
 def show_man_loop():
