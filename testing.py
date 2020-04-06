@@ -135,11 +135,11 @@ def test_filter_jpg():
     assert lscat.filter_jpg("testing/") == ["04_祝！！！.jpg", "17_ミコニャン.jpg"]
 
 
-mywidth = 90 // 7  # == 12
+mywidth = 90 // 5  # == 18
 
 
 def test_xcoord():
-    assert lscat.xcoord(1, 7, mywidth) == 14
+    assert lscat.xcoord(1, 5, mywidth) == 20
 
 
 def test_number_prefix():
@@ -154,3 +154,4 @@ def test_artist_user_id_prompt(monkeypatch):
     )
     myinput = koneko.artist_user_id_prompt()
     myinput == "https://www.pixiv.net/en/users/2232374"
+
