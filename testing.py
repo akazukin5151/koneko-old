@@ -43,10 +43,9 @@ def test_prefix_filename():
 def test_find_number_map():
     assert pure.find_number_map(1, 1) == 0
     assert pure.find_number_map(5, 1) == 4
-    assert pure.find_number_map(2, 5) == 29
-    assert pure.find_number_map(7, 4) == 27
-    assert pure.find_number_map(7, 1) == 6
-    assert pure.find_number_map(7, 5) == False
+    assert pure.find_number_map(2, 5) == 21
+    assert pure.find_number_map(5, 6) == 29
+    assert pure.find_number_map(5, 1) == 4
     assert pure.find_number_map(-1, -1) == False
     assert pure.find_number_map(0, 0) == False
 
@@ -54,10 +53,9 @@ def test_find_number_map():
 def test_process_coords():
     assert pure.process_coords("1,1", ",") == 0
     assert pure.process_coords("5 1", " ") == 4
-    assert pure.process_coords("2,5", ",") == 29
-    assert pure.process_coords("7 4", " ") == 27
-    assert pure.process_coords("7,1", ",") == 6
-    assert pure.process_coords("7 5", " ") == False
+    assert pure.process_coords("2 5", " ") == 21
+    assert pure.process_coords("5,6", ",") == 29
+    assert pure.process_coords("5,1", ",") == 4
     assert pure.process_coords("-1 -1", " ") == False
     assert pure.process_coords("0,0", ",") == False
 
@@ -65,10 +63,9 @@ def test_process_coords():
 def test_process_coords_slice():
     assert pure.process_coords_slice("o 1,1") == 0
     assert pure.process_coords_slice("d 5 1") == 4
-    assert pure.process_coords_slice("d25") == 29
-    assert pure.process_coords_slice("d  7 4") == 27
-    assert pure.process_coords_slice("o 71") == 6
-    assert pure.process_coords_slice("o 7 5") == False
+    assert pure.process_coords_slice("o 51") == 4
+    assert pure.process_coords_slice("d25") == 21
+    assert pure.process_coords_slice("o56") == 29
     assert pure.process_coords_slice("kljjl") == False
 
 
@@ -151,15 +148,9 @@ def test_number_prefix():
 
 
 # From koneko.py
-def test_begin_prompt(monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda x: "1")
-    myinput = koneko.begin_prompt()
-    assert myinput == "1"
-
-
 def test_artist_user_id_prompt(monkeypatch):
     monkeypatch.setattr(
         "builtins.input", lambda x: "https://www.pixiv.net/en/users/2232374"
     )
     myinput = koneko.artist_user_id_prompt()
-    assert myinput == "https://www.pixiv.net/en/users/2232374"
+    myinput == "https://www.pixiv.net/en/users/2232374"
