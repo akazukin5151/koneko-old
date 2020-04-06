@@ -425,7 +425,7 @@ def image_prompt(
                             break
 
             elif image_prompt_command == "b":
-                break # Leave cbreak()
+                break  # Leave cbreak()
 
             elif image_prompt_command == "":
                 pass
@@ -450,6 +450,7 @@ def image_prompt(
         # Came from view post mode, don't know current page num
         # Defaults to page 1
         artist_illusts_mode(artist_user_id)
+
 
 def download_from_gallery(gallery_command, current_page_illusts, png=False):
     number = pure.process_coords_slice(gallery_command)
@@ -539,21 +540,28 @@ def gallery_prompt(
                 print(keyseqs)
 
                 # Two digit sequence (coords)
-                if (seq_num == 1
-                        and keyseqs[0].isdigit()
-                        and keyseqs[1].isdigit()):
+                if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
 
                     first_num = int(keyseqs[0])
                     second_num = int(keyseqs[1])
                     selected_image_num = pure.find_number_map(first_num, second_num)
 
-                    image_id, current_page, page_urls, number_of_pages, all_pages_cache = gallery_to_image(selected_image_num, current_page_num, artist_user_id, all_pages_cache)
-                    break # leave cbreak()
+                    (
+                        image_id,
+                        current_page,
+                        page_urls,
+                        number_of_pages,
+                        all_pages_cache,
+                    ) = gallery_to_image(
+                        selected_image_num,
+                        current_page_num,
+                        artist_user_id,
+                        all_pages_cache,
+                    )
+                    break  # leave cbreak()
 
                 # One letter two digit sequence
-                if (seq_num == 2
-                        and keyseqs[1].isdigit()
-                        and keyseqs[2].isdigit()):
+                if seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
 
                     first_num = keyseqs[1]
                     second_num = keyseqs[2]
@@ -578,7 +586,18 @@ def gallery_prompt(
                         # Image number given, not coords
                         # If single digit, use "i02"
                         selected_image_num = int(f"{first_num}{second_num}")
-                        image_id, current_page, page_urls, number_of_pages, all_pages_cache = gallery_to_image(selected_image_num, current_page_num, artist_user_id, all_pages_cache)
+                        (
+                            image_id,
+                            current_page,
+                            page_urls,
+                            number_of_pages,
+                            all_pages_cache,
+                        ) = gallery_to_image(
+                            selected_image_num,
+                            current_page_num,
+                            artist_user_id,
+                            all_pages_cache,
+                        )
                         break
 
                     keyseqs = []
@@ -654,24 +673,25 @@ def gallery_prompt(
         download_path=f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/",
     )
 
+
 # - End interactive (frontend) functions
 
-def gallery_to_image(selected_image_num, current_page_num, artist_user_id, all_pages_cache):
+
+def gallery_to_image(
+    selected_image_num, current_page_num, artist_user_id, all_pages_cache
+):
     current_page = all_pages_cache[str(current_page_num)]
     current_page_illusts = current_page["illusts"]
     post_json = current_page_illusts[selected_image_num]
     image_id = post_json.id
 
-    display_image(
-        post_json,
-        artist_user_id,
-        selected_image_num, current_page_num
-    )
+    display_image(post_json, artist_user_id, selected_image_num, current_page_num)
 
     # blocking: no way to unblock prompt
     number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
 
     return image_id, current_page, page_urls, number_of_pages, all_pages_cache
+
 
 # - Mode and loop functions (some interactive and some not)
 def show_gallery(
