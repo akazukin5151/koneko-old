@@ -434,6 +434,7 @@ def image_prompt(
             elif image_prompt_command:
                 print("Invalid command")
                 print(image_prompt.__doc__)
+            # End if
         # End while
     # End cbreak()
 
@@ -490,20 +491,31 @@ def gallery_prompt(
     all_pages_cache,
 ):
     """
-    Gallery commands:
-    {number} -- display that image; corresponds to number
-        prefixed on filenames
-    o{number} -- open pixiv post in browser
-    d{number} -- download image in large resolution
-    n -- view the next page
-    p -- view the previous page
-    h -- show this help
-    q -- exit
+    Gallery commands: (Note: no need to press enter)
+    Using coordinates, where {digit1} is the row and {digit2} is the column
+    {digit1}{digit2}   -- display the image on row digit1 and column digit2
+    o{digit1}{digit2}  -- open pixiv image/post in browser
+    d{digit1}{digit2}  -- download image in large resolution
+
+    Using image number, where {number} is the nth image in order (see examples)
+    i{number}          -- display the image
+    O{number}          -- open pixiv image/post in browser.
+    D{number}          -- download image in large resolution.
+
+    n                  -- view the next page
+    p                  -- view the previous page
+    h                  -- show this help
+    q                  -- exit
 
     Examples:
-        9   --->    Display the ninth image (in image view)
-        o9  --->    Open the ninth image's post in browser
-        d9  --->    Download the ninth image, in large resolution
+        i09   --->  Display the ninth image in image view (must have leading 0)
+        i10   --->  Display the tenth image in image view
+        O9    --->  Open the ninth image's post in browser
+        D9    --->  Download the ninth image, in large resolution
+
+        25    --->  Display the image on column 2, row 5 (index starts at 1)
+        d25    --->  Open the image on column 2, row 5 (index starts at 1) in browser
+        o25    --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
     # Fixes: Gallery -> next page -> image prompt -> back -> prev page
@@ -576,16 +588,16 @@ def gallery_prompt(
                         )
 
                     # Use image number
+                    selected_image_num = int(f"{first_num}{second_num}")
+                    # If single digit, use "i02", "O04" or "D01"
+
                     elif keyseqs[0] == "O":
-                        open_link(f"o{first_num}{second_num}", current_page_illusts)
+                        open_link(selected_image_num, current_page_illusts)
                     elif keyseqs[0] == "D":
                         download_from_gallery(
-                            f"d{first_num}{second_num}", current_page_illusts
+                            selected_image_num, current_page_illusts
                         )
                     elif keyseqs[0] == "i":
-                        # Image number given, not coords
-                        # If single digit, use "i02"
-                        selected_image_num = int(f"{first_num}{second_num}")
                         (
                             image_id,
                             current_page,
