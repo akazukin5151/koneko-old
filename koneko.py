@@ -341,6 +341,14 @@ def artist_user_id_prompt():
     artist_user_id = input("Enter artist ID or url:\n")
     return artist_user_id
 
+def quit():
+    with term.cbreak():
+        while True:
+            ans = term.inkey()
+            if ans == "y" or ans.code == 343:
+                sys.exit(0)
+            elif ans:
+                break
 
 # - Prompt functions with logic
 def image_prompt(
@@ -415,14 +423,7 @@ def image_prompt(
 
             elif image_prompt_command == "q":
                 print("Are you sure you want to exit?")
-                with term.cbreak():
-                    while True:
-                        ans = term.inkey()
-                        if ans == "y" or ans.code == 343:
-                            sys.exit(0)
-                        elif ans:
-                            print("Enter an image view command:")
-                            break
+                quit()
 
             elif image_prompt_command == "b":
                 break  # Leave cbreak()
@@ -518,6 +519,12 @@ def gallery_prompt(
         o25    --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
+    """
+    Sequence means a combination of more than one key.
+    When a sequenceable key is pressed, wait for the next keys in the sequence
+        If the sequence is valid, execute their corresponding actions
+    Otherwise for keys that do not need a sequence, execute their actions normally
+    """
     # Fixes: Gallery -> next page -> image prompt -> back -> prev page
     # Gallery -> Image -> back still retains all_pages_cache, no need to
     # prefetch again
@@ -542,16 +549,19 @@ def gallery_prompt(
             print("Enter a gallery command:")
             gallery_command = term.inkey()
 
+            # Wait for the rest of the sequence
             if gallery_command in sequenceable_keys:
                 keyseqs.append(gallery_command)
                 print(keyseqs)
                 seq_num += 1
 
+            # Digits continue the sequence
             elif gallery_command.isdigit():
                 keyseqs.append(gallery_command)
                 print(keyseqs)
 
-                # Two digit sequence (coords)
+                # End of the sequence...
+                # Two digit sequence -- view image given coords
                 if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
 
                     first_num = int(keyseqs[0])
@@ -578,7 +588,7 @@ def gallery_prompt(
                     first_num = keyseqs[1]
                     second_num = keyseqs[2]
 
-                    # Use coords
+                    # Open or download given coords
                     if keyseqs[0] == "o":
                         open_link(f"o{first_num}{second_num}", current_page_illusts)
 
@@ -587,7 +597,7 @@ def gallery_prompt(
                             f"d{first_num}{second_num}", current_page_illusts
                         )
 
-                    # Use image number
+                    # View image, open, or download given image number
                     selected_image_num = int(f"{first_num}{second_num}")
 
                     if keyseqs[0] == "O":
@@ -611,11 +621,15 @@ def gallery_prompt(
                         )
                         break
 
+                    # Reset sequence info after running everything
                     keyseqs = []
                     seq_num = 0
+
+                # Not the end of the sequence yet, continue while block
                 else:
                     seq_num += 1
 
+            # No sequence, execute their functions immediately
             elif gallery_command == "n":
                 download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
                 try:
@@ -652,14 +666,7 @@ def gallery_prompt(
 
             elif gallery_command == "q":
                 print("Are you sure you want to exit?")
-                with term.cbreak():
-                    while True:
-                        ans = term.inkey()
-                        if ans == "y" or ans.code == 343:
-                            sys.exit(0)
-                        elif ans:
-                            print("Enter an image view command:")
-                            break
+                quit()
 
             elif gallery_command == "h":
                 print(gallery_prompt.__doc__)
@@ -692,6 +699,10 @@ def gallery_prompt(
 def gallery_to_image(
     selected_image_num, current_page_num, artist_user_id, all_pages_cache
 ):
+    """
+    Do-all function that gets all the info needed to display image, and return
+    values needed to pass into image_prompt()
+    """
     current_page = all_pages_cache[str(current_page_num)]
     current_page_illusts = current_page["illusts"]
     post_json = current_page_illusts[selected_image_num]
