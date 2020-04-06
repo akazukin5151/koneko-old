@@ -578,7 +578,7 @@ def gallery_prompt(
                     first_num = keyseqs[1]
                     second_num = keyseqs[2]
 
-                    # Always coords
+                    # Use coords
                     if keyseqs[0] == "o":
                         open_link(f"o{first_num}{second_num}", current_page_illusts)
 
@@ -589,7 +589,6 @@ def gallery_prompt(
 
                     # Use image number
                     selected_image_num = int(f"{first_num}{second_num}")
-                    # If single digit, use "i02", "O04" or "D01"
 
                     elif keyseqs[0] == "O":
                         open_link(selected_image_num, current_page_illusts)
@@ -672,6 +671,7 @@ def gallery_prompt(
         # End while
     # End cbreak()
 
+    # Display image (using either coords or image number), the show this prompt
     image_prompt(
         image_id,
         artist_user_id,
@@ -925,8 +925,6 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
 
 
 def main():
-    global KONEKODIR
-    KONEKODIR = "/tmp/koneko"
     # It'll never be changed after logging in
     global API, API_QUEUE, API_THREAD
     API_QUEUE = queue.Queue()
@@ -980,4 +978,6 @@ def main():
 if __name__ == "__main__":
     global term
     term = Terminal()
+    global KONEKODIR
+    KONEKODIR = "/tmp/koneko"
     main()
