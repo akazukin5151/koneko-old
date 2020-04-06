@@ -230,7 +230,7 @@ def go_next_image(
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
         async_download_spinner(download_path, [url])
 
-    open_image_vp(f"{download_path}{downloaded_images[img_post_page_num]}")
+    display_image_vp(f"{download_path}{downloaded_images[img_post_page_num]}")
 
     # Downloads the next image
     try:
@@ -263,7 +263,7 @@ def show_artist_illusts(path, renderer="lscat"):
             os.system(f"{lscat_path}/legacy/lsix")
 
 
-def open_image(post_json, artist_user_id, number_prefix, current_page_num):
+def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     Opens image given by the number (medium-res), downloads large-res and
     then display that.
@@ -295,20 +295,8 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     large_dir = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/"
     download_core(large_dir, url, filename)
 
-    # BLOCKING: non blocking command input.
-    # open medium res image
-    # run download_core on a separate thread
-    # in the meantime, continue:
-    #   run pure.page_urls_in_post()
-    #   run image_prompt()        <------ INPUT IS BLOCKING, BELOW NEVER RUNS
-    # when download_core finishes, display the large image (run below command)
-
-    # Can't put input into separate thread, as it will not correctly receive
-    # the input
-    # Can't display large image on a separate thread, as icat doesn't detect
-    # kitty and fails
-    # Only solution is to get image_prompt() to interrupt when it receives a
-    # signal that download_core() has finished
+    # BLOCKING: imput is blocking, will not display large image until input
+    # received
 
     os.system("clear")
     os.system(
@@ -316,7 +304,7 @@ def open_image(post_json, artist_user_id, number_prefix, current_page_num):
     )
 
 
-def open_image_vp(filepath):
+def display_image_vp(filepath):
     os.system(f"kitty +kitten icat --silent {filepath}")
 
 
@@ -425,7 +413,7 @@ def image_prompt(
                 download_path = kwargs["download_path"]
                 img_post_page_num -= 1
                 # fmt: off
-                open_image_vp(
+                display_image_vp(
                     f"{download_path}{downloaded_images[img_post_page_num]}"
                 )
                 # fmt: on
@@ -584,19 +572,9 @@ def gallery_prompt(
             post_json = current_page_illusts[selected_image_num]
             image_id = post_json.id
 
-            open_image(post_json, artist_user_id, selected_image_num, current_page_num)
+            display_image(post_json, artist_user_id, selected_image_num, current_page_num)
 
-            # BLOCKING: it's async now but still blocking, as the result
-            # is needed to pass to function
-            # Threading won't even do anything meaningful here
-            # with ThreadPoolExecutor(max_workers=3) as executor:
-            #    future = executor.submit(
-            #        pure.page_urls_in_post,
-            #        post_json
-            #    )
-            #
-            # number_of_pages, page_urls = future.result()
-
+            # BLOCKING: no way to unblock prompt
             number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
 
             image_prompt(
@@ -692,7 +670,7 @@ def view_post_mode(image_id):
         large_dir = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
 
     download_core(large_dir, url, filename)
-    open_image_vp(f"{large_dir}{filename}")
+    display_image_vp(f"{large_dir}{filename}")
 
     if number_of_pages != 1:
         async_download_spinner(large_dir, page_urls[:2])
