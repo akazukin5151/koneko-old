@@ -174,3 +174,17 @@ def change_url_to_full(post_json, png=False):
     if png:
         url = url.replace("jpg", "png")
     return url
+
+
+@funcy.decorator
+def catch_ctrl_c(call):
+    """
+    See http://hackflow.com/blog/2013/11/03/painless-decorators/
+    """
+    try:
+        result = call()
+    except KeyboardInterrupt:
+        os.system("clear")
+    else:
+        return result
+
