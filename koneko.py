@@ -82,6 +82,7 @@ def full_img_details(png=False, post_json=None, image_id=None):
 
 # - Download functions
 # - Core download functions (for async)
+# TODO: consider splitting into rename and download functions
 def async_download_core(
     download_path, urls, rename_images=False, file_names=None, pbar=None
 ):
@@ -163,12 +164,14 @@ def download_core(large_dir, url, filename, try_make_dir=True):
         with pure.cd(large_dir):
             downloadr(url, filename, None)
 
+
 def verify_full_download(filepath):
     verified = imghdr.what(filepath)
     if not verified:
         os.remove(filepath)
         return False
     return True
+
 
 def download_from_image_view(image_id, png=False):
     """
@@ -241,8 +244,8 @@ def go_next_image(
     try:
         next_img_url = page_urls[img_post_page_num + 1]
     except IndexError:
-        pass # Last page
-    else: # No error
+        pass  # Last page
+    else:  # No error
         downloaded_images.append(pure.split_backslash_last(next_img_url))
         async_download_spinner(download_path, [next_img_url])
     print(f"Page {img_post_page_num+1}/{number_of_pages}")
@@ -296,7 +299,6 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
 
     url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
-
     large_dir = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/"
     download_core(large_dir, url, filename)
 
@@ -435,6 +437,7 @@ def image_prompt(
             print(image_prompt.__doc__)
             continue
 
+
 def download_from_gallery(gallery_command, current_page_illusts, png=False):
     number = pure.process_coords_slice(gallery_command)
     if not number:
@@ -453,6 +456,7 @@ def download_from_gallery(gallery_command, current_page_illusts, png=False):
 
     print(f"Image downloaded at {filepath}\n")
 
+
 def open_link(gallery_command, current_page_illusts):
     number = pure.process_coords_slice(gallery_command)
     if not number:
@@ -462,6 +466,7 @@ def open_link(gallery_command, current_page_illusts):
     link = f"https://www.pixiv.net/artworks/{image_id}"
     os.system(f"xdg-open {link}")
     print(f"Opened {link}!\n")
+
 
 def gallery_prompt(
     current_page_illusts,
@@ -582,7 +587,9 @@ def gallery_prompt(
             post_json = current_page_illusts[selected_image_num]
             image_id = post_json.id
 
-            display_image(post_json, artist_user_id, selected_image_num, current_page_num)
+            display_image(
+                post_json, artist_user_id, selected_image_num, current_page_num
+            )
 
             # BLOCKING: no way to unblock prompt
             number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
@@ -682,6 +689,7 @@ def view_post_mode(image_id):
     download_core(large_dir, url, filename)
     display_image_vp(f"{large_dir}{filename}")
 
+    # Download the next page for multi-image posts
     if number_of_pages != 1:
         async_download_spinner(large_dir, page_urls[:2])
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
@@ -697,7 +705,7 @@ def view_post_mode(image_id):
     )
     # Will only be used for multi-image posts, so it's safe to use large_dir
     # Without checking for number_of_pages
-    #artist_illusts_mode(artist_user_id)
+    # artist_illusts_mode(artist_user_id)
 
 
 @pure.catch_ctrl_c
@@ -788,6 +796,7 @@ def info_screen_loop():
         if help_command or help_command == "":
             os.system("clear")
             break
+
 
 def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
     """Ask for mode selection"""
