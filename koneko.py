@@ -326,6 +326,7 @@ def begin_prompt(printmessage=True):
         "1. View artist illustrations",
         "2. Open pixiv post\n",
         "?. Info",
+        "m. Manual",
         "q. Quit",
     )
     if printmessage:
@@ -871,6 +872,18 @@ def view_post_mode_loop(prompted, image_id=None):
 
         view_post_mode(image_id)
 
+@pure.catch_ctrl_c
+def show_man_loop():
+    os.system("clear")
+    print(image_prompt.__doc__)
+    print(" " * 3, "=" * 30)
+    print(gallery_prompt.__doc__)
+    while True:
+        help_command = input("\n\nPress any key to return: ")
+        if help_command or help_command == "":
+            os.system("clear")
+            break
+
 
 @pure.catch_ctrl_c
 def info_screen_loop():
@@ -920,6 +933,9 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
 
         elif main_command == "?":
             info_screen_loop()
+
+        elif main_command == "m":
+            show_man_loop()
 
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
