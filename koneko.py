@@ -163,6 +163,12 @@ def download_core(large_dir, url, filename, try_make_dir=True):
         with pure.cd(large_dir):
             downloadr(url, filename, None)
 
+def verify_full_download(filepath):
+    verified = imghdr.what(filepath)
+    if not verified:
+        os.remove(filepath)
+        return False
+    return True
 
 def download_from_image_view(image_id, png=False):
     """
@@ -174,9 +180,8 @@ def download_from_image_view(image_id, png=False):
         f"{homepath}/Downloads/", url, filename, try_make_dir=False,
     )
 
-    png = imghdr.what(filepath)
-    if not png:
-        os.remove(filepath)
+    verified = verify_full_download(filepath)
+    if not verified:
         download_from_image_view(image_id, png=True)
 
     print(f"Image downloaded at {filepath}\n")
@@ -406,17 +411,14 @@ def image_prompt(
         elif image_prompt_command == "p":
             if not page_urls:
                 print("This is the only page in the post!")
+
             if img_post_page_num == 0:
                 print("This is the first image in the post!")
-
             else:
                 download_path = kwargs["download_path"]
                 img_post_page_num -= 1
-                # fmt: off
-                display_image_vp(
-                    f"{download_path}{downloaded_images[img_post_page_num]}"
-                )
-                # fmt: on
+                path_to_img = f"{download_path}{downloaded_images[img_post_page_num]}"
+                display_image_vp(path_to_img)
                 print(f"Page {img_post_page_num+1}/{number_of_pages}")
 
         elif image_prompt_command == "q":
@@ -433,6 +435,23 @@ def image_prompt(
             print(image_prompt.__doc__)
             continue
 
+def download_from_gallery(gallery_command, current_page_illusts, png=False):
+    number = pure.process_coords_slice(gallery_command)
+    if not number:
+        number = int(gallery_command[1:])
+
+    post_json = current_page_illusts[number]
+    url, filename, filepath = full_img_details(post_json=post_json, png=png)
+
+    homepath = os.path.expanduser("~")
+    download_path = f"{homepath}/Downloads/"
+    download_core(download_path, url, filename, try_make_dir=False)
+
+    verified = verify_full_download(filepath)
+    if not verified:
+        download_from_gallery(gallery_command, current_page_illusts, png=True)
+
+    print(f"Image downloaded at {filepath}\n")
 
 def gallery_prompt(
     current_page_illusts,
@@ -492,19 +511,7 @@ def gallery_prompt(
             print(f"Opened {link}!\n")
 
         elif gallery_command[0] == "d":
-            number = pure.process_coords_slice(gallery_command)
-            if not number:
-                number = int(gallery_command[1:])
-
-            post_json = current_page_illusts[number]
-
-            url, filename, filepath = full_img_details(post_json=post_json)
-
-            homepath = os.path.expanduser("~")
-            download_core(
-                f"{homepath}/Downloads/", url, filename, try_make_dir=False,
-            )
-            print(f"Image downloaded at {filepath}\n")
+            download_from_gallery(gallery_command, current_page_illusts)
 
         elif gallery_command == "n":
             download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
