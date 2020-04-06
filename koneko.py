@@ -22,6 +22,7 @@ from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
 import pixcat
+from blessed import Terminal
 from tqdm import tqdm
 from pixivpy3 import AppPixivAPI
 
@@ -369,74 +370,86 @@ def image_prompt(
         downloaded_images = kwargs["downloaded_images"]
         # Download next if multi
 
-    while True:
-        image_prompt_command = input("Enter an image view command: ")
-        if image_prompt_command == "b":
-            if current_page_num > 1 or current_page:
-                all_pages_cache = kwargs["all_pages_cache"]
-                show_gallery(
-                    artist_user_id,
-                    current_page_num,
-                    current_page,
-                    all_pages_cache=all_pages_cache,
+    with term.cbreak():
+        while True:
+            print("Enter an image view command:")
+            image_prompt_command = term.inkey()
+
+            if image_prompt_command == "o":
+                link = f"https://www.pixiv.net/artworks/{image_id}"
+                os.system(f"xdg-open {link}")
+                print(f"Opened {link} in browser")
+
+            elif image_prompt_command == "d":
+                download_from_image_view(image_id)
+
+            elif image_prompt_command == "n":
+                if not page_urls:
+                    print("This is the only page in the post!")
+                    continue
+                if img_post_page_num + 1 == number_of_pages:
+                    print("This is the last image in the post!")
+                    continue
+
+                img_post_page_num += 1  # Be careful of 0 index
+                downloaded_images = go_next_image(
+                    page_urls,
+                    img_post_page_num,
+                    number_of_pages,
+                    downloaded_images,
+                    download_path=kwargs["download_path"],
                 )
-            else:
-                # Came from view post mode, don't know current page num
-                # Defaults to page 1
-                artist_illusts_mode(artist_user_id)
 
-        elif image_prompt_command == "o":
-            link = f"https://www.pixiv.net/artworks/{image_id}"
-            os.system(f"xdg-open {link}")
-            print(f"Opened {link} in browser")
+            elif image_prompt_command == "p":
+                if not page_urls:
+                    print("This is the only page in the post!")
 
-        elif image_prompt_command == "d":
-            download_from_image_view(image_id)
+                if img_post_page_num == 0:
+                    print("This is the first image in the post!")
+                else:
+                    download_path = kwargs["download_path"]
+                    img_post_page_num -= 1
+                    image_filename = downloaded_images[img_post_page_num]
+                    display_image_vp(f"{download_path}{image_filename}")
+                    print(f"Page {img_post_page_num+1}/{number_of_pages}")
 
-        elif image_prompt_command == "n":
-            if not page_urls:
-                print("This is the only page in the post!")
-                continue
-            if img_post_page_num + 1 == number_of_pages:
-                print("This is the last image in the post!")
-                continue
+            elif image_prompt_command == "q":
+                print("Are you sure you want to exit?")
+                with term.cbreak():
+                    while True:
+                        ans = term.inkey()
+                        if ans == "y" or ans.code == 343:
+                            sys.exit(0)
+                        elif ans:
+                            print("Enter an image view command:")
+                            break
 
-            img_post_page_num += 1  # Be careful of 0 index
-            downloaded_images = go_next_image(
-                page_urls,
-                img_post_page_num,
-                number_of_pages,
-                downloaded_images,
-                download_path=kwargs["download_path"],
-            )
+            elif image_prompt_command == "b":
+                break # Leave cbreak()
 
-        elif image_prompt_command == "p":
-            if not page_urls:
-                print("This is the only page in the post!")
+            elif image_prompt_command == "":
+                pass
+            elif image_prompt_command == "h":
+                print(image_prompt.__doc__)
+            elif image_prompt_command:
+                print("Invalid command")
+                print(image_prompt.__doc__)
+        # End while
+    # End cbreak()
 
-            if img_post_page_num == 0:
-                print("This is the first image in the post!")
-            else:
-                download_path = kwargs["download_path"]
-                img_post_page_num -= 1
-                path_to_img = f"{download_path}{downloaded_images[img_post_page_num]}"
-                display_image_vp(path_to_img)
-                print(f"Page {img_post_page_num+1}/{number_of_pages}")
-
-        elif image_prompt_command == "q":
-            answer = input("Are you sure you want to exit? [y/N]:\n")
-            if answer == "y" or not answer:
-                sys.exit(0)
-            else:
-                continue
-
-        elif image_prompt_command == "h":
-            print(image_prompt.__doc__)
-        else:
-            print("Invalid command")
-            print(image_prompt.__doc__)
-            continue
-
+    # image_prompt_command == "b"
+    if current_page_num > 1 or current_page:
+        all_pages_cache = kwargs["all_pages_cache"]
+        show_gallery(
+            artist_user_id,
+            current_page_num,
+            current_page,
+            all_pages_cache=all_pages_cache,
+        )
+    else:
+        # Came from view post mode, don't know current page num
+        # Defaults to page 1
+        artist_illusts_mode(artist_user_id)
 
 def download_from_gallery(gallery_command, current_page_illusts, png=False):
     number = pure.process_coords_slice(gallery_command)
@@ -884,4 +897,6 @@ def main():
 
 
 if __name__ == "__main__":
+    global term
+    term = Terminal()
     main()
