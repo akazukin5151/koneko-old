@@ -100,8 +100,8 @@ def async_download_core(
     os.makedirs(download_path, exist_ok=True)
     with pure.cd(download_path):
         with ThreadPoolExecutor(max_workers=30) as executor:
-            for (i, n) in enumerate(newnames):
-                if not os.path.isfile(n):
+            for (i, name) in enumerate(newnames):
+                if not os.path.isfile(name):
                     executor.submit(
                         downloadr, urls[i], oldnames[i], newnames[i], pbar=pbar
                     )
@@ -109,11 +109,11 @@ def async_download_core(
 
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads one pic given the single url, rename if needed."""
-    try:  # This seemed to hide PixivError
+    try:
         # print(f"Downloading {img_name}")
-        # Sometimes didn't download unless if there's a breakpoint here...
         API.download(url)
-    except (RemoteDisconnected, ConnectionError, PixivError) as e:  # TODO: retry
+    except (RemoteDisconnected, ConnectionError, PixivError) as e:
+        # TODO: retry
         print(f"Network error! Caught {e}")
 
     if pbar:
@@ -155,9 +155,7 @@ def async_download_spinner(download_path, page_urls):
 # - Wrappers around the core functions for downloading one image
 @pure.spinner("")
 def download_core(large_dir, url, filename, try_make_dir=True):
-    """
-    Downloads one url, intended for single images only
-    """
+    """Downloads one url, intended for single images only"""
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
     if not os.path.isfile(filename):
@@ -232,20 +230,16 @@ def go_next_image(
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
         async_download_spinner(download_path, [url])
 
-    # fmt: off
-    open_image_vp(
-        f"{download_path}{downloaded_images[img_post_page_num]}"
-    )
-    # fmt: on
+    open_image_vp(f"{download_path}{downloaded_images[img_post_page_num]}")
 
     # Downloads the next image
     try:
         next_img_url = page_urls[img_post_page_num + 1]
+    except IndexError:
+        pass # Last page
+    else: # No error
         downloaded_images.append(pure.split_backslash_last(next_img_url))
         async_download_spinner(download_path, [next_img_url])
-    except IndexError:
-        # Last page
-        pass
     print(f"Page {img_post_page_num+1}/{number_of_pages}")
 
     return downloaded_images
@@ -253,6 +247,10 @@ def go_next_image(
 
 # - Non interactive, visible to user functions
 def show_artist_illusts(path, renderer="lscat"):
+    """
+    Use specified renderer to display all images in the given path
+    Default is "lscat"; can be "lscat old" or "lsix" (needs to install lsix first)
+    """
     if renderer != "lscat":
         lscat_path = os.getcwd()
 
@@ -369,7 +367,7 @@ def image_prompt(
     image prompt -> back
     kwargs are to store info for posts with multiple pages/images
     """
-    if len(kwargs) > 0:  # Posts with multiple pages
+    if kwargs:  # Posts with multiple pages
         page_urls = kwargs["page_urls"]
         img_post_page_num = kwargs["img_post_page_num"]
         number_of_pages = kwargs["number_of_pages"]
@@ -668,8 +666,13 @@ def artist_illusts_mode(artist_user_id, current_page_num=1):
 
 
 def view_post_mode(image_id):
+    """
+    Fetch all the illust info, download it in the correct directory, then display it.
+    If it is a multi-image post, download the next image
+    Else or otherwise, open image prompt
+    """
+    print("Fetching illust details...")
     try:
-        print("Fetching illust details...")
         post_json = API.illust_detail(image_id)["illust"]
     except KeyError:
         print("Work has been deleted or the ID does not exist!")
@@ -706,11 +709,15 @@ def view_post_mode(image_id):
     )
     # Will only be used for multi-image posts, so it's safe to use large_dir
     # Without checking for number_of_pages
+    #artist_illusts_mode(artist_user_id)
 
-    artist_illusts_mode(artist_user_id)
 
-
+@pure.catch_ctrl_c
 def artist_illusts_mode_loop(prompted, artist_user_id=None):
+    """
+    Ask for artist ID and process it, wait for API to finish logging in
+    before proceeding
+    """
     while True:
         if prompted and not artist_user_id:
             artist_user_id = artist_user_id_prompt()
@@ -731,7 +738,12 @@ def artist_illusts_mode_loop(prompted, artist_user_id=None):
         artist_illusts_mode(artist_user_id)
 
 
+@pure.catch_ctrl_c
 def view_post_mode_loop(prompted, image_id=None):
+    """
+    Ask for post ID and process it, wait for API to finish logging in
+    before proceeding
+    """
     while True:
         if prompted and not image_id:
             url_or_id = input("Enter pixiv post url or ID:\n")
@@ -759,7 +771,38 @@ def view_post_mode_loop(prompted, image_id=None):
         view_post_mode(image_id)
 
 
+@pure.catch_ctrl_c
+def info_screen_loop():
+    os.system("clear")
+    messages = (
+        "",
+        "koneko こねこ version 0.1 beta\n",
+        "Browse pixiv in the terminal using kitty's icat to display images",
+        "with images embedded in the terminal\n",
+        "View a gallery of an artist's illustrations with mode 1",
+        "View a post with mode 2. Posts support one or multiple images\n",
+        "Thank you for using koneko!",
+        "Please star, report bugs and contribute in:",
+        "https://github.com/twenty5151/koneko",
+        "GPLv3 licensed\n",
+        "Credits to amasyrup (甘城なつき):",
+        "Welcome image: https://www.pixiv.net/en/artworks/71471144",
+        "Current image: https://www.pixiv.net/en/artworks/79494300",
+    )
+
+    for message in messages:
+        print(" " * 23, message)
+
+    pixcat.Image("pics/79494300_p0.png").thumbnail(650).show(align="left", y=0)
+
+    while True:
+        help_command = input("\n\nPress any key to return: ")
+        if help_command or help_command == "":
+            os.system("clear")
+            break
+
 def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
+    """Ask for mode selection"""
     # SPEED: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
     printmessage = True
@@ -768,48 +811,13 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
             main_command = begin_prompt(printmessage)
 
         if main_command == "1":
-            try:
-                artist_illusts_mode_loop(prompted, artist_user_id)
-            except KeyboardInterrupt:
-                os.system("clear")
-                main_command = begin_prompt()
+            artist_illusts_mode_loop(prompted, artist_user_id)
 
         elif main_command == "2":
-            try:
-                view_post_mode_loop(prompted, image_id)
-            except KeyboardInterrupt:
-                os.system("clear")
-                main_command = begin_prompt()
+            view_post_mode_loop(prompted, image_id)
 
         elif main_command == "?":
-            os.system("clear")
-            messages = (
-                "",
-                "koneko こねこ version 0.1 beta\n",
-                "Browse pixiv in the terminal using kitty's icat to display images",
-                "with images embedded in the terminal\n",
-                "View a gallery of an artist's illustrations with mode 1",
-                "View a post with mode 2. Posts support one or multiple images\n",
-                "Thank you for using koneko!",
-                "Please star, report bugs and contribute in:",
-                "https://github.com/twenty5151/koneko",
-                "GPLv3 licensed\n",
-                "Credits to amasyrup (甘城なつき):",
-                "Welcome image: https://www.pixiv.net/en/artworks/71471144",
-                "Current image: https://www.pixiv.net/en/artworks/79494300",
-            )
-
-            for message in messages:
-                print(" " * 23, message)
-
-            pixcat.Image("pics/79494300_p0.png").thumbnail(650).show(align="left", y=0)
-
-            while True:
-                help_command = input("\n\nPress any key to return: ")
-                if help_command or help_command == "":
-                    printmessage = True
-                    os.system("clear")
-                    break
+            info_screen_loop()
 
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
