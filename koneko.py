@@ -453,6 +453,16 @@ def download_from_gallery(gallery_command, current_page_illusts, png=False):
 
     print(f"Image downloaded at {filepath}\n")
 
+def open_link(gallery_command, current_page_illusts):
+    number = pure.process_coords_slice(gallery_command)
+    if not number:
+        number = int(gallery_command[1:])
+
+    image_id = current_page_illusts[number]["id"]
+    link = f"https://www.pixiv.net/artworks/{image_id}"
+    os.system(f"xdg-open {link}")
+    print(f"Opened {link}!\n")
+
 def gallery_prompt(
     current_page_illusts,
     current_page,
@@ -501,14 +511,7 @@ def gallery_prompt(
                 sys.exit(0)
 
         elif gallery_command[0] == "o":
-            number = pure.process_coords_slice(gallery_command)
-            if not number:
-                number = int(gallery_command[1:])
-
-            image_id = current_page_illusts[number]["id"]
-            link = f"https://www.pixiv.net/artworks/{image_id}"
-            os.system(f"xdg-open {link}")
-            print(f"Opened {link}!\n")
+            open_link(gallery_command, current_page_illusts)
 
         elif gallery_command[0] == "d":
             download_from_gallery(gallery_command, current_page_illusts)
