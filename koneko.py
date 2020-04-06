@@ -521,108 +521,157 @@ def gallery_prompt(
 
     print(f"Page {current_page_num}")
 
-    while True:
-        gallery_command = input("Enter a gallery command: ")
-        if gallery_command == "q":
-            answer = input("Are you sure you want to exit? [y/N]:\n")
-            if answer == "y" or not answer:
-                sys.exit(0)
+    sequenceable_keys = ("o", "d", "i")
+    with term.cbreak():
+        keyseqs = []
+        seq_num = 0
+        while True:
+            print("Enter a gallery command:")
+            gallery_command = term.inkey()
 
-        elif gallery_command[0] == "o":
-            open_link(gallery_command, current_page_illusts)
+            if gallery_command in sequenceable_keys:
+                keyseqs.append(gallery_command)
+                print(keyseqs)
+                seq_num += 1
 
-        elif gallery_command[0] == "d":
-            download_from_gallery(gallery_command, current_page_illusts)
+            elif gallery_command.isdigit():
+                keyseqs.append(gallery_command)
+                print(keyseqs)
 
-        elif gallery_command == "n":
-            download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
-            try:
-                show_artist_illusts(download_path)
-            except FileNotFoundError:
-                print("This is the last page!")
-                continue
-            current_page_num += 1  # Only increment if successful
-            print(f"Page {current_page_num}")
+                # Two digit sequence (coords)
+                if (seq_num == 1
+                        and keyseqs[0].isdigit()
+                        and keyseqs[1].isdigit()):
 
-            # Skip prefetching again for cases like next -> prev -> next
-            if str(current_page_num + 1) not in all_pages_cache.keys():
+                    first_num = int(keyseqs[0])
+                    second_num = int(keyseqs[1])
+                    selected_image_num = pure.find_number_map(first_num, second_num)
+
+                    image_id, current_page, page_urls, number_of_pages, all_pages_cache = gallery_to_image(selected_image_num, current_page_num, artist_user_id, all_pages_cache)
+                    break # leave cbreak()
+
+                # One letter two digit sequence
+                if (seq_num == 2
+                        and keyseqs[1].isdigit()
+                        and keyseqs[2].isdigit()):
+
+                    first_num = keyseqs[1]
+                    second_num = keyseqs[2]
+
+                    # Always coords
+                    if keyseqs[0] == "o":
+                        open_link(f"o{first_num}{second_num}", current_page_illusts)
+
+                    elif keyseqs[0] == "d":
+                        download_from_gallery(
+                            f"d{first_num}{second_num}", current_page_illusts
+                        )
+
+                    # Use image number
+                    elif keyseqs[0] == "O":
+                        open_link(f"o{first_num}{second_num}", current_page_illusts)
+                    elif keyseqs[0] == "D":
+                        download_from_gallery(
+                            f"d{first_num}{second_num}", current_page_illusts
+                        )
+                    elif keyseqs[0] == "i":
+                        # Image number given, not coords
+                        # If single digit, use "i02"
+                        selected_image_num = int(f"{first_num}{second_num}")
+                        image_id, current_page, page_urls, number_of_pages, all_pages_cache = gallery_to_image(selected_image_num, current_page_num, artist_user_id, all_pages_cache)
+                        break
+
+                    keyseqs = []
+                    seq_num = 0
+                else:
+                    seq_num += 1
+
+            elif gallery_command == "n":
+                download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
                 try:
-                    # After showing gallery, pre-fetch the next page
-                    all_pages_cache = prefetch_next_page(
-                        current_page_num, artist_user_id, all_pages_cache
-                    )
-                except LastPageException:
+                    show_artist_illusts(download_path)
+                except FileNotFoundError:
                     print("This is the last page!")
-
-        elif gallery_command == "p":
-            if current_page_num > 1:
-                # It's -2 because current_page_num starts at 1
-                current_page = all_pages_cache[str(current_page_num - 1)]
-                current_page_illusts = current_page["illusts"]
-                current_page_num -= 1
-                # download_path should already be set
-                download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
-                show_artist_illusts(download_path)
+                    continue
+                current_page_num += 1  # Only increment if successful
                 print(f"Page {current_page_num}")
 
-            else:
-                print("This is the first page!")
+                # Skip prefetching again for cases like next -> prev -> next
+                if str(current_page_num + 1) not in all_pages_cache.keys():
+                    try:
+                        # After showing gallery, pre-fetch the next page
+                        all_pages_cache = prefetch_next_page(
+                            current_page_num, artist_user_id, all_pages_cache
+                        )
+                    except LastPageException:
+                        print("This is the last page!")
 
-        elif gallery_command == "h":
-            print(gallery_prompt.__doc__)
+            elif gallery_command == "p":
+                if current_page_num > 1:
+                    # It's -2 because current_page_num starts at 1
+                    current_page = all_pages_cache[str(current_page_num - 1)]
+                    current_page_illusts = current_page["illusts"]
+                    current_page_num -= 1
+                    # download_path should already be set
+                    download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
+                    show_artist_illusts(download_path)
+                    print(f"Page {current_page_num}")
 
-        else:  # Open specified image
-            # Process coordinates first
-            if re.match(r"^\d,\d$", gallery_command):
-                number = pure.process_coords(gallery_command, ",")
-                if not number:
-                    continue
                 else:
-                    selected_image_num = number
+                    print("This is the first page!")
 
-            elif re.match(r"^\d \d$", gallery_command):
-                number = pure.process_coords(gallery_command, " ")
-                if not number:
-                    continue
-                else:
-                    selected_image_num = number
+            elif gallery_command == "q":
+                print("Are you sure you want to exit?")
+                with term.cbreak():
+                    while True:
+                        ans = term.inkey()
+                        if ans == "y" or ans.code == 343:
+                            sys.exit(0)
+                        elif ans:
+                            print("Enter an image view command:")
+                            break
 
-            else:  # gallery_command is the selected img, not coordinate
-                try:
-                    selected_image_num = int(gallery_command)
-                except ValueError:
-                    print("Invalid command")
-                    print(gallery_prompt.__doc__)
-                    continue
+            elif gallery_command == "h":
+                print(gallery_prompt.__doc__)
 
-            current_page = all_pages_cache[str(current_page_num)]
-            current_page_illusts = current_page["illusts"]
-            post_json = current_page_illusts[selected_image_num]
-            image_id = post_json.id
+            elif gallery_command:
+                print("Invalid command")
+                print(gallery_prompt.__doc__)
+            # End if
+        # End while
+    # End cbreak()
 
-            display_image(
-                post_json, artist_user_id, selected_image_num, current_page_num
-            )
-
-            # BLOCKING: no way to unblock prompt
-            number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
-
-            image_prompt(
-                image_id,
-                artist_user_id,
-                current_page_num=current_page_num,
-                current_page=current_page,
-                page_urls=page_urls,
-                img_post_page_num=0,
-                number_of_pages=number_of_pages,
-                downloaded_images=None,
-                all_pages_cache=all_pages_cache,
-                download_path=f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/",
-            )
-
+    image_prompt(
+        image_id,
+        artist_user_id,
+        current_page_num=current_page_num,
+        current_page=current_page,
+        page_urls=page_urls,
+        img_post_page_num=0,
+        number_of_pages=number_of_pages,
+        downloaded_images=None,
+        all_pages_cache=all_pages_cache,
+        download_path=f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/",
+    )
 
 # - End interactive (frontend) functions
 
+def gallery_to_image(selected_image_num, current_page_num, artist_user_id, all_pages_cache):
+    current_page = all_pages_cache[str(current_page_num)]
+    current_page_illusts = current_page["illusts"]
+    post_json = current_page_illusts[selected_image_num]
+    image_id = post_json.id
+
+    display_image(
+        post_json,
+        artist_user_id,
+        selected_image_num, current_page_num
+    )
+
+    # blocking: no way to unblock prompt
+    number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
+
+    return image_id, current_page, page_urls, number_of_pages, all_pages_cache
 
 # - Mode and loop functions (some interactive and some not)
 def show_gallery(
