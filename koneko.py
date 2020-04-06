@@ -347,7 +347,7 @@ def image_prompt(
     image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
 ):
     """
-    Image view commands:
+    Image view commands (No need to press enter):
     b -- go back to the gallery
     n -- view next image in post (only for posts with multiple pages)
     p -- view previous image in post (same as above)
@@ -491,7 +491,7 @@ def gallery_prompt(
     all_pages_cache,
 ):
     """
-    Gallery commands: (Note: no need to press enter)
+    Gallery commands: (No need to press enter)
     Using coordinates, where {digit1} is the row and {digit2} is the column
     {digit1}{digit2}   -- display the image on row digit1 and column digit2
     o{digit1}{digit2}  -- open pixiv image/post in browser
@@ -590,7 +590,7 @@ def gallery_prompt(
                     # Use image number
                     selected_image_num = int(f"{first_num}{second_num}")
 
-                    elif keyseqs[0] == "O":
+                    if keyseqs[0] == "O":
                         open_link(selected_image_num, current_page_illusts)
                     elif keyseqs[0] == "D":
                         download_from_gallery(
