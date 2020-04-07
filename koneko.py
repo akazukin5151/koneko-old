@@ -360,14 +360,14 @@ def quit():
 class Image:
     """
     Image view commands (No need to press enter):
-    b -- go back to the gallery
-    n -- view next image in post (only for posts with multiple pages)
-    p -- view previous image in post (same as above)
-    d -- download this image
-    o -- open pixiv post in browser
-    h -- show this help
+        b -- go back to the gallery
+        n -- view next image in post (only for posts with multiple pages)
+        p -- view previous image in post (same as above)
+        d -- download this image
+        o -- open pixiv post in browser
+        h -- show this help
 
-    q -- quit (with confirmation)
+        q -- quit (with confirmation)
 
     """
 
@@ -492,20 +492,20 @@ def image_prompt(
 class Gallery:
     """
     Gallery commands: (No need to press enter)
-    Using coordinates, where {digit1} is the row and {digit2} is the column
-    {digit1}{digit2}   -- display the image on row digit1 and column digit2
-    o{digit1}{digit2}  -- open pixiv image/post in browser
-    d{digit1}{digit2}  -- download image in large resolution
+        Using coordinates, where {digit1} is the row and {digit2} is the column
+        {digit1}{digit2}   -- display the image on row digit1 and column digit2
+        o{digit1}{digit2}  -- open pixiv image/post in browser
+        d{digit1}{digit2}  -- download image in large resolution
 
     Using image number, where {number} is the nth image in order (see examples)
-    i{number}          -- display the image
-    O{number}          -- open pixiv image/post in browser.
-    D{number}          -- download image in large resolution.
+        i{number}          -- display the image
+        O{number}          -- open pixiv image/post in browser.
+        D{number}          -- download image in large resolution.
 
-    n                  -- view the next page
-    p                  -- view the previous page
-    h                  -- show this help
-    q                  -- exit
+        n                  -- view the next page
+        p                  -- view the previous page
+        h                  -- show this help
+        q                  -- exit
 
     Examples:
         i09   --->  Display the ninth image in image view (must have leading 0)
@@ -918,9 +918,9 @@ def view_post_mode_loop(prompted, image_id=None):
 @pure.catch_ctrl_c
 def show_man_loop():
     os.system("clear")
-    print(image_prompt.__doc__)
+    print(Image.__doc__)
     print(" " * 3, "=" * 30)
-    print(gallery_prompt.__doc__)
+    print(Gallery.__doc__)
     while True:
         help_command = input("\n\nPress any key to return: ")
         if help_command or help_command == "":

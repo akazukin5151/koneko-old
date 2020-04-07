@@ -14,13 +14,16 @@ Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magi
 
 
 # Features
-* Artist illustration gallery (equivalent to the illustrations tab on the artist's profile)
-    * Enter a number to open a post, or its coordinates in the form `x,y` (no brackets needed) or `x y` (separate with a space)
-    * 1 <= x <= 7 and 1 <= y <= 5. Note that y (rows) counts from top to bottom. For example, 5,1 means col 5 row 1 == picture 4. See [testing.py](testing.py)
-* Image view: view an image in large resolution
-* Image view can also browse through different images in a multi-image post.
+See the [manual](#manual) for more details
+
+* Artist illustrations gallery
+    * Enter the post's coordinates to open it in image view. Coordinates are in the form `xy` where x is column and y is row.
+    * Next and previous pages
+* Image view
+    * View an image in large resolution
+    * Browse through different images in a multi-image post.
 * Both gallery and image views can:
-    * Download a post ([PixivUtil](https://github.com/Nandaka/PixivUtil2/) would be more suitable for batch download)
+    * Download a post ([PixivUtil](https://github.com/Nandaka/PixivUtil2/) would be more suitable for batch download) in full resolution
     * Open post in browser
 
 
@@ -58,7 +61,7 @@ python koneko.py
 ```
 
 4. As of now there are two modes of operation:
-    1. Show artist illustrations: equivalent to going to the artist page in pixie
+    1. Show artist illustrations: equivalent to going to the artist page
     2. View post: equivalent to going directly to a post (think getting a 'sauce' link)
 
 Enter either 1 or 2 to proceed. Then, paste in the corresponding pixiv url. See below for url examples. Pressing ctrl+c in a prompt bring you back to the 'home' prompt.
@@ -67,8 +70,64 @@ Alternatively, you can supply a pixiv url as a command line argument to `koneko.
 
 ```sh
 python koneko.py https://www.pixiv.net/en/users/2232374
-
 python koneko.py https://www.pixiv.net/en/artworks/78823485
+```
+
+# Roadmap
+
+## Features
+
+* Search for pixiv artist feature. Show their profile pictures with lscat.py
+* Image view should preview the next few images in multi-image posts
+* For multi-image posts in image view, enter a number to jump to the post's page
+* Option to use pillow or wand to edit numbers on pics
+* Support [ueberzug](https://github.com/seebye/ueberzug)
+
+## Speed
+
+* Cache API.user_illusts()
+* If files already downloaded, show them immediately before logging in
+
+# Manual
+
+```
+Gallery commands: (No need to press enter)
+    Using coordinates, where {digit1} is the row and {digit2} is the column
+    {digit1}{digit2}   -- display the image on row digit1 and column digit2
+    o{digit1}{digit2}  -- open pixiv image/post in browser
+    d{digit1}{digit2}  -- download image in large resolution
+
+Using image number, where {number} is the nth image in order (see examples)
+    i{number}          -- display the image
+    O{number}          -- open pixiv image/post in browser.
+    D{number}          -- download image in large resolution.
+
+    n                  -- view the next page
+    p                  -- view the previous page
+    h                  -- show this help
+    q                  -- exit
+
+Examples:
+    i09   --->  Display the ninth image in image view (must have leading 0)
+    i10   --->  Display the tenth image in image view
+    O9    --->  Open the ninth image's post in browser
+    D9    --->  Download the ninth image, in large resolution
+
+    25    --->  Display the image on column 2, row 5 (index starts at 1)
+    d25    --->  Open the image on column 2, row 5 (index starts at 1) in browser
+    o25    --->  Download the image on column 2, row 5 (index starts at 1)
+```
+
+```
+Image view commands (No need to press enter):
+    b -- go back to the gallery
+    n -- view next image in post (only for posts with multiple pages)
+    p -- view previous image in post (same as above)
+    d -- download this image
+    o -- open pixiv post in browser
+    h -- show this help
+
+    q -- quit (with confirmation)
 ```
 
 ## lscat rewrite
@@ -98,20 +157,6 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 \* lsix will appear faster because the images are much smaller. Once you scale them up, lsix will be the slowest.
 
-# Roadmap
-
-## Features
-
-* Search for pixiv artist feature. Show their profile pictures with lscat.py
-* Image view should preview the next few images in multi-image posts
-* For multi-image posts in image view, enter a number to jump to the post's page
-* Option to use pillow or wand to edit numbers on pics
-* Support [ueberzug](https://github.com/seebye/ueberzug)
-
-## Speed
-
-* Cache API.user_illusts()
-* If files already downloaded, show them immediately before logging in
 
 ## `Dev` branch
 
