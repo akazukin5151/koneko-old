@@ -52,7 +52,6 @@ def setup(out_queue):
     out_queue.put(API)
 
 
-
 # - Uses web requests, impure
 @pure.spinner("Fetching user illustrations... ")
 def user_illusts_spinner(artist_user_id):
@@ -69,7 +68,11 @@ def full_img_details(png=False, post_json=None, image_id=None):
     filepath of given image id. Or it can get the id given the post json
     """
     if image_id and not post_json:
-        current_image = API.illust_detail(image_id)
+        try:
+            current_image = API.illust_detail(image_id)
+        except (RemoteDisconnected, ConnectionError, PixivError) as e:
+            print("Connection error!")
+
         post_json = current_image.illust
 
     url = pure.change_url_to_full(post_json, png)
@@ -112,7 +115,7 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
         # print(f"Downloading {img_name}")
         API.download(url)
     except (RemoteDisconnected, ConnectionError, PixivError) as e:
-        # TODO: retry
+        # TODO: retry for all functions that use API
         print(f"Network error! Caught {e}")
 
     if pbar:
@@ -163,6 +166,23 @@ def download_core(large_dir, url, filename, try_make_dir=True):
             downloadr(url, filename, None)
 
 
+def download_image_verified(image_id=None, post_json=None, png=False):
+    """
+    This downloads an image, checks if it's valid. If not, retry with png.
+    """
+    url, filename, filepath = full_img_details(
+        image_id=image_id, post_json=post_json, png=png
+    )
+    homepath = os.path.expanduser("~")
+    download_path = f"{homepath}/Downloads/"
+    download_core(download_path, url, filename, try_make_dir=False)
+
+    verified = verify_full_download(filepath)
+    if not verified:
+        download_image(image_id, png=True)
+    print(f"Image downloaded at {filepath}\n")
+
+
 def verify_full_download(filepath):
     verified = imghdr.what(filepath)
     if not verified:
@@ -171,11 +191,10 @@ def verify_full_download(filepath):
     return True
 
 
-
-
 # - Functions that are wrappers around download functions, making them impure
 class LastPageException(ValueError):
     pass
+
 
 # @pure.spinner("")  # No message because it conflicts with download_page()
 def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
@@ -372,21 +391,8 @@ class Image:
         os.system(f"xdg-open {link}")
         print(f"Opened {link} in browser")
 
-    def download_image(self, png=False):
-        """
-        This downloads an image, checks if it's valid. If not, retry with png.
-        """
-        url, filename, filepath = full_img_details(image_id=self.image_id, png=png)
-        homepath = os.path.expanduser("~")
-        download_core(
-            f"{homepath}/Downloads/", url, filename, try_make_dir=False,
-        )
-
-        verified = verify_full_download(filepath)
-        if not verified:
-            self.download_image(self.image_id, png=True)
-
-    print(f"Image downloaded at {filepath}\n")
+    def download_image(self):
+        download_image_verified(self.image_id)
 
     def next_image(self):
         if not self.page_urls:
@@ -567,17 +573,7 @@ class Gallery:
             return False
 
         post_json = self.current_page_illusts[number]
-        url, filename, filepath = full_img_details(post_json=post_json, png=png)
-
-        homepath = os.path.expanduser("~")
-        download_path = f"{homepath}/Downloads/"
-        download_core(download_path, url, filename, try_make_dir=False)
-
-        verified = verify_full_download(filepath)
-        if not verified:
-            download_from_gallery(gallery_command, current_page_illusts, png=True)
-
-        print(f"Image downloaded at {filepath}\n")
+        download_image_verified(post_json=post_json)
 
     def view_image(self, selected_image_num):
         self.current_page = self.all_pages_cache[str(self.current_page_num)]
