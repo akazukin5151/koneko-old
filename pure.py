@@ -75,12 +75,6 @@ def prefix_filename(old_name, new_name, number):
     return new_file_name
 
 
-def process_coords(input_command, split_string):
-    x, y = input_command.split(split_string)
-    x, y = int(x), int(y)
-    return find_number_map(x, y)
-
-
 def find_number_map(x, y):
     if not (x >= 1 and y >= 1):
         return False
@@ -94,21 +88,6 @@ def find_number_map(x, y):
         print("Invalid number!\n")
         return False
     return number
-
-
-def process_coords_slice(gallery_command):
-    """
-    # I don't know why I spent so much time on this
-    Supports: (o x,y) (o x y) (oxy) (o xy)
-    and any other combination of whitespace and commas
-    """
-    three_letters = gallery_command.replace(" ", "").replace(",", "")
-    if len(three_letters) != 3:
-        return False
-
-    x = three_letters[1]
-    y = three_letters[2]
-    return find_number_map(int(x), int(y))
 
 
 def print_multiple_imgs(illusts_json):
