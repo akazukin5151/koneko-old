@@ -347,16 +347,13 @@ def quit():
     with term.cbreak():
         while True:
             ans = term.inkey()
-            if ans == "y" or ans == "q" or ans.code == 343: # Enter
+            if ans == "y" or ans == "q" or ans.code == 343:  # Enter
                 sys.exit(0)
             elif ans:
                 break
 
 
-# - Prompt functions with logic
-def image_prompt(
-    image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
-):
+class Image:
     """
     Image view commands (No need to press enter):
     b -- go back to the gallery
@@ -369,17 +366,85 @@ def image_prompt(
     q -- quit (with confirmation)
 
     """
+
+    def __init__(
+        self, image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
+    ):
+
+        self.image_id = image_id
+        self.artist_user_id = artist_user_id
+        self.current_page = current_page
+        self.current_page_num = current_page_num
+
+        if kwargs:  # Posts with multiple pages
+            self.page_urls = kwargs["page_urls"]
+            self.img_post_page_num = kwargs["img_post_page_num"]
+            self.number_of_pages = kwargs["number_of_pages"]
+            self.downloaded_images = kwargs["downloaded_images"]
+
+    def open_image(self):
+        link = f"https://www.pixiv.net/artworks/{self.image_id}"
+        os.system(f"xdg-open {link}")
+        print(f"Opened {link} in browser")
+
+    def download_image(self):
+        download_from_image_view(self.image_id)
+
+    def next_image(self):
+        if not self.page_urls:
+            print("This is the only page in the post!")
+        elif self.img_post_page_num + 1 == self.number_of_pages:
+            print("This is the last image in the post!")
+
+        else:
+            self.img_post_page_num += 1  # Be careful of 0 index
+            downloaded_images = go_next_image(
+                self.page_urls,
+                self.img_post_page_num,
+                self.number_of_pages,
+                downloaded_images,
+                download_path=kwargs["download_path"],
+            )
+
+    def previous_image(self):
+        if not self.page_urls:
+            print("This is the only page in the post!")
+        elif self.img_post_page_num == 0:
+            print("This is the first image in the post!")
+        else:
+            download_path = kwargs["download_path"]
+            self.img_post_page_num -= 1
+            image_filename = downloaded_images[self.img_post_page_num]
+            display_image_vp(f"{download_path}{image_filename}")
+            print(f"Page {self.img_post_page_num+1}/{self.number_of_pages}")
+
+    def leave(self):
+        if self.current_page_num > 1 or self.current_page:
+            self.all_pages_cache = kwargs["all_pages_cache"]
+            show_gallery(
+                self.artist_user_id,
+                self.current_page_num,
+                self.current_page,
+                all_pages_cache=self.all_pages_cache,
+            )
+        else:
+            # Came from view post mode, don't know current page num
+            # Defaults to page 1
+            artist_illusts_mode(self.artist_user_id)
+
+
+# - Prompt functions with logic
+def image_prompt(
+    image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
+):
     """
     current_page and current_page_num is for gallery view -> next page(s) ->
     image prompt -> back
     kwargs are to store info for posts with multiple pages/images
     """
-    if kwargs:  # Posts with multiple pages
-        page_urls = kwargs["page_urls"]
-        img_post_page_num = kwargs["img_post_page_num"]
-        number_of_pages = kwargs["number_of_pages"]
-        downloaded_images = kwargs["downloaded_images"]
-        # Download next if multi
+    image = Image(
+        image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
+    )
 
     with term.cbreak():
         while True:
@@ -387,42 +452,16 @@ def image_prompt(
             image_prompt_command = term.inkey()
 
             if image_prompt_command == "o":
-                link = f"https://www.pixiv.net/artworks/{image_id}"
-                os.system(f"xdg-open {link}")
-                print(f"Opened {link} in browser")
+                image.open_image()
 
             elif image_prompt_command == "d":
-                download_from_image_view(image_id)
+                image.download_image()
 
             elif image_prompt_command == "n":
-                if not page_urls:
-                    print("This is the only page in the post!")
-                    continue
-                if img_post_page_num + 1 == number_of_pages:
-                    print("This is the last image in the post!")
-                    continue
-
-                img_post_page_num += 1  # Be careful of 0 index
-                downloaded_images = go_next_image(
-                    page_urls,
-                    img_post_page_num,
-                    number_of_pages,
-                    downloaded_images,
-                    download_path=kwargs["download_path"],
-                )
+                image.next_image()
 
             elif image_prompt_command == "p":
-                if not page_urls:
-                    print("This is the only page in the post!")
-
-                if img_post_page_num == 0:
-                    print("This is the first image in the post!")
-                else:
-                    download_path = kwargs["download_path"]
-                    img_post_page_num -= 1
-                    image_filename = downloaded_images[img_post_page_num]
-                    display_image_vp(f"{download_path}{image_filename}")
-                    print(f"Page {img_post_page_num+1}/{number_of_pages}")
+                image.previous_image()
 
             elif image_prompt_command == "q":
                 print("Are you sure you want to exit?")
@@ -434,57 +473,15 @@ def image_prompt(
             elif image_prompt_command == "":
                 pass
             elif image_prompt_command == "h":
-                print(image_prompt.__doc__)
+                print(image.__doc__)
             elif image_prompt_command:
-                print("Invalid command")
-                print(image_prompt.__doc__)
+                print("Invalid command! Press h to show help")
             # End if
         # End while
     # End cbreak()
 
     # image_prompt_command == "b"
-    if current_page_num > 1 or current_page:
-        all_pages_cache = kwargs["all_pages_cache"]
-        show_gallery(
-            artist_user_id,
-            current_page_num,
-            current_page,
-            all_pages_cache=all_pages_cache,
-        )
-    else:
-        # Came from view post mode, don't know current page num
-        # Defaults to page 1
-        artist_illusts_mode(artist_user_id)
-
-
-def download_from_gallery(gallery_command, current_page_illusts, png=False):
-    number = pure.process_coords_slice(gallery_command)
-    if not number:
-        number = int(gallery_command[1:])
-
-    post_json = current_page_illusts[number]
-    url, filename, filepath = full_img_details(post_json=post_json, png=png)
-
-    homepath = os.path.expanduser("~")
-    download_path = f"{homepath}/Downloads/"
-    download_core(download_path, url, filename, try_make_dir=False)
-
-    verified = verify_full_download(filepath)
-    if not verified:
-        download_from_gallery(gallery_command, current_page_illusts, png=True)
-
-    print(f"Image downloaded at {filepath}\n")
-
-
-def open_link(gallery_command, current_page_illusts):
-    number = pure.process_coords_slice(gallery_command)
-    if not number:
-        number = int(gallery_command[1:])
-
-    image_id = current_page_illusts[number]["id"]
-    link = f"https://www.pixiv.net/artworks/{image_id}"
-    os.system(f"xdg-open {link}")
-    print(f"Opened {link}!\n")
+    image.leave()
 
 
 class Gallery:
@@ -516,8 +513,15 @@ class Gallery:
         o25    --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
-    def __init__(self, current_page_illusts, current_page, current_page_num,
-                artist_user_id, all_pages_cache):
+
+    def __init__(
+        self,
+        current_page_illusts,
+        current_page,
+        current_page_num,
+        artist_user_id,
+        all_pages_cache,
+    ):
         self.current_page_illusts = current_page_illusts
         self.current_page = current_page
         self.current_page_num = current_page_num
@@ -536,19 +540,59 @@ class Gallery:
             except LastPageException:
                 pass
         else:  # Gallery -> next -> image prompt -> back
-            self.all_pages_cache[str(current_page_num)] = self.current_page
+            self.all_pages_cache[str(self.current_page_num)] = self.current_page
 
-        print(f"Page {current_page_num}")
+        print(f"Page {self.current_page_num}")
 
+    def download_image_coords(self, first_num, second_num):
+        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
+        self.download_image_num(selected_image_num)
+
+    def open_link_coords(self, first_num, second_num):
+        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
+        self.open_link_num(selected_image_num)
+
+    def open_link_num(self, number):
+        if not number:
+            print("Invalid number!")
+            return False
+
+        image_id = self.current_page_illusts[number]["id"]
+        link = f"https://www.pixiv.net/artworks/{image_id}"
+        os.system(f"xdg-open {link}")
+        print(f"Opened {link}!\n")
+
+    def download_image_num(self, number, png=False):
+        if not number:
+            print("Invalid number!")
+            return False
+
+        post_json = self.current_page_illusts[number]
+        url, filename, filepath = full_img_details(post_json=post_json, png=png)
+
+        homepath = os.path.expanduser("~")
+        download_path = f"{homepath}/Downloads/"
+        download_core(download_path, url, filename, try_make_dir=False)
+
+        verified = verify_full_download(filepath)
+        if not verified:
+            download_from_gallery(gallery_command, current_page_illusts, png=True)
+
+        print(f"Image downloaded at {filepath}\n")
 
     def view_image(self, selected_image_num):
-        (image_id, self.current_page, page_urls, number_of_pages,
-         self.all_pages_cache) = gallery_to_image(
-            selected_image_num,
-            self.current_page_num,
-            self.artist_user_id,
-            self.all_pages_cache,
+        self.current_page = self.all_pages_cache[str(self.current_page_num)]
+        self.current_page_illusts = self.current_page["illusts"]
+        post_json = self.current_page_illusts[selected_image_num]
+        image_id = post_json.id
+
+        display_image(
+            post_json, self.artist_user_id, selected_image_num, self.current_page_num
         )
+
+        # blocking: no way to unblock prompt
+        number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
+
         image_prompt(
             image_id,
             self.artist_user_id,
@@ -562,28 +606,15 @@ class Gallery:
             download_path=f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num}/large/",
         )
 
-    def download_image_coords(self, first_num, second_num):
-        download_from_gallery(
-            f"d{first_num}{second_num}", self.current_page_illusts
-        )
-
-    def open_link_coords(self, first_num, second_num):
-        open_link(f"o{first_num}{second_num}", self.current_page_illusts)
-
-    def download_image_num(self, selected_image_num):
-        download_from_gallery(selected_image_num, self.current_page_illusts)
-
-    def open_link_num(self, selected_image_num):
-        open_link(selected_image_num, self.current_page_illusts)
-
     def next_page(self):
         download_path = f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num+1}/"
         try:
             show_artist_illusts(download_path)
         except FileNotFoundError:
             print("This is the last page!")
-        self.current_page_num += 1  # Only increment if successful
-        print(f"Page {self.current_page_num}")
+        else:
+            self.current_page_num += 1
+            print(f"Page {self.current_page_num}")
 
         # Skip prefetching again for cases like next -> prev -> next
         if str(self.current_page_num + 1) not in self.all_pages_cache.keys():
@@ -600,8 +631,10 @@ class Gallery:
             self.current_page = self.all_pages_cache[str(self.current_page_num - 1)]
             self.current_page_illusts = self.current_page["illusts"]
             self.current_page_num -= 1
-            # download_path should already be set
-            download_path = f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num}/"
+
+            download_path = (
+                f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num}/"
+            )
             show_artist_illusts(download_path)
             print(f"Page {self.current_page_num}")
 
@@ -617,13 +650,20 @@ def gallery_prompt(
     all_pages_cache,
 ):
     """
+    Only contains logic for interpreting key presses, and do the correct action
     Sequence means a combination of more than one key.
     When a sequenceable key is pressed, wait for the next keys in the sequence
         If the sequence is valid, execute their corresponding actions
     Otherwise for keys that do not need a sequence, execute their actions normally
     """
-    gallery = Gallery(current_page_illusts, current_page, current_page_num,
-                artist_user_id, all_pages_cache)
+    # Instantiate a gallery class
+    gallery = Gallery(
+        current_page_illusts,
+        current_page,
+        current_page_num,
+        artist_user_id,
+        all_pages_cache,
+    )
 
     sequenceable_keys = ("o", "d", "i", "O", "D")
     with term.cbreak():
@@ -640,7 +680,7 @@ def gallery_prompt(
                 print(term.move_up(1) + term.move_right(1))
                 seq_num += 1
 
-            elif gallery_command.code == 361: # Escape
+            elif gallery_command.code == 361:  # Escape
                 keyseqs = []
                 seq_num = 0
                 print(keyseqs)
@@ -682,7 +722,7 @@ def gallery_prompt(
                         gallery.download_image_num(selected_image_num)
                     elif keyseqs[0] == "i":
                         selected_image_num = int(selected_image_num)
-                        break # leave cbreak(), go to image prompt
+                        break  # leave cbreak(), go to image prompt
 
                     # Reset sequence info after running everything
                     keyseqs = []
@@ -705,7 +745,7 @@ def gallery_prompt(
                 # If exit cancelled
                 print("Enter a gallery command:")
 
-            elif gallery_command.code == 343: # Enter
+            elif gallery_command.code == 343:  # Enter
                 pass
             elif gallery_command == "h":
                 print(gallery.__doc__)
@@ -722,27 +762,6 @@ def gallery_prompt(
 
 
 # - End interactive (frontend) functions
-
-
-# Technically this function is pure except for display_image()
-def gallery_to_image(
-    selected_image_num, current_page_num, artist_user_id, all_pages_cache
-):
-    """
-    Do-all function that gets all the info needed to display image, and return
-    values needed to pass into image_prompt()
-    """
-    current_page = all_pages_cache[str(current_page_num)]
-    current_page_illusts = current_page["illusts"]
-    post_json = current_page_illusts[selected_image_num]
-    image_id = post_json.id
-
-    display_image(post_json, artist_user_id, selected_image_num, current_page_num)
-
-    # blocking: no way to unblock prompt
-    number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
-
-    return image_id, current_page, page_urls, number_of_pages, all_pages_cache
 
 
 # - Mode and loop functions (some interactive and some not)

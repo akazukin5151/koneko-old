@@ -50,25 +50,6 @@ def test_find_number_map():
     assert pure.find_number_map(0, 0) == False
 
 
-def test_process_coords():
-    assert pure.process_coords("1,1", ",") == 0
-    assert pure.process_coords("5 1", " ") == 4
-    assert pure.process_coords("2 5", " ") == 21
-    assert pure.process_coords("5,6", ",") == 29
-    assert pure.process_coords("5,1", ",") == 4
-    assert pure.process_coords("-1 -1", " ") == False
-    assert pure.process_coords("0,0", ",") == False
-
-
-def test_process_coords_slice():
-    assert pure.process_coords_slice("o 1,1") == 0
-    assert pure.process_coords_slice("d 5 1") == 4
-    assert pure.process_coords_slice("o 51") == 4
-    assert pure.process_coords_slice("d25") == 21
-    assert pure.process_coords_slice("o56") == 29
-    assert pure.process_coords_slice("kljjl") == False
-
-
 def test_print_multiple_imgs(capsys):
     assert pure.print_multiple_imgs(page_illusts) == None
     captured = capsys.readouterr()
@@ -154,4 +135,3 @@ def test_artist_user_id_prompt(monkeypatch):
     )
     myinput = koneko.artist_user_id_prompt()
     myinput == "https://www.pixiv.net/en/users/2232374"
-
