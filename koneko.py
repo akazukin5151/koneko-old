@@ -52,9 +52,6 @@ def setup(out_queue):
     out_queue.put(API)
 
 
-class LastPageException(ValueError):
-    pass
-
 
 # - Uses web requests, impure
 @pure.spinner("Fetching user illustrations... ")
@@ -174,24 +171,12 @@ def verify_full_download(filepath):
     return True
 
 
-def download_from_image_view(image_id, png=False):
-    """
-    This downloads an image, checks if it's valid. If not, retry with png.
-    """
-    url, filename, filepath = full_img_details(image_id=image_id, png=png)
-    homepath = os.path.expanduser("~")
-    download_core(
-        f"{homepath}/Downloads/", url, filename, try_make_dir=False,
-    )
-
-    verified = verify_full_download(filepath)
-    if not verified:
-        download_from_image_view(image_id, png=True)
-
-    print(f"Image downloaded at {filepath}\n")
 
 
 # - Functions that are wrappers around download functions, making them impure
+class LastPageException(ValueError):
+    pass
+
 # @pure.spinner("")  # No message because it conflicts with download_page()
 def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     """
@@ -387,8 +372,21 @@ class Image:
         os.system(f"xdg-open {link}")
         print(f"Opened {link} in browser")
 
-    def download_image(self):
-        download_from_image_view(self.image_id)
+    def download_image(self, png=False):
+        """
+        This downloads an image, checks if it's valid. If not, retry with png.
+        """
+        url, filename, filepath = full_img_details(image_id=self.image_id, png=png)
+        homepath = os.path.expanduser("~")
+        download_core(
+            f"{homepath}/Downloads/", url, filename, try_make_dir=False,
+        )
+
+        verified = verify_full_download(filepath)
+        if not verified:
+            self.download_image(self.image_id, png=True)
+
+    print(f"Image downloaded at {filepath}\n")
 
     def next_image(self):
         if not self.page_urls:
@@ -438,6 +436,7 @@ def image_prompt(
     image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
 ):
     """
+    if-else statements to intercept key presses and do the correct action
     current_page and current_page_num is for gallery view -> next page(s) ->
     image prompt -> back
     kwargs are to store info for posts with multiple pages/images
