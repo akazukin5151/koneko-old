@@ -18,13 +18,14 @@ import sys
 import queue
 import imghdr
 import threading
+from abc import ABC, abstractmethod
 from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
 import pixcat
 from blessed import Terminal
 from tqdm import tqdm
-from pixivpy3 import AppPixivAPI
+from pixivpy3 import AppPixivAPI, PixivError
 
 import pure
 from lscat import main as lscat
@@ -770,7 +771,7 @@ def gallery_prompt(
     gallery.view_image(selected_image_num)
 
 
-class Users:
+class Users(ABC):
     """
     User view commands (No need to press enter):
         n -- view next page
@@ -779,12 +780,12 @@ class Users:
         q -- quit (with confirmation)
 
     """
-
+    @abstractmethod
     def __init__(self, publicity="private"):
         self.publicity = publicity
         self.offset = 0
         self.page_num = 1
-        self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
+        self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
         self.names_cache = {}
 
         API_THREAD.join()  # Wait for API to finish
@@ -806,13 +807,14 @@ class Users:
         # fmt: on
         self.show_page()
 
+    @abstractmethod
     def pixivrequest(self):
         pass
 
     def following_users_info(self):
         try:
             result = self.pixivrequest()
-        except (ConnectionError, pixivpy3.PixivError):
+        except (ConnectionError, PixivError):
             print("Network error!")
         else:
             self.page = result["user_previews"]  #
@@ -829,11 +831,11 @@ class Users:
         except KeyError:
             print("This is the last page!")
             self.page_num -= 1
-            self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
+            self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
 
     def prefetch_next_page(self):
         self.page_num += 1
-        self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
+        self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
 
         if self.next_url:
             self.offset = api.parse_qs(self.next_url)["offset"]
@@ -847,11 +849,11 @@ class Users:
             )
             # fmt: on
         self.page_num -= 1
-        self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
+        self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
 
     def next_page(self):
         self.page_num += 1
-        self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
+        self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
         self.show_page()
 
         self.prefetch_next_page()
@@ -859,7 +861,7 @@ class Users:
     def previous_page(self):
         if self.page_num > 1:
             self.page_num -= 1
-            self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
+            self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
             self.show_page()
         else:
             print("This is the first page!")
@@ -879,6 +881,7 @@ class Users:
 class SearchUsers(Users):
     def __init__(self, user):
         self.input = user
+        self.main_path = f"{KONEKODIR}/search"
         super().__init__()
 
     def pixivrequest(self):
@@ -888,6 +891,7 @@ class SearchUsers(Users):
 class FollowingUsers(Users):
     def __init__(self, your_id):
         self.input = your_id
+        self.main_path = f"{KONEKODIR}/following"
         super().__init__()
 
     def pixivrequest(self):
@@ -917,7 +921,7 @@ def following_prompt(your_id):
             elif following_prompt_command == "":
                 pass
             elif following_prompt_command == "h":
-                print(following_users.__doc__)
+                print(Users.__doc__)
             elif following_prompt_command:
                 print("Invalid command! Press h to show help")
             # End if
