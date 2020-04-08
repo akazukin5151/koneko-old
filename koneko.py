@@ -15,7 +15,7 @@ Capitalized tag definitions:
 import os
 import re
 import sys
-sys.path.insert(0, '/home/twenty/Nextcloud/pixivpy/')
+sys.path.insert(0, '../pixivpy/')
 import time
 import queue
 import imghdr
@@ -829,11 +829,10 @@ class Users(ABC):
             self.profile_pic_urls = list(map(self.user_profile_pic, page))
 
     def show_page(self):
-        print(self.download_path)
-        print(self.names_cache.keys())
+        # TODO: more sophiscated layout for artist search that shows details
         try:
-            print(self.names_cache[self.page_num])  # TODO: use lscat
-        except KeyError:
+            show_artist_illusts(self.download_path)
+        except FileNotFoundError:
             print("This is the last page!")
             self.page_num -= 1
             self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
@@ -981,7 +980,6 @@ def user_prompt(user_class):
         # End while
     # End cbreak()
 
-    # TODO: select artist and go to artist mode
     user_class.go_artist_mode(selected_user_num)
 
 # - End interactive (frontend) functions
