@@ -154,7 +154,7 @@ def change_url_to_full(post_json, png=False):
         url = url.replace("jpg", "png")
     return url
 
-
+# No longer used
 @funcy.decorator
 def catch_ctrl_c(call):
     """

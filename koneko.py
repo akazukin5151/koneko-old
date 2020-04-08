@@ -18,7 +18,6 @@ import sys
 sys.path.insert(0, "../pixivpy/")
 import time
 import queue
-import imghdr
 import threading
 from abc import ABC, abstractmethod
 from configparser import ConfigParser
@@ -142,7 +141,7 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
 
 
 # - Wrappers around the core functions for async download
-@pure.spinner(" Downloading illustrations...  ")
+#@pure.spinner(" Downloading illustrations...  ")
 def download_page(current_page_illusts, current_page_num, artist_user_id, pbar=None):
     """
     Download the illustrations on one page of given artist id (using threads),
@@ -819,7 +818,6 @@ class SearchUsers(Users):
     Note that the pixivpy3 api does not have search_user() yet; It's on my fork
     and I'm trying to get it merged upstream.
     """
-
     def __init__(self, user):
         self.input = user
         self.main_path = f"{KONEKODIR}/search"
@@ -835,7 +833,6 @@ class FollowingUsers(Users):
     (Or any other pixiv ID that the user wants to look at their following users)
     Parent directory for downloads should go to following/
     """
-
     def __init__(self, your_id):
         self.input = your_id
         self.main_path = f"{KONEKODIR}/following"
@@ -1020,7 +1017,6 @@ def view_post_mode(image_id):
     # artist_illusts_mode(artist_user_id)
 
 
-@pure.catch_ctrl_c
 def artist_illusts_mode_loop(prompted, artist_user_id=None):
     """
     Ask for artist ID and process it, wait for API to finish logging in
@@ -1046,7 +1042,6 @@ def artist_illusts_mode_loop(prompted, artist_user_id=None):
         artist_illusts_mode(artist_user_id)
 
 
-@pure.catch_ctrl_c
 def view_post_mode_loop(prompted, image_id=None):
     """
     Ask for post ID and process it, wait for API to finish logging in
@@ -1079,7 +1074,6 @@ def view_post_mode_loop(prompted, image_id=None):
         view_post_mode(image_id)
 
 
-@pure.catch_ctrl_c
 # TODO: remove duplications in the three loop functions ^^ vv
 def user_mode_loop(prompted, user_input, input_class, question, check_int=True):
     """
@@ -1240,7 +1234,9 @@ def main():
         print("\n")
         answer = input("Are you sure you want to exit? [y/N]:\n")
         if answer == "y" or not answer:
-            sys.exit(1)
+            sys.exit(0)
+        else:
+            main()
 
 
 if __name__ == "__main__":
