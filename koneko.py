@@ -15,6 +15,7 @@ Capitalized tag definitions:
 import os
 import re
 import sys
+import time
 import queue
 import imghdr
 import threading
@@ -341,11 +342,11 @@ def begin_prompt(printmessage=True):
         "3. View following artists\n",
         "?. Info",
         "m. Manual",
-        "q. Quit",
+        "q. Quit\n",
     )
     if printmessage:
         for message in messages:
-            print(" " * 20, message)
+            print(" " * 22, message)
 
     pixcat.Image("pics/71471144_p0.png").thumbnail(400).show(align="left", y=0)
     command = input("Enter a command: ")
@@ -788,10 +789,6 @@ class Users(ABC):
         self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
         self.names_cache = {}
 
-        API_THREAD.join()  # Wait for API to finish
-        global api
-        api = API_QUEUE.get()  # Assign API to PixivAPI object
-
         self.info_download_show()
         self.prefetch_next_page()
 
@@ -815,7 +812,7 @@ class Users(ABC):
         try:
             result = self.pixivrequest()
         except (ConnectionError, PixivError):
-            print("Network error!")
+            print("============ Network error! ================")
         else:
             self.page = result["user_previews"]  #
             self.next_url = result["next_url"]  #
@@ -826,6 +823,7 @@ class Users(ABC):
 
     def show_page(self):
         print(self.download_path)
+        print(self.names_cache.keys())
         try:
             print(self.names_cache[self.page_num])  # TODO: use lscat
         except KeyError:
@@ -838,7 +836,7 @@ class Users(ABC):
         self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
 
         if self.next_url:
-            self.offset = api.parse_qs(self.next_url)["offset"]
+            self.offset = API.parse_qs(self.next_url)["offset"]
             self.following_users_info()
             # fmt: off
             async_download_spinner(
@@ -885,7 +883,7 @@ class SearchUsers(Users):
         super().__init__()
 
     def pixivrequest(self):
-        return api.search_user(self.input, offset=self.offset)
+        return API.search_user(self.input, offset=self.offset)
 
 
 class FollowingUsers(Users):
@@ -895,34 +893,33 @@ class FollowingUsers(Users):
         super().__init__()
 
     def pixivrequest(self):
-        return api.user_following(
+        return API.user_following(
             self.input, restrict=self.publicity, offset=self.offset
         )
 
-
-def following_prompt(your_id):
-    following_users = FollowingUsers(your_id)
-
+def user_prompt(user_class):
     with term.cbreak():
         while True:
             print("Enter a user view command:")
-            following_prompt_command = term.inkey()
+            user_prompt_command = term.inkey()
 
-            if following_prompt_command == "n":
-                following_users.next_page()
+            if user_prompt_command == "n":
+                user_class.next_page()
+                # Prevents catching "n" and messing up the cache
+                time.sleep(0.5)
 
-            elif following_prompt_command == "p":
-                following_users.previous_page()
+            elif user_prompt_command == "p":
+                user_class.previous_page()
 
-            elif following_prompt_command == "q":
+            elif user_prompt_command == "q":
                 print("Are you sure you want to exit?")
                 quit()
 
-            elif following_prompt_command == "":
+            elif user_prompt_command == "":
                 pass
-            elif following_prompt_command == "h":
+            elif user_prompt_command == "h":
                 print(Users.__doc__)
-            elif following_prompt_command:
+            elif user_prompt_command:
                 print("Invalid command! Press h to show help")
             # End if
         # End while
@@ -1106,7 +1103,8 @@ def view_following_mode_loop(prompted, your_id):
                 print("Invalid user ID!")
                 break
         # End if
-        following_prompt(your_id)
+        following_users = FollowingUsers(your_id)
+        user_prompt(following_users)
 
 
 @pure.catch_ctrl_c
