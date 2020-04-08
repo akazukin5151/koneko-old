@@ -15,6 +15,7 @@ Capitalized tag definitions:
 import os
 import re
 import sys
+sys.path.insert(0, '/home/twenty/Nextcloud/pixivpy/')
 import time
 import queue
 import imghdr
@@ -98,7 +99,6 @@ def async_download_spinner(
     )
 
 
-# TODO: consider splitting into rename and download functions
 def async_download_core(
     download_path, urls, rename_images=False, file_names=None, pbar=None
 ):
@@ -335,21 +335,22 @@ def display_image_vp(filepath):
 def begin_prompt(printmessage=True):
     messages = (
         "",
-        "Welcome to koneko v0.1\n",
+        "Welcome to koneko v0.2\n",
         "Select an action:",
         "1. View artist illustrations",
         "2. Open pixiv post",
-        "3. View following artists\n",
+        "3. View following artists",
+        "4. Search for artists\n",
         "?. Info",
         "m. Manual",
-        "q. Quit\n",
+        "q. Quit",
     )
     if printmessage:
         for message in messages:
-            print(" " * 22, message)
+            print(" " * 24, message)
 
-    pixcat.Image("pics/71471144_p0.png").thumbnail(400).show(align="left", y=0)
-    command = input("Enter a command: ")
+    pixcat.Image("pics/71471144_p0.png").thumbnail(500).show(align="left", y=0)
+    command = input("\nEnter a command: ")
     return command
 
 
@@ -788,38 +789,44 @@ class Users(ABC):
         self.page_num = 1
         self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
         self.names_cache = {}
+        self.ids_cache = {}
 
-        self.info_download_show()
+        self.parse_and_download()
+        self.show_page()
         self.prefetch_next_page()
 
-    def info_download_show(self):
-        self.following_users_info()
+    def parse_and_download(self):
+        """Parse info and initiate the variables, download then show"""
+        self.parse_user_infos()
         # fmt: off
         async_download_spinner(
             self.download_path,
-            self.urls,
+            self.profile_pic_urls,
             rename_images=True,
             file_names=self.names
         )
         # fmt: on
-        self.show_page()
 
     @abstractmethod
     def pixivrequest(self):
+        """Blank method, classes that inherit this ABC must override this"""
         pass
 
-    def following_users_info(self):
+    def parse_user_infos(self):
+        """Parse json and get list of artist names, profile pic urls, and id"""
         try:
             result = self.pixivrequest()
         except (ConnectionError, PixivError):
             print("============ Network error! ================")
         else:
-            self.page = result["user_previews"]  #
-            self.next_url = result["next_url"]  #
+            page = result["user_previews"]
+            self.next_url = result["next_url"]
 
-            self.names = list(map(self.user_name, self.page))
+            self.ids = list(map(self.user_id, page))
+            self.ids_cache.update({self.page_num: self.ids})
+            self.names = list(map(self.user_name, page))
             self.names_cache.update({self.page_num: self.names})
-            self.urls = list(map(self.user_profile_pic, self.page))
+            self.profile_pic_urls = list(map(self.user_profile_pic, page))
 
     def show_page(self):
         print(self.download_path)
@@ -837,15 +844,7 @@ class Users(ABC):
 
         if self.next_url:
             self.offset = API.parse_qs(self.next_url)["offset"]
-            self.following_users_info()
-            # fmt: off
-            async_download_spinner(
-                self.download_path,
-                self.urls,
-                rename_images=True,
-                file_names=self.names
-            )
-            # fmt: on
+            self.parse_and_download()
         self.page_num -= 1
         self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
 
@@ -864,8 +863,14 @@ class Users(ABC):
         else:
             print("This is the first page!")
 
-    def go_artist_mode(self):
-        pass  # TODO
+    def go_artist_mode(self, selected_user_num):
+        current_page_ids = self.ids_cache[self.page_num]
+        artist_user_id = current_page_ids[selected_user_num]
+        artist_illusts_mode(artist_user_id)
+
+    @staticmethod
+    def user_id(json):
+        return json["user"]["id"]
 
     @staticmethod
     def user_name(json):
@@ -877,6 +882,12 @@ class Users(ABC):
 
 
 class SearchUsers(Users):
+    """
+    Inherits from Users class, define self.input as the search string (user)
+    Parent directory for downloads should go to search/
+    Note that the pixivpy3 api does not have search_user() yet; It's on my fork
+    and I'm trying to get it merged upstream.
+    """
     def __init__(self, user):
         self.input = user
         self.main_path = f"{KONEKODIR}/search"
@@ -887,6 +898,11 @@ class SearchUsers(Users):
 
 
 class FollowingUsers(Users):
+    """
+    Inherits from Users class, define self.input as the user's pixiv ID
+    (Or any other pixiv ID that the user wants to look at their following users)
+    Parent directory for downloads should go to following/
+    """
     def __init__(self, your_id):
         self.input = your_id
         self.main_path = f"{KONEKODIR}/following"
@@ -898,6 +914,13 @@ class FollowingUsers(Users):
         )
 
 def user_prompt(user_class):
+    """
+    Handles key presses for user views (following users and user search)
+    """
+    # TODO: remove duplication with gallery prompt
+    keyseqs = []
+    seq_num = 0
+    sequenceable_keys = ("i")
     with term.cbreak():
         while True:
             print("Enter a user view command:")
@@ -911,6 +934,37 @@ def user_prompt(user_class):
             elif user_prompt_command == "p":
                 user_class.previous_page()
 
+            # Wait for the rest of the sequence
+            elif user_prompt_command in sequenceable_keys:
+                keyseqs.append(user_prompt_command)
+                print(keyseqs)
+                seq_num += 1
+
+            elif user_prompt_command.isdigit():
+                keyseqs.append(user_prompt_command)
+                print(keyseqs)
+
+                # End of the sequence...
+                # Two digit sequence -- view image given coords
+                if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
+
+                    first_num = int(keyseqs[0])
+                    second_num = int(keyseqs[1])
+                    selected_user_num = pure.find_number_map(first_num, second_num)
+                    break  # leave cbreak(), go to gallery
+
+                # One letter two digit sequence
+                elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
+
+                    first_num = keyseqs[1]
+                    second_num = keyseqs[2]
+                    selected_user_num = int(f"{first_num}{second_num}")
+                    break  # leave cbreak(), go to gallery
+
+                # Not the end of the sequence yet, continue while block
+                else:
+                    seq_num += 1
+
             elif user_prompt_command == "q":
                 print("Are you sure you want to exit?")
                 quit()
@@ -921,12 +975,14 @@ def user_prompt(user_class):
                 print(Users.__doc__)
             elif user_prompt_command:
                 print("Invalid command! Press h to show help")
+                keyseqs = []
+                seq_num = 0
             # End if
         # End while
     # End cbreak()
 
     # TODO: select artist and go to artist mode
-
+    user_class.go_artist_mode(selected_user_num)
 
 # - End interactive (frontend) functions
 
@@ -1088,23 +1144,34 @@ def view_post_mode_loop(prompted, image_id=None):
 
 
 @pure.catch_ctrl_c
-def view_following_mode_loop(prompted, your_id):
+# TODO: remove duplications in the three loop functions ^^ vv
+def user_mode_loop(prompted, user_input, input_class, question, check_int=True):
+    """
+    Process either user id (to see what users they are following), or a search
+    string (to search for users). Accepts URLs
+    """
     while True:
-        if prompted and not your_id:
-            your_id = your_id_prompt()
+        if prompted and not user_input:
+            user_input = input(question)
             os.system("clear")
-            if "pixiv" in your_id:
-                your_id = pure.split_backslash_last(your_id)
-            # After the if, input must either be int or invalid
-            # Not needed for search users
-            try:
-                int(your_id)
-            except ValueError:
-                print("Invalid user ID!")
-                break
+            if "pixiv" in user_input:
+                user_input = pure.split_backslash_last(user_input)
+
+            # Not needed for searching users
+            if check_int:
+                # After the if, input must either be int or invalid
+                try:
+                    int(user_input)
+                except ValueError:
+                    print("Invalid user ID!")
+                    break
         # End if
-        following_users = FollowingUsers(your_id)
-        user_prompt(following_users)
+        API_THREAD.join()  # Wait for API to finish
+        global API
+        API = API_QUEUE.get()  # Assign API to PixivAPI object
+
+        action = input_class(user_input)
+        user_prompt(action)
 
 
 @pure.catch_ctrl_c
@@ -1151,26 +1218,48 @@ def info_screen_loop():
             break
 
 
-def main_loop(
-    prompted, main_command=None, artist_user_id=None, image_id=None, your_id=None
-):
-    """Ask for mode selection"""
+def main_loop(prompted, main_command, user_input):
+    """
+    Ask for mode selection
+    user_input : str or int
+        For artist_illusts_mode, it is artist_user_id : int
+        For view_post_mode, it is image_id : int
+        For following users mode, it is your_id : int
+        For search users mode, it is search_string : str
+    """
     # SPEED: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
     printmessage = True
     while True:
-        if prompted:
+        if prompted and not user_input:
             main_command = begin_prompt(printmessage)
 
         if main_command == "1":
-            artist_illusts_mode_loop(prompted, artist_user_id)
+            artist_illusts_mode_loop(prompted, user_input)
 
         elif main_command == "2":
-            view_post_mode_loop(prompted, image_id)
+            view_post_mode_loop(prompted, user_input)
 
+        # fmt: off
         elif main_command == "3":
-            view_following_mode_loop(prompted, your_id)
+            user_mode_loop(
+                prompted,
+                user_input,
+                FollowingUsers,
+                "Enter your pixiv ID or url: ",
+                check_int=True
+            )
 
+        elif main_command == "4":
+            user_mode_loop(
+                prompted,
+                user_input,
+                SearchUsers,
+                "Enter search string:\n",
+                check_int=False
+            )
+
+        # fmt: on
         elif main_command == "?":
             info_screen_loop()
 
@@ -1203,7 +1292,6 @@ def main():
     if len(sys.argv) == 2:
         print("Logging in...")
 
-    artist_user_id, image_id = None, None
     # Direct command line arguments, skip begin_prompt()
     if len(sys.argv) == 2:
         prompted = False
@@ -1211,18 +1299,18 @@ def main():
 
         if "users" in url:
             if "\\" in url:
-                artist_user_id = pure.split_backslash_last(url).split("\\")[-1][1:]
+                user_input = pure.split_backslash_last(url).split("\\")[-1][1:]
             else:
-                artist_user_id = pure.split_backslash_last(url)
+                user_input = pure.split_backslash_last(url)
             main_command = "1"
 
         elif "artworks" in url:
-            image_id = pure.split_backslash_last(url).split("\\")[0]
+            user_input = pure.split_backslash_last(url).split("\\")[0]
             main_command = "2"
 
         elif "illust_id" in url:
-            image_id = re.findall(r"&illust_id.*", url)[0].split("=")[-1]
-            image_id = int(image_id)
+            user_input = re.findall(r"&illust_id.*", url)[0].split("=")[-1]
+            user_input = int(image_id)
             main_command = "2"
 
     elif len(sys.argv) > 3:
@@ -1232,9 +1320,10 @@ def main():
     else:
         prompted = True
         main_command = None
+        user_input = None
 
     try:
-        main_loop(prompted, main_command, artist_user_id, image_id)
+        main_loop(prompted, main_command, user_input)
     except KeyboardInterrupt:
         print("\n")
         answer = input("Are you sure you want to exit? [y/N]:\n")
