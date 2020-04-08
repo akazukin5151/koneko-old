@@ -15,7 +15,8 @@ Capitalized tag definitions:
 import os
 import re
 import sys
-sys.path.insert(0, '../pixivpy/')
+
+sys.path.insert(0, "../pixivpy/")
 import time
 import queue
 import imghdr
@@ -455,19 +456,13 @@ class Image:
 
 
 # - Prompt functions with logic
-def image_prompt(
-    image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
-):
+def image_prompt(image):
     """
     if-else statements to intercept key presses and do the correct action
     current_page and current_page_num is for gallery view -> next page(s) ->
     image prompt -> back
     kwargs are to store info for posts with multiple pages/images
     """
-    image = Image(
-        image_id, artist_user_id, current_page=None, current_page_num=1, **kwargs
-    )
-
     with term.cbreak():
         while True:
             print("Enter an image view command:")
@@ -605,7 +600,7 @@ class Gallery:
         # blocking: no way to unblock prompt
         number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
 
-        image_prompt(
+        image = Image(
             image_id,
             self.artist_user_id,
             current_page_num=self.current_page_num,
@@ -617,6 +612,7 @@ class Gallery:
             all_pages_cache=self.all_pages_cache,
             download_path=f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num}/large/",
         )
+        image_prompt(image)
 
     def next_page(self):
         download_path = f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num+1}/"
@@ -768,6 +764,7 @@ class Users(ABC):
         q -- quit (with confirmation)
 
     """
+
     @abstractmethod
     def __init__(self, publicity="private"):
         self.publicity = publicity
@@ -873,6 +870,7 @@ class SearchUsers(Users):
     Note that the pixivpy3 api does not have search_user() yet; It's on my fork
     and I'm trying to get it merged upstream.
     """
+
     def __init__(self, user):
         self.input = user
         self.main_path = f"{KONEKODIR}/search"
@@ -888,6 +886,7 @@ class FollowingUsers(Users):
     (Or any other pixiv ID that the user wants to look at their following users)
     Parent directory for downloads should go to following/
     """
+
     def __init__(self, your_id):
         self.input = your_id
         self.main_path = f"{KONEKODIR}/following"
@@ -898,6 +897,7 @@ class FollowingUsers(Users):
             self.input, restrict=self.publicity, offset=self.offset
         )
 
+
 def user_prompt(user_class):
     """
     Handles key presses for user views (following users and user search)
@@ -905,7 +905,7 @@ def user_prompt(user_class):
     # TODO: remove duplication with gallery prompt
     keyseqs = []
     seq_num = 0
-    sequenceable_keys = ("i")
+    sequenceable_keys = "i"
     with term.cbreak():
         while True:
             print("Enter a user view command:")
@@ -967,6 +967,7 @@ def user_prompt(user_class):
     # End cbreak()
 
     user_class.go_artist_mode(selected_user_num)
+
 
 # - End interactive (frontend) functions
 
@@ -1056,7 +1057,7 @@ def view_post_mode(image_id):
         async_download_spinner(large_dir, page_urls[:2])
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
 
-    image_prompt(
+    image = Image(
         image_id,
         artist_user_id,
         page_urls=page_urls,
@@ -1065,6 +1066,7 @@ def view_post_mode(image_id):
         downloaded_images=downloaded_images,
         download_path=large_dir,
     )
+    image_prompt(image)
     # Will only be used for multi-image posts, so it's safe to use large_dir
     # Without checking for number_of_pages
     # artist_illusts_mode(artist_user_id)
@@ -1301,7 +1303,7 @@ def main():
             user_input = int(image_id)
             main_command = "2"
 
-        else: # Mode 4, string to search for artists
+        else:  # Mode 4, string to search for artists
             user_input = cli_args
             main_command = "4"
 
@@ -1324,7 +1326,7 @@ def main():
         print("Too many arguments!")
         sys.exit(1)
 
-    else: # No cli arguments
+    else:  # No cli arguments
         prompted = True
         main_command = None
         user_input = None
