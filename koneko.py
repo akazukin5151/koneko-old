@@ -15,7 +15,6 @@ Capitalized tag definitions:
 import os
 import re
 import sys
-
 sys.path.insert(0, "../pixivpy/")
 import time
 import queue
@@ -26,11 +25,12 @@ from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
 import pixcat
-from blessed import Terminal
 from tqdm import tqdm
+from blessed import Terminal
 from pixivpy3 import AppPixivAPI, PixivError
 
 import pure
+import utils
 from lscat import main as lscat
 
 
@@ -188,18 +188,10 @@ def download_image_verified(image_id=None, post_json=None, png=False):
     download_path = f"{homepath}/Downloads/"
     download_core(download_path, url, filename, try_make_dir=False)
 
-    verified = verify_full_download(filepath)
+    verified = utils.verify_full_download(filepath)
     if not verified:
         download_image(image_id, png=True)
     print(f"Image downloaded at {filepath}\n")
-
-
-def verify_full_download(filepath):
-    verified = imghdr.what(filepath)
-    if not verified:
-        os.remove(filepath)
-        return False
-    return True
 
 
 # - Functions that are wrappers around download functions, making them impure
@@ -254,7 +246,7 @@ def go_next_image(
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
         async_download_spinner(download_path, [url])
 
-    display_image_vp(f"{download_path}{downloaded_images[img_post_page_num]}")
+    utils.display_image_vp(f"{download_path}{downloaded_images[img_post_page_num]}")
 
     # Downloads the next image
     try:
@@ -270,23 +262,6 @@ def go_next_image(
 
 
 # - Non interactive, visible to user functions
-def show_artist_illusts(path, renderer="lscat"):
-    """
-    Use specified renderer to display all images in the given path
-    Default is "lscat"; can be "lscat old" or "lsix" (needs to install lsix first)
-    """
-    if renderer != "lscat":
-        lscat_path = os.getcwd()
-
-    with pure.cd(path):
-        if renderer == "lscat":
-            lscat(path)
-        elif renderer == "lscat old":
-            os.system(f"{lscat_path}/legacy/lscat")
-        elif renderer == "lsix":
-            os.system(f"{lscat_path}/legacy/lsix")
-
-
 def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     Opens image given by the number (medium-res), downloads large-res and
@@ -326,45 +301,7 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
         f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
     )
 
-
-def display_image_vp(filepath):
-    os.system(f"kitty +kitten icat --silent {filepath}")
-
-
 # - Interactive functions (frontend)
-# - Prompt functions
-def begin_prompt(printmessage=True):
-    messages = (
-        "",
-        "Welcome to koneko v0.2\n",
-        "Select an action:",
-        "1. View artist illustrations",
-        "2. Open pixiv post",
-        "3. View following artists",
-        "4. Search for artists\n",
-        "?. Info",
-        "m. Manual",
-        "q. Quit",
-    )
-    if printmessage:
-        for message in messages:
-            print(" " * 24, message)
-
-    pixcat.Image("pics/71471144_p0.png").thumbnail(500).show(align="left", y=0)
-    command = input("\nEnter a command: ")
-    return command
-
-
-def artist_user_id_prompt():
-    artist_user_id = input("Enter artist ID or url:\n")
-    return artist_user_id
-
-
-def your_id_prompt():
-    your_id = input("Enter your user ID or profile url:\n")
-    return your_id
-
-
 def quit():
     with term.cbreak():
         while True:
@@ -443,7 +380,7 @@ class Image:
             download_path = self.kwargs["download_path"]
             self.img_post_page_num -= 1
             image_filename = self.downloaded_images[self.img_post_page_num]
-            display_image_vp(f"{download_path}{image_filename}")
+            utils.display_image_vp(f"{download_path}{image_filename}")
             print(f"Page {self.img_post_page_num+1}/{self.number_of_pages}")
 
     def leave(self):
@@ -568,7 +505,6 @@ class Gallery:
         print(f"Page {self.current_page_num}")
 
     def download_image_coords(self, first_num, second_num):
-        # FIXME: always downloads first page
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
         if not selected_user_num:
             print("Invalid number!")
@@ -628,7 +564,7 @@ class Gallery:
     def next_page(self):
         download_path = f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num+1}/"
         try:
-            show_artist_illusts(download_path)
+            utils.show_artist_illusts(download_path)
         except FileNotFoundError:
             print("This is the last page!")
         else:
@@ -655,7 +591,7 @@ class Gallery:
             download_path = (
                 f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num}/"
             )
-            show_artist_illusts(download_path)
+            utils.show_artist_illusts(download_path)
             print(f"Page {self.current_page_num}")
             print("Enter a gallery command:\n")
 
@@ -827,7 +763,7 @@ class Users(ABC):
     def show_page(self):
         # TODO: more sophiscated layout for artist search that shows details
         try:
-            show_artist_illusts(self.download_path)
+            utils.show_artist_illusts(self.download_path)
         except FileNotFoundError:
             print("This is the last page!")
             self.page_num -= 1
@@ -1000,7 +936,7 @@ def show_gallery(
         pbar.close()
 
     if show:
-        show_artist_illusts(download_path)
+        utils.show_artist_illusts(download_path)
     pure.print_multiple_imgs(current_page_illusts)
 
     if not all_pages_cache:
@@ -1026,7 +962,7 @@ def artist_illusts_mode(artist_user_id, current_page_num=1):
     download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
     # If path exists, show immediately (without checking for contents!)
     if os.path.isdir(download_path):
-        show_artist_illusts(download_path)
+        utils.show_artist_illusts(download_path)
         show = False
     else:
         show = True
@@ -1062,7 +998,7 @@ def view_post_mode(image_id):
         large_dir = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
 
     download_core(large_dir, url, filename)
-    display_image_vp(f"{large_dir}{filename}")
+    utils.display_image_vp(f"{large_dir}{filename}")
 
     # Download the next page for multi-image posts
     if number_of_pages != 1:
@@ -1092,7 +1028,7 @@ def artist_illusts_mode_loop(prompted, artist_user_id=None):
     """
     while True:
         if prompted and not artist_user_id:
-            artist_user_id = artist_user_id_prompt()
+            artist_user_id = utils.artist_user_id_prompt()
             os.system("clear")
             if "pixiv" in artist_user_id:
                 artist_user_id = pure.split_backslash_last(artist_user_id)
@@ -1174,51 +1110,6 @@ def user_mode_loop(prompted, user_input, input_class, question, check_int=True):
         user_prompt(action)
 
 
-@pure.catch_ctrl_c
-def show_man_loop():
-    os.system("clear")
-    print(Image.__doc__)
-    print(" " * 3, "=" * 30)
-    print(Gallery.__doc__)
-    print(" " * 3, "=" * 30)
-    print(Users.__doc__)
-    while True:
-        help_command = input("\n\nPress any key to return: ")
-        if help_command or help_command == "":
-            os.system("clear")
-            break
-
-
-@pure.catch_ctrl_c
-def info_screen_loop():
-    os.system("clear")
-    messages = (
-        "",
-        "koneko こねこ version 0.1 beta\n",
-        "Browse pixiv in the terminal using kitty's icat to display images",
-        "with images embedded in the terminal\n",
-        "View a gallery of an artist's illustrations with mode 1",
-        "View a post with mode 2. Posts support one or multiple images\n",
-        "Thank you for using koneko!",
-        "Please star, report bugs and contribute in:",
-        "https://github.com/twenty5151/koneko",
-        "GPLv3 licensed\n",
-        "Credits to amasyrup (甘城なつき):",
-        "Welcome image: https://www.pixiv.net/en/artworks/71471144",
-        "Current image: https://www.pixiv.net/en/artworks/79494300",
-    )
-
-    for message in messages:
-        print(" " * 23, message)
-
-    pixcat.Image("pics/79494300_p0.png").thumbnail(650).show(align="left", y=0)
-
-    while True:
-        help_command = input("\n\nPress any key to return: ")
-        if help_command or help_command == "":
-            os.system("clear")
-            break
-
 
 def main_loop(prompted, main_command, user_input):
     """
@@ -1234,7 +1125,7 @@ def main_loop(prompted, main_command, user_input):
     printmessage = True
     while True:
         if prompted and not user_input:
-            main_command = begin_prompt(printmessage)
+            main_command = utils.begin_prompt(printmessage)
 
         if main_command == "1":
             artist_illusts_mode_loop(prompted, user_input)
@@ -1263,10 +1154,10 @@ def main_loop(prompted, main_command, user_input):
 
         # fmt: on
         elif main_command == "?":
-            info_screen_loop()
+            utils.info_screen_loop()
 
         elif main_command == "m":
-            show_man_loop()
+            utils.show_man_loop()
 
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
@@ -1294,7 +1185,7 @@ def main():
     if len(sys.argv) == 2:
         print("Logging in...")
 
-    # Direct command line arguments, skip begin_prompt()
+    # Direct command line arguments, skip utils.begin_prompt()
     if len(sys.argv) == 2:
         prompted = False
         cli_args = sys.argv[1]
