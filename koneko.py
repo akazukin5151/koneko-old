@@ -70,7 +70,7 @@ def full_img_details(png=False, post_json=None, image_id=None):
     if image_id and not post_json:
         try:
             current_image = API.illust_detail(image_id)
-        except (RemoteDisconnected, ConnectionError, PixivError) as e:
+        except (ConnectionError, PixivError) as e:
             print("Connection error!")
 
         post_json = current_image.illust
@@ -83,6 +83,13 @@ def full_img_details(png=False, post_json=None, image_id=None):
 
 # - Download functions
 # - Core download functions (for async)
+@pure.spinner("")
+def async_download_spinner(
+    download_path, urls, rename_images=False, file_names=None, pbar=None
+):
+    async_download_core(download_path, urls, rename_images=rename_images, file_names=file_names, pbar=pbar)
+
+
 # TODO: consider splitting into rename and download functions
 def async_download_core(
     download_path, urls, rename_images=False, file_names=None, pbar=None
@@ -114,7 +121,7 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
     try:
         # print(f"Downloading {img_name}")
         API.download(url)
-    except (RemoteDisconnected, ConnectionError, PixivError) as e:
+    except (ConnectionError, PixivError) as e:
         # TODO: retry for all functions that use API
         print(f"Network error! Caught {e}")
 
@@ -147,11 +154,6 @@ def download_page(current_page_illusts, current_page_num, artist_user_id, pbar=N
     async_download_core(
         download_path, urls, rename_images=True, file_names=titles, pbar=pbar
     )
-
-
-@pure.spinner("")
-def async_download_spinner(download_path, page_urls):
-    async_download_core(download_path, page_urls)
 
 
 # - Wrappers around the core functions for downloading one image
@@ -328,7 +330,8 @@ def begin_prompt(printmessage=True):
         "Welcome to koneko v0.1\n",
         "Select an action:",
         "1. View artist illustrations",
-        "2. Open pixiv post\n",
+        "2. Open pixiv post",
+        "3. View following artists\n",
         "?. Info",
         "m. Manual",
         "q. Quit",
@@ -345,6 +348,11 @@ def begin_prompt(printmessage=True):
 def artist_user_id_prompt():
     artist_user_id = input("Enter artist ID or url:\n")
     return artist_user_id
+
+
+def your_id_prompt():
+    your_id = input("Enter your user ID or profile url:\n")
+    return your_id
 
 
 def quit():
@@ -756,6 +764,141 @@ def gallery_prompt(
     gallery.view_image(selected_image_num)
 
 
+class FollowingUsers:
+    """
+    User view commands (No need to press enter):
+        n -- view next page
+        p -- view previous page
+        h -- show this help
+        q -- quit (with confirmation)
+
+    """
+    def __init__(self, your_id, publicity="private"):
+        self.your_id = your_id
+        self.publicity = publicity
+        self.offset = 0
+        self.page_num = 1
+        self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+        self.names_cache = {}
+
+        API_THREAD.join()  # Wait for API to finish
+        global API
+        API = API_QUEUE.get()  # Assign API to PixivAPI object
+
+        self.info_download_show()
+        self.prefetch_next_page()
+
+    def info_download_show(self):
+        self.following_users_info()
+        # fmt: off
+        async_download_spinner(
+            self.download_path,
+            self.urls,
+            rename_images=True,
+            file_names=self.names
+        )
+        # fmt: on
+        self.show_page()
+
+    def following_users_info(self):
+        try:
+            following = API.user_following(
+                self.your_id, restrict=self.publicity, offset=self.offset
+            )
+        except (ConnectionError, PixivError):
+            print("Network error!")
+        else:
+            self.page = following["user_previews"]
+            self.next_url = following["next_url"]
+
+            self.names = list(map(self.user_name, self.page))
+            self.names_cache.update({self.page_num: self.names})
+            self.urls = list(map(self.user_profile_pic, self.page))
+
+    def show_page(self):
+        print(self.download_path)
+        try:
+            print(self.names_cache[self.page_num]) # TODO: use lscat
+        except KeyError:
+            print("This is the last page!")
+            self.page_num -= 1
+            self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+
+    def prefetch_next_page(self):
+        self.page_num += 1
+        self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+
+        if self.next_url:
+            self.offset = API.parse_qs(self.next_url)["offset"]
+            self.following_users_info()
+            # fmt: off
+            async_download_spinner(
+                self.download_path,
+                self.urls,
+                rename_images=True,
+                file_names=self.names
+            )
+            # fmt: on
+
+        self.page_num -= 1
+        self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+
+    def next_page(self):
+        self.page_num += 1
+        self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+        self.show_page()
+
+        self.prefetch_next_page()
+
+    def previous_page(self):
+        if self.page_num > 1:
+            self.page_num -= 1
+            self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+            self.show_page()
+        else:
+            print("This is the first page!")
+
+    @staticmethod
+    def user_name(json):
+        return json["user"]["name"]
+
+    @staticmethod
+    def user_profile_pic(json):
+        return json["user"]["profile_image_urls"]["medium"]
+
+
+def following_prompt(your_id):
+    following_users = FollowingUsers(your_id)
+
+    with term.cbreak():
+        while True:
+            print("Enter a user view command:")
+            following_prompt_command = term.inkey()
+
+            if following_prompt_command == "n":
+                following_users.next_page()
+
+            elif following_prompt_command == "p":
+                following_users.previous_page()
+
+            elif following_prompt_command == "q":
+                print("Are you sure you want to exit?")
+                quit()
+
+            elif following_prompt_command == "":
+                pass
+            elif following_prompt_command == "h":
+                print(following_users.__doc__)
+            elif following_prompt_command:
+                print("Invalid command! Press h to show help")
+            # End if
+        # End while
+    # End cbreak()
+
+    # image_prompt_command == "b"
+    # image.leave()
+
+
 # - End interactive (frontend) functions
 
 
@@ -916,6 +1059,24 @@ def view_post_mode_loop(prompted, image_id=None):
 
 
 @pure.catch_ctrl_c
+def view_following_mode_loop(prompted, your_id):
+    while True:
+        if prompted and not your_id:
+            your_id = your_id_prompt()
+            os.system("clear")
+            if "pixiv" in your_id:
+                your_id = pure.split_backslash_last(your_id)
+            # After the if, input must either be int or invalid
+            try:
+                int(your_id)
+            except ValueError:
+                print("Invalid user ID!")
+                break
+        # End if
+        following_prompt(your_id)
+
+
+@pure.catch_ctrl_c
 def show_man_loop():
     os.system("clear")
     print(Image.__doc__)
@@ -959,7 +1120,9 @@ def info_screen_loop():
             break
 
 
-def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
+def main_loop(
+    prompted, main_command=None, artist_user_id=None, image_id=None, your_id=None
+):
     """Ask for mode selection"""
     # SPEED: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
@@ -973,6 +1136,9 @@ def main_loop(prompted, main_command=None, artist_user_id=None, image_id=None):
 
         elif main_command == "2":
             view_post_mode_loop(prompted, image_id)
+
+        elif main_command == "3":
+            view_following_mode_loop(prompted, your_id)
 
         elif main_command == "?":
             info_screen_loop()
