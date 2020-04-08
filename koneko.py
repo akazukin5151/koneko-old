@@ -87,7 +87,13 @@ def full_img_details(png=False, post_json=None, image_id=None):
 def async_download_spinner(
     download_path, urls, rename_images=False, file_names=None, pbar=None
 ):
-    async_download_core(download_path, urls, rename_images=rename_images, file_names=file_names, pbar=pbar)
+    async_download_core(
+        download_path,
+        urls,
+        rename_images=rename_images,
+        file_names=file_names,
+        pbar=pbar,
+    )
 
 
 # TODO: consider splitting into rename and download functions
@@ -764,7 +770,7 @@ def gallery_prompt(
     gallery.view_image(selected_image_num)
 
 
-class FollowingUsers:
+class Users:
     """
     User view commands (No need to press enter):
         n -- view next page
@@ -773,17 +779,17 @@ class FollowingUsers:
         q -- quit (with confirmation)
 
     """
-    def __init__(self, your_id, publicity="private"):
-        self.your_id = your_id
+
+    def __init__(self, publicity="private"):
         self.publicity = publicity
         self.offset = 0
         self.page_num = 1
-        self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+        self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
         self.names_cache = {}
 
         API_THREAD.join()  # Wait for API to finish
-        global API
-        API = API_QUEUE.get()  # Assign API to PixivAPI object
+        global api
+        api = API_QUEUE.get()  # Assign API to PixivAPI object
 
         self.info_download_show()
         self.prefetch_next_page()
@@ -800,16 +806,17 @@ class FollowingUsers:
         # fmt: on
         self.show_page()
 
+    def pixivrequest(self):
+        pass
+
     def following_users_info(self):
         try:
-            following = API.user_following(
-                self.your_id, restrict=self.publicity, offset=self.offset
-            )
-        except (ConnectionError, PixivError):
+            result = self.pixivrequest()
+        except (ConnectionError, pixivpy3.PixivError):
             print("Network error!")
         else:
-            self.page = following["user_previews"]
-            self.next_url = following["next_url"]
+            self.page = result["user_previews"]  #
+            self.next_url = result["next_url"]  #
 
             self.names = list(map(self.user_name, self.page))
             self.names_cache.update({self.page_num: self.names})
@@ -818,18 +825,18 @@ class FollowingUsers:
     def show_page(self):
         print(self.download_path)
         try:
-            print(self.names_cache[self.page_num]) # TODO: use lscat
+            print(self.names_cache[self.page_num])  # TODO: use lscat
         except KeyError:
             print("This is the last page!")
             self.page_num -= 1
-            self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+            self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
 
     def prefetch_next_page(self):
         self.page_num += 1
-        self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+        self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
 
         if self.next_url:
-            self.offset = API.parse_qs(self.next_url)["offset"]
+            self.offset = api.parse_qs(self.next_url)["offset"]
             self.following_users_info()
             # fmt: off
             async_download_spinner(
@@ -839,13 +846,12 @@ class FollowingUsers:
                 file_names=self.names
             )
             # fmt: on
-
         self.page_num -= 1
-        self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+        self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
 
     def next_page(self):
         self.page_num += 1
-        self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+        self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
         self.show_page()
 
         self.prefetch_next_page()
@@ -853,10 +859,13 @@ class FollowingUsers:
     def previous_page(self):
         if self.page_num > 1:
             self.page_num -= 1
-            self.download_path = f"/tmp/koneko/{self.your_id}/{self.page_num}"
+            self.download_path = f"/tmp/koneko/search/{self.input}/{self.page_num}"
             self.show_page()
         else:
             print("This is the first page!")
+
+    def go_artist_mode(self):
+        pass  # TODO
 
     @staticmethod
     def user_name(json):
@@ -865,6 +874,26 @@ class FollowingUsers:
     @staticmethod
     def user_profile_pic(json):
         return json["user"]["profile_image_urls"]["medium"]
+
+
+class SearchUsers(Users):
+    def __init__(self, user):
+        self.input = user
+        super().__init__()
+
+    def pixivrequest(self):
+        return api.search_user(self.input, offset=self.offset)
+
+
+class FollowingUsers(Users):
+    def __init__(self, your_id):
+        self.input = your_id
+        super().__init__()
+
+    def pixivrequest(self):
+        return api.user_following(
+            self.input, restrict=self.publicity, offset=self.offset
+        )
 
 
 def following_prompt(your_id):
@@ -895,8 +924,7 @@ def following_prompt(your_id):
         # End while
     # End cbreak()
 
-    # image_prompt_command == "b"
-    # image.leave()
+    # TODO: select artist and go to artist mode
 
 
 # - End interactive (frontend) functions
@@ -1067,6 +1095,7 @@ def view_following_mode_loop(prompted, your_id):
             if "pixiv" in your_id:
                 your_id = pure.split_backslash_last(your_id)
             # After the if, input must either be int or invalid
+            # Not needed for search users
             try:
                 int(your_id)
             except ValueError:
