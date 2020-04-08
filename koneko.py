@@ -474,7 +474,6 @@ def image_prompt(
 
             elif image_prompt_command == "b":
                 break  # Leave cbreak()
-
             elif image_prompt_command == "":
                 pass
             elif image_prompt_command == "h":
@@ -518,7 +517,6 @@ class Gallery:
         o25    --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
-
     def __init__(
         self,
         current_page_illusts,
