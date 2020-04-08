@@ -166,4 +166,3 @@ def catch_ctrl_c(call):
         os.system("clear")
     else:
         return result
-
