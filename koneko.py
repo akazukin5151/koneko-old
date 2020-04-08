@@ -31,7 +31,7 @@ import pure
 import utils
 
 
-# - Logging in function
+# - API FUNCTIONS ======================================================
 def setup(out_queue):
     """
     Logins to pixiv in the background, using credentials from config file.
@@ -80,9 +80,10 @@ def full_img_details(png=False, post_json=None, image_id=None):
     filename = pure.split_backslash_last(url)
     filepath = pure.generate_filepath(filename)
     return url, filename, filepath
+# - API FUNCTIONS ======================================================
 
 
-# - Download functions
+# - DOWNLOAD FUNCTIONS ==================================================
 # - Core download functions (for async)
 @pure.spinner("")
 def async_download_spinner(
@@ -258,7 +259,6 @@ def go_next_image(
     return downloaded_images
 
 
-# - Non interactive, visible to user functions
 def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     Opens image given by the number (medium-res), downloads large-res and
@@ -297,6 +297,8 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     os.system(
         f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
     )
+# - DOWNLOAD FUNCTIONS ==================================================
+
 
 # - Interactive functions (frontend)
 def quit():
@@ -403,22 +405,25 @@ def image_prompt(image):
     image prompt -> back
     kwargs are to store info for posts with multiple pages/images
     """
+    case = {
+        "o": image.open_image,
+        "d": image.download_image,
+        "n": image.next_image,
+        "p": image.previous_image,
+    }
+
     with term.cbreak():
         while True:
             print("Enter an image view command:")
             image_prompt_command = term.inkey()
 
-            if image_prompt_command == "o":
-                image.open_image()
+            # Simplify if-else chain with case-switch
+            func = case.get(image_prompt_command, None)
+            if func:
+                func()
 
-            elif image_prompt_command == "d":
-                image.download_image()
-
-            elif image_prompt_command == "n":
-                image.next_image()
-
-            elif image_prompt_command == "p":
-                image.previous_image()
+            elif image_prompt_command == "h":
+                print(image.__doc__)
 
             elif image_prompt_command == "q":
                 print("Are you sure you want to exit?")
@@ -429,10 +434,10 @@ def image_prompt(image):
 
             elif image_prompt_command == "":
                 pass
-            elif image_prompt_command == "h":
-                print(image.__doc__)
+
             elif image_prompt_command:
                 print("Invalid command! Press h to show help")
+
             # End if
         # End while
     # End cbreak()
@@ -908,8 +913,6 @@ def user_prompt(user_class):
     # End cbreak()
 
     user_class.go_artist_mode(selected_user_num)
-
-
 # - End interactive (frontend) functions
 
 
