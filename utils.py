@@ -85,11 +85,13 @@ def info_screen_loop():
     os.system("clear")
     messages = (
         "",
-        "koneko こねこ version 0.1 beta\n",
-        "Browse pixiv in the terminal using kitty's icat to display images",
-        "with images embedded in the terminal\n",
-        "View a gallery of an artist's illustrations with mode 1",
-        "View a post with mode 2. Posts support one or multiple images\n",
+        "koneko こねこ version 0.2 beta\n",
+        "Browse pixiv in the terminal using kitty's icat to display",
+        "images with images embedded in the terminal\n",
+        "View an artist's illustrations with mode 1",
+        "View a post with mode 2. Posts support one or multiple images.",
+        "View artists you followed with mode 3.",
+        "Search for artists and browse their works with mode 4.\n",
         "Thank you for using koneko!",
         "Please star, report bugs and contribute in:",
         "https://github.com/twenty5151/koneko",
@@ -100,12 +102,12 @@ def info_screen_loop():
     )
 
     for message in messages:
-        print(" " * 23, message)
+        print(" " * 26, message)
 
-    pixcat.Image("pics/79494300_p0.png").thumbnail(650).show(align="left", y=0)
+    pixcat.Image("pics/79494300_p0.png").thumbnail(750).show(align="left", y=0)
 
     while True:
-        help_command = input("\n\nPress any key to return: ")
+        help_command = input("\nPress any key to return: ")
         if help_command or help_command == "":
             os.system("clear")
             break
