@@ -57,7 +57,7 @@ def render_page(page_space, page, rowspaces, cols, left_shifts, path):
     print("\n" * page_space)  # Scroll to new 'page'
     try:
         display_page(page, rowspaces, cols, left_shifts, path)
-    except IndexError:
+    except (IndexError, TypeError):
         pass
 
 
