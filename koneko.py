@@ -1178,6 +1178,8 @@ def show_man_loop():
     print(Image.__doc__)
     print(" " * 3, "=" * 30)
     print(Gallery.__doc__)
+    print(" " * 3, "=" * 30)
+    print(Users.__doc__)
     while True:
         help_command = input("\n\nPress any key to return: ")
         if help_command or help_command == "":
