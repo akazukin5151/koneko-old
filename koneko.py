@@ -654,13 +654,7 @@ class Gallery:
             print("This is the first page!")
 
 
-def gallery_prompt(
-    current_page_illusts,
-    current_page,
-    current_page_num,
-    artist_user_id,
-    all_pages_cache,
-):
+def gallery_prompt(gallery):
     """
     Only contains logic for interpreting key presses, and do the correct action
     Sequence means a combination of more than one key.
@@ -668,14 +662,6 @@ def gallery_prompt(
         If the sequence is valid, execute their corresponding actions
     Otherwise for keys that do not need a sequence, execute their actions normally
     """
-    # Instantiate a gallery class
-    gallery = Gallery(
-        current_page_illusts,
-        current_page,
-        current_page_num,
-        artist_user_id,
-        all_pages_cache,
-    )
 
     sequenceable_keys = ("o", "d", "i", "O", "D")
     with term.cbreak():
@@ -1007,13 +993,15 @@ def show_gallery(
     if not all_pages_cache:
         all_pages_cache = {"1": current_page}
 
-    gallery_prompt(
+    # Instantiate a gallery class
+    gallery = Gallery(
         current_page_illusts,
         current_page,
         current_page_num,
         artist_user_id,
         all_pages_cache,
     )
+    gallery_prompt(gallery)
 
 
 def artist_illusts_mode(artist_user_id, current_page_num=1):
