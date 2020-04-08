@@ -23,14 +23,12 @@ from abc import ABC, abstractmethod
 from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
-import pixcat
 from tqdm import tqdm
 from blessed import Terminal
 from pixivpy3 import AppPixivAPI, PixivError
 
 import pure
 import utils
-from lscat import main as lscat
 
 
 # - Logging in function
@@ -606,7 +604,6 @@ def gallery_prompt(gallery):
         If the sequence is valid, execute their corresponding actions
     Otherwise for keys that do not need a sequence, execute their actions normally
     """
-
     sequenceable_keys = ("o", "d", "i", "O", "D")
     with term.cbreak():
         keyseqs = []
@@ -663,7 +660,6 @@ def gallery_prompt(gallery):
                     elif keyseqs[0] == "D":
                         gallery.download_image_num(selected_image_num)
                     elif keyseqs[0] == "i":
-                        selected_image_num = selected_image_num
                         break  # leave cbreak(), go to image prompt
 
                     # Reset sequence info after running everything
