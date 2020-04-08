@@ -1295,29 +1295,48 @@ def main():
     # Direct command line arguments, skip begin_prompt()
     if len(sys.argv) == 2:
         prompted = False
-        url = sys.argv[1]
+        cli_args = sys.argv[1]
 
-        if "users" in url:
-            if "\\" in url:
-                user_input = pure.split_backslash_last(url).split("\\")[-1][1:]
+        if "users" in cli_args:
+            if "\\" in cli_args:
+                user_input = pure.split_backslash_last(cli_args).split("\\")[-1][1:]
             else:
-                user_input = pure.split_backslash_last(url)
+                user_input = pure.split_backslash_last(cli_args)
             main_command = "1"
 
-        elif "artworks" in url:
-            user_input = pure.split_backslash_last(url).split("\\")[0]
+        elif "artworks" in cli_args:
+            user_input = pure.split_backslash_last(cli_args).split("\\")[0]
             main_command = "2"
 
-        elif "illust_id" in url:
-            user_input = re.findall(r"&illust_id.*", url)[0].split("=")[-1]
+        elif "illust_id" in cli_args:
+            user_input = re.findall(r"&illust_id.*", cli_args)[0].split("=")[-1]
             user_input = int(image_id)
             main_command = "2"
+
+        else: # Mode 4, string to search for artists
+            user_input = cli_args
+            main_command = "4"
+
+    elif len(sys.argv) == 3:
+        if sys.argv[1] == "-f":
+            cli_args = sys.argv[2]
+            prompted = False
+
+            if "\\" in cli_args:
+                user_input = pure.split_backslash_last(cli_args).split("\\")[-1][1:]
+            else:
+                user_input = pure.split_backslash_last(cli_args)
+            main_command = "3"
+
+        else:
+            print("Too many arguments!")
+            sys.exit(1)
 
     elif len(sys.argv) > 3:
         print("Too many arguments!")
         sys.exit(1)
 
-    else:
+    else: # No cli arguments
         prompted = True
         main_command = None
         user_input = None

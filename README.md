@@ -16,14 +16,16 @@ Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magi
 # Features
 See the [manual](#manual) for more details
 
-* Artist illustrations gallery
+1. Artist illustrations gallery
     * Enter the post's coordinates to open it in image view. Coordinates are in the form `xy` where x is column and y is row.
     * Next and previous pages
-* Image view
+2. Image view
     * View an image in large resolution
     * Browse through different images in a multi-image post.
+3. Browse the artists you are following, and view their illustrations (goes to 1)
+4. Search for an artist, and view their illustrations (goes to 1)
 * Both gallery and image views can:
-    * Download a post ([PixivUtil](https://github.com/Nandaka/PixivUtil2/) would be more suitable for batch download) in full resolution
+    * Download an image([PixivUtil](https://github.com/Nandaka/PixivUtil2/) would be more suitable for batch download) in full resolution
     * Open post in browser
 
 
@@ -39,6 +41,7 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 * TUIs *with embedded pictures* make you even cooler
 * TUIs embedded with pictures of cute anime girls make you the coolest
 * Keyboard driven
+* Familiar, vim-like key sequences
 * I use arch btw
 
 
@@ -53,31 +56,40 @@ Username = XXX
 Password = XXX
 ```
 
-3. Run: (or use `git clone -b 'v0.1' --depth 1 https://github.com/twenty5151/koneko.git` for the 'stable' release)
+3. Run:
 ```sh
-git clone https://github.com/twenty5151/koneko.git && cd koneko
+# Use latest master branch
+git clone https://github.com/twenty5151/koneko.git
+
+# Or use this for the latest 'stable' release
+git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git`
+
+cd koneko
 pip install -r requirements.txt
 python koneko.py
 ```
 
-4. As of now there are two modes of operation:
+4. There are four modes of operation:
     1. Show artist illustrations: equivalent to going to the artist page
     2. View post: equivalent to going directly to a post (think getting a 'sauce' link)
+    3. View artists you are following. (Or any other user ID)
+    4. Search for artist/user.
 
-Enter either 1 or 2 to proceed. Then, paste in the corresponding pixiv url. See below for url examples. Pressing ctrl+c in a prompt bring you back to the 'home' prompt.
+Enter digits 1-4 to proceed. Then, paste in a valid pixiv ID or url. See below for url examples. Pressing ctrl+c in a prompt bring you back to the 'home' prompt.
 
 Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. Example:
 
 ```sh
-python koneko.py https://www.pixiv.net/en/users/2232374
-python koneko.py https://www.pixiv.net/en/artworks/78823485
+python koneko.py https://www.pixiv.net/en/users/2232374 # Mode 1
+python koneko.py https://www.pixiv.net/en/artworks/78823485 # Mode 2
+python koneko.py -f https://www.pixiv.net/en/users/2232374 # Mode 3
+python koneko.py "raika9" # Mode 4
 ```
 
 # Roadmap
 
 ## Features
 
-* Search for pixiv artist feature. Show their profile pictures with lscat.py
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -127,6 +139,14 @@ Image view commands (No need to press enter):
     o -- open pixiv post in browser
     h -- show this help
 
+    q -- quit (with confirmation)
+```
+
+```
+User view commands (No need to press enter):
+    n -- view next page
+    p -- view previous page
+    h -- show this help
     q -- quit (with confirmation)
 ```
 
