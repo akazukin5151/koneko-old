@@ -73,7 +73,7 @@ pip install -r requirements.txt
 python koneko.py
 ```
 
-**NOTE:** you need to run an unrelased version of pixivpy (pixiv api) for mode 4 If you don't want to, comment out the line `sys.path.insert(0, "../pixivpy/")` in `koneko.py`; this will disable mode 4. See [pixivpy](#pixivpy) for details.
+**NOTE:** requirements.txt will install a newer, unreleased version of pixivpy (from its master branch), because mode 4 relies on a new feature that hasn't been uploaded to Pypi yet. Artist search was not supported by pixivpy, but I made a [PR](https://github.com/upbit/pixivpy/pull/123) to add that feature and it has been merged. However, there has been no new release yet.
 
 4. There are four modes of operation:
     1. Show artist illustrations: equivalent to going to the artist page
@@ -91,26 +91,6 @@ python koneko.py https://www.pixiv.net/en/artworks/78823485 # Mode 2
 python koneko.py -f https://www.pixiv.net/en/users/2232374 # Mode 3
 python koneko.py "raika9" # Mode 4
 ```
-
-## pixivpy
-
-Artist search was not supported by pixivpy. I made a [PR](https://github.com/upbit/pixivpy/pull/123) to add that feature and it has been merged. However, there has been no new release yet so it won't work if you install it from pip. The fix for now is to install pixivpy's master branch:
-
-```sh
-git clone https://github.com/upbit/pixivpy
-```
-
-Make sure your directory tree looks something like this:
-```sh
-├── koneko
-│   ├── legacy
-│   ├── pics
-│   └── testing
-├── pixivpy
-│   ├── notebooks
-│   └── pixivpy3
-```
-
 
 # Roadmap
 
