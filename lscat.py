@@ -43,7 +43,7 @@ def display_page(page, rowspaces, cols, left_shifts, path):
 
 
 def scroll_display_page(
-    page_space, page, rowspaces, cols, left_shifts, path, message=None
+    page_space, page, rowspaces, cols, left_shifts, path, messages=None
 ):
     """
     The reason for using pages is because every time something in a different
@@ -56,9 +56,9 @@ def scroll_display_page(
                                 this.
     Hence, the need to plot each row of images in order
     """
-    if message:
+    if messages:
         print("\n" * 2)
-        print(" " * 19, message)
+        print(" " * 19, messages)
     print("\n" * page_space)  # Scroll to new 'page'
     try:
         display_page(page, rowspaces, cols, left_shifts, path)
@@ -73,7 +73,7 @@ def main(
     page_spaces=(26, 24, 24),
     rows_in_page=2,
     print_rows=True,
-    message=None,
+    messages=None,
 ):
     """
     Each page has 2 rows by default. A page means printing blank lines to move
@@ -84,14 +84,17 @@ def main(
     ========
     rowspaces : tuple of ints
         Vertical spacing between (the two) rows.
-        len must be equal to number of rows
+        len must be >= number of rows
     page_spaces : tuple of ints
         Vertical spacing between pages. Number of newlines to print for every page
-        len must be equal to number of pages
+        len must be >= number of pages
     rows_in_page : int
         Number of rows in each page
     print_rows : bool
         Whether to print row numbers in the bottom
+    messages : list of str
+        List of text to print next to the images. Only for when rows_in_page = 1
+        len must be >= rows_in_page
 
     Info
     ========
@@ -118,12 +121,21 @@ def main(
 
     assert len(pages_list[0]) <= len(rowspaces) == rows_in_page
     assert len(pages_list) <= len(page_spaces)
+    if messages:
+        assert rows_in_page == 1
+        assert len(messages) >= rows_in_page
 
     os.system("clear")
-    for (i, page) in enumerate(pages_list):
-        scroll_display_page(
-            page_spaces[i], page, rowspaces, cols, left_shifts, path, message
-        )
+    if not messages:
+        for (i, page) in enumerate(pages_list):
+            scroll_display_page(
+                page_spaces[i], page, rowspaces, cols, left_shifts, path
+            )
+    else:
+        for (i, page) in enumerate(pages_list):
+            scroll_display_page(
+                page_spaces[i], page, rowspaces, cols, left_shifts, path, messages[i]
+            )
 
     if print_rows:
         print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")

@@ -16,7 +16,7 @@ def verify_full_download(filepath):
     return True
 
 
-def show_artist_illusts(path, renderer="lscat"):
+def show_artist_illusts(path, renderer="lscat", **kwargs):
     """
     Use specified renderer to display all images in the given path
     Default is "lscat"; can be "lscat old" or "lsix" (needs to install lsix first)
@@ -26,7 +26,7 @@ def show_artist_illusts(path, renderer="lscat"):
 
     with pure.cd(path):
         if renderer == "lscat":
-            lscat(path)
+            lscat(path, **kwargs)
         elif renderer == "lscat old":
             os.system(f"{lscat_path}/legacy/lscat")
         elif renderer == "lsix":

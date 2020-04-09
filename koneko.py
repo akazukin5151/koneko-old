@@ -130,7 +130,7 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
         pbar.update(1)
     # print(f"{img_name} done!")
     if new_file_name:
-        os.rename(img_name, new_file_name)
+        os.rename(img_name, new_file_name) # FIXME Sometimes it misses a file?!
 
 
 # - Wrappers around the core functions for async download
@@ -724,13 +724,16 @@ class Users(ABC):
     def parse_and_download(self):
         """Parse info and initiate the variables, download then show"""
         self.parse_user_infos()
+        pbar = tqdm(total=len(self.profile_pic_urls), smoothing=0)
         # fmt: off
-        async_download_spinner(
+        async_download_core(
             self.download_path,
             self.profile_pic_urls,
             rename_images=True,
-            file_names=self.names
+            file_names=self.names,
+            pbar=pbar
         )
+        pbar.close()
         # fmt: on
 
     @abstractmethod
@@ -738,6 +741,7 @@ class Users(ABC):
         """Blank method, classes that inherit this ABC must override this"""
         raise NotImplementedError
 
+    @pure.spinner('')
     def parse_user_infos(self):
         """Parse json and get list of artist names, profile pic urls, and id"""
         try:
@@ -755,9 +759,16 @@ class Users(ABC):
             self.profile_pic_urls = list(map(self.user_profile_pic, page))
 
     def show_page(self):
-        # TODO: more sophiscated layout for artist search that shows details
         try:
-            utils.show_artist_illusts(self.download_path)
+            utils.show_artist_illusts(
+                path=self.download_path,
+                number_of_columns=1,
+                rowspaces=(0,),
+                page_spaces=(20,)*30,
+                rows_in_page=1,
+                print_rows=False,
+                messages=self.names_cache[self.page_num],
+            )
         except FileNotFoundError:
             print("This is the last page!")
             self.page_num -= 1
@@ -1090,7 +1101,11 @@ class SearchUsersModeLoop(Loop):
     before proceeding
     """
     def prompt_url_id(self):
-        self.user_input = input("Enter search string:\n")
+        self.url_or_id = input("Enter search string:\n")
+
+    def process_url_or_input(self):
+        """the 'url or id' name doesn't really apply; accepts all strings"""
+        self.user_input = self.url_or_id
 
     def validate_input(self):
         """Overriding base class: search string doesn't need to be int"""
