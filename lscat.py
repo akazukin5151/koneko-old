@@ -32,8 +32,8 @@ def number_prefix(myfile):
     return int(myfile.split("_")[0])
 
 
+# Impure functions
 def display_page(page, rowspaces, cols, left_shifts, path):
-    # TODO: rewrite with functional style map and currying
     with cd(path):
         for (index, space) in enumerate(rowspaces):
             for col in cols:
@@ -42,7 +42,9 @@ def display_page(page, rowspaces, cols, left_shifts, path):
                 )
 
 
-def render_page(page_space, page, rowspaces, cols, left_shifts, path):
+def scroll_display_page(
+    page_space, page, rowspaces, cols, left_shifts, path, message=None
+):
     """
     The reason for using pages is because every time something in a different
     row is displayed, the entire terminal shifts.
@@ -54,6 +56,9 @@ def render_page(page_space, page, rowspaces, cols, left_shifts, path):
                                 this.
     Hence, the need to plot each row of images in order
     """
+    if message:
+        print("\n" * 2)
+        print(" " * 19, message)
     print("\n" * page_space)  # Scroll to new 'page'
     try:
         display_page(page, rowspaces, cols, left_shifts, path)
@@ -61,39 +66,67 @@ def render_page(page_space, page, rowspaces, cols, left_shifts, path):
         pass
 
 
-def main(path):
+def main(
+    path,
+    number_of_columns=5,
+    rowspaces=(0, 9),
+    page_spaces=(26, 24, 24),
+    rows_in_page=2,
+    print_rows=True,
+    message=None,
+):
     """
-    Each page has 2 rows. A page means printing those blank lines to move the
-    cursor down (and the terminal screen).
+    Each page has 2 rows by default. A page means printing blank lines to move
+    the cursor down (and the terminal screen). The number of blank lines to
+    print for each page is given by page_spaces.
 
+    Parameters
+    ========
     rowspaces : tuple of ints
-        Vertical spacing between (the two) rows
+        Vertical spacing between (the two) rows.
+        len must be equal to number of rows
     page_spaces : tuple of ints
         Vertical spacing between pages. Number of newlines to print for every page
+        len must be equal to number of pages
+    rows_in_page : int
+        Number of rows in each page
+    print_rows : bool
+        Whether to print row numbers in the bottom
+
+    Info
+    ========
     left_shifts : list of ints
         Horizontal position of the image
     """
-    number_of_columns = 5  # Magic
     cols = range(number_of_columns)
     total_width = 90
     width = total_width // number_of_columns
-    rowspaces = (0, 9)
-    page_spaces = (26, 24, 24)
 
     file_list = filter_jpg(path)
     calc = xcoord(number_of_columns=number_of_columns, width=width)
     left_shifts = list(map(calc, cols))
 
+    # Partitions list of files into tuples with len == number_of_columns
+    # So each row will contain 5 files, if number_of_columns == 5
+    # [(file1, file2, ... , file5), (file6, ... , file10), ...]
     each_row = cytoolz.partition_all(number_of_columns, file_list)
-    pages_list = list(cytoolz.partition(2, each_row, pad=None))
-    # len(pages_list) == number of pages
-    # len(pages_list[i]) == number of rows in each page (for each i)
+
+    # Each page has `rows_in_page` rows. Every row is grouped with another.
+    # [(row1, row2), (row3, row4), ...]
+    # where row1 == (file1, file2, ...)
+    pages_list = list(cytoolz.partition(rows_in_page, each_row, pad=None))
+
+    assert len(pages_list[0]) <= len(rowspaces) == rows_in_page
+    assert len(pages_list) <= len(page_spaces)
 
     os.system("clear")
     for (i, page) in enumerate(pages_list):
-        render_page(page_spaces[i], page, rowspaces, cols, left_shifts, path)
+        scroll_display_page(
+            page_spaces[i], page, rowspaces, cols, left_shifts, path, message
+        )
 
-    print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")
+    if print_rows:
+        print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")
 
 
 if __name__ == "__main__":
