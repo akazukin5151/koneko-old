@@ -790,7 +790,10 @@ class Users(ABC):
 
     def go_artist_mode(self, selected_user_num):
         current_page_ids = self.ids_cache[self.page_num]
-        artist_user_id = current_page_ids[selected_user_num]
+        try:
+            artist_user_id = current_page_ids[selected_user_num]
+        except IndexError:
+            print("Invalid number!")
         artist_illusts_mode(artist_user_id)
 
     @staticmethod
@@ -1009,93 +1012,108 @@ def view_post_mode(image_id):
     # Without checking for number_of_pages
     # artist_illusts_mode(artist_user_id)
 
+#- Loop classes ==========================================================
+class Loop(ABC):
+    def __init__(self, prompted, user_input):
+        self.prompted = prompted
+        self.user_input = user_input
 
-def artist_illusts_mode_loop(prompted, artist_user_id=None):
+        while True:
+            if self.prompted and not self.user_input:
+                self.prompt_url_id()
+                os.system("clear")
+
+                self.process_url_or_input()
+                self.validate_input()
+
+            API_THREAD.join()  # Wait for API to finish
+            global API
+            API = API_QUEUE.get()  # Assign API to PixivAPI object
+
+            self.go_to_mode()
+
+    @abstractmethod
+    def prompt_url_id(self):
+        raise NotImplementedError
+
+    def process_url_or_input(self):
+        if "pixiv" in self.url_or_id:
+            self.user_input = pure.split_backslash_last(self.url_or_id)
+
+    def validate_input(self):
+        try:
+            int(self.user_input)
+        except ValueError:
+            print("Invalid image ID!")
+
+    @abstractmethod
+    def go_to_mode(self):
+        raise NotImplementedError
+
+
+class ArtistModeLoop(Loop):
     """
     Ask for artist ID and process it, wait for API to finish logging in
     before proceeding
     """
-    while True:
-        if prompted and not artist_user_id:
-            artist_user_id = utils.artist_user_id_prompt()
-            os.system("clear")
-            if "pixiv" in artist_user_id:
-                artist_user_id = pure.split_backslash_last(artist_user_id)
-            # After the if, input must either be int or invalid
-            try:
-                int(artist_user_id)
-            except ValueError:
-                print("Invalid user ID!")
-                break
+    def prompt_url_id(self):
+        self.url_or_id = utils.artist_user_id_prompt()
 
-        API_THREAD.join()  # Wait for API to finish
-        global API
-        API = API_QUEUE.get()  # Assign API to PixivAPI object
-
-        artist_illusts_mode(artist_user_id)
+    def go_to_mode(self):
+        artist_illusts_mode(self.user_input)
 
 
-def view_post_mode_loop(prompted, image_id=None):
+class ViewPostModeLoop(Loop):
     """
     Ask for post ID and process it, wait for API to finish logging in
     before proceeding
     """
-    while True:
-        if prompted and not image_id:
-            url_or_id = input("Enter pixiv post url or ID:\n")
-            os.system("clear")
+    def prompt_url_id(self):
+        self.url_or_id = input("Enter pixiv post url or ID:\n")
 
-            # Need to process complex url first
-            if "illust_id" in url_or_id:
-                image_id = re.findall(r"&illust_id.*", url_or_id)[0].split("=")[-1]
-            elif "pixiv" in url_or_id:
-                image_id = pure.split_backslash_last(url_or_id)
-            else:
-                image_id = url_or_id
+    def process_url_or_input(self):
+        """Overriding base class to account for 'illust_id' cases"""
+        if "illust_id" in self.url_or_id:
+            self.user_input = re.findall(r"&illust_id.*", self.url_or_id)[0].split("=")[-1]
+        elif "pixiv" in self.url_or_id:
+            self.user_input = pure.split_backslash_last(self.url_or_id)
+        else:
+            self.user_input = self.url_or_id
 
-            # After the if, input must either be int or invalid
-            try:
-                int(image_id)
-            except ValueError:
-                print("Invalid image ID!")
-                break
-
-        API_THREAD.join()  # Wait for API to finish
-        global API
-        API = API_QUEUE.get()  # Assign API to PixivAPI object
-
-        view_post_mode(image_id)
+    def go_to_mode(self):
+        view_post_mode(self.user_input)
 
 
-# TODO: remove duplications in the three loop functions ^^ vv
-def user_mode_loop(prompted, user_input, input_class, question, check_int=True):
+class SearchUsersModeLoop(Loop):
     """
-    Process either user id (to see what users they are following), or a search
-    string (to search for users). Accepts URLs
+    Ask for search string and process it, wait for API to finish logging in
+    before proceeding
     """
-    while True:
-        if prompted and not user_input:
-            user_input = input(question)
-            os.system("clear")
-            if "pixiv" in user_input:
-                user_input = pure.split_backslash_last(user_input)
+    def prompt_url_id(self):
+        self.user_input = input("Enter search string:\n")
 
-            # Not needed for searching users
-            if check_int:
-                # After the if, input must either be int or invalid
-                try:
-                    int(user_input)
-                except ValueError:
-                    print("Invalid user ID!")
-                    break
-        # End if
-        API_THREAD.join()  # Wait for API to finish
-        global API
-        API = API_QUEUE.get()  # Assign API to PixivAPI object
+    def validate_input(self):
+        pass
 
-        action = input_class(user_input)
-        user_prompt(action)
+    def go_to_mode(self):
+        searching = SearchUsers(self.user_input)
+        user_prompt(searching)
 
+
+class FollowingUserModeLoop(Loop):
+    """
+    Ask for pixiv ID or url and process it, wait for API to finish logging in
+    before proceeding
+    If user agrees to use the your_id saved in configu, prompt_url_id() will be
+    skipped
+    """
+    def prompt_url_id(self):
+        self.user_input = input("Enter your pixiv ID or url: ")
+
+    def go_to_mode(self):
+        following = FollowingUsers(self.user_input)
+        user_prompt(following)
+#- Loop classes ==========================================================
 
 
 def main_loop(prompted, main_command, user_input, your_id=None):
@@ -1115,41 +1133,23 @@ def main_loop(prompted, main_command, user_input, your_id=None):
             main_command = utils.begin_prompt(printmessage)
 
         if main_command == "1":
-            artist_illusts_mode_loop(prompted, user_input)
+            ArtistModeLoop(prompted, user_input)
 
         elif main_command == "2":
-            view_post_mode_loop(prompted, user_input)
+            ViewPostModeLoop(prompted, user_input)
 
         # fmt: off
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
                 if ans == "y" or ans == "":
-                    user_mode_loop(
-                        False,
-                        your_id,
-                        FollowingUsers,
-                        "",
-                        check_int=True
-                    )
+                    FollowingUserModeLoop(prompted, your_id)
 
             # If your_id not stored, or if ans is no, ask for your_id
-            user_mode_loop(
-                prompted,
-                user_input,
-                FollowingUsers,
-                "Enter your pixiv ID or url: ",
-                check_int=True
-            )
+            FollowingUserModeLoop(prompted, user_input)
 
         elif main_command == "4":
-            user_mode_loop(
-                prompted,
-                user_input,
-                SearchUsers,
-                "Enter search string:\n",
-                check_int=False
-            )
+            SearchUsersModeLoop(prompted, user_input)
 
         # fmt: on
         elif main_command == "?":
