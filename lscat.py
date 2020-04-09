@@ -12,15 +12,15 @@ from pure import cd
 
 
 # - Pure functions
-def is_jpg(myfile):
-    if fnmatch.fnmatch(myfile, "*.jpg"):
+def is_image(myfile):
+    if fnmatch.fnmatch(myfile, "*.jpg") or fnmatch.fnmatch(myfile, "*.png"):
         return True
     return False
 
 
 def filter_jpg(path):
     with cd(path):
-        return sorted(filter(is_jpg, os.listdir(".")))
+        return sorted(filter(is_image, os.listdir(".")))
 
 
 @cytoolz.curry
