@@ -736,7 +736,7 @@ class Users(ABC):
     @abstractmethod
     def pixivrequest(self):
         """Blank method, classes that inherit this ABC must override this"""
-        pass
+        raise NotImplementedError
 
     def parse_user_infos(self):
         """Parse json and get list of artist names, profile pic urls, and id"""
@@ -1093,6 +1093,7 @@ class SearchUsersModeLoop(Loop):
         self.user_input = input("Enter search string:\n")
 
     def validate_input(self):
+        """Overriding base class: search string doesn't need to be int"""
         pass
 
     def go_to_mode(self):
