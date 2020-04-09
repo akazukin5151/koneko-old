@@ -32,7 +32,7 @@ import utils
 
 
 # - API FUNCTIONS ======================================================
-def setup(out_queue):
+def setup(out_queue, credentials):
     """
     Logins to pixiv in the background, using credentials from config file.
 
@@ -41,15 +41,9 @@ def setup(out_queue):
     out_queue : queue.Queue()
         queue for storing logged-in API object. Needed for threading
     """
-    # Read config.ini file
-    config_object = ConfigParser()
-    config_path = os.path.expanduser("~/.config/koneko/")
-    config_object.read(f"{config_path}config.ini")
-    config = config_object["Credentials"]
-
     global API
     API = AppPixivAPI()
-    API.login(config["Username"], config["Password"])
+    API.login(credentials["Username"], credentials["Password"])
     out_queue.put(API)
 
 
@@ -1104,7 +1098,7 @@ def user_mode_loop(prompted, user_input, input_class, question, check_int=True):
 
 
 
-def main_loop(prompted, main_command, user_input):
+def main_loop(prompted, main_command, user_input, your_id=None):
     """
     Ask for mode selection
     user_input : str or int
@@ -1128,6 +1122,18 @@ def main_loop(prompted, main_command, user_input):
 
         # fmt: off
         elif main_command == "3":
+            if your_id: # your_id stored in config file
+                ans = input("Do you want to use the Pixiv ID saved in your config?\n")
+                if ans == "y" or ans == "":
+                    user_mode_loop(
+                        False,
+                        your_id,
+                        FollowingUsers,
+                        "",
+                        check_int=True
+                    )
+
+            # If your_id not stored, or if ans is no, ask for your_id
             user_mode_loop(
                 prompted,
                 user_input,
@@ -1167,10 +1173,18 @@ def main_loop(prompted, main_command, user_input):
 
 
 def main():
+    # Read config.ini file
+    config_object = ConfigParser()
+    config_path = os.path.expanduser("~/.config/koneko/")
+    config_object.read(f"{config_path}config.ini")
+    credentials = config_object["Credentials"]
+    # If your_id is stored in the config
+    your_id = credentials.get("ID", None)
+
     # It'll never be changed after logging in
     global API, API_QUEUE, API_THREAD
     API_QUEUE = queue.Queue()
-    API_THREAD = threading.Thread(target=setup, args=(API_QUEUE,))
+    API_THREAD = threading.Thread(target=setup, args=(API_QUEUE, credentials))
     API_THREAD.start()  # Start logging in
 
     # During this part, the API can still be logging in but we can proceed
@@ -1227,8 +1241,9 @@ def main():
         main_command = None
         user_input = None
 
+
     try:
-        main_loop(prompted, main_command, user_input)
+        main_loop(prompted, main_command, user_input, your_id)
     except KeyboardInterrupt:
         print("\n")
         answer = input("Are you sure you want to exit? [y/N]:\n")
