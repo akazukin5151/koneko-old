@@ -73,7 +73,7 @@ pip install -r requirements.txt
 python koneko.py
 ```
 
-    * **NOTE:** you need to run an unrelased version of pixivpy (pixiv api) for mode 4 If you don't want to, comment out the line `sys.path.insert(0, "../pixivpy/")` in `koneko.py`; this will disable mode 4. See [pixivpy](#pixivpy) for details.
+**NOTE:** you need to run an unrelased version of pixivpy (pixiv api) for mode 4 If you don't want to, comment out the line `sys.path.insert(0, "../pixivpy/")` in `koneko.py`; this will disable mode 4. See [pixivpy](#pixivpy) for details.
 
 4. There are four modes of operation:
     1. Show artist illustrations: equivalent to going to the artist page
