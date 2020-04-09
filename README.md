@@ -54,6 +54,9 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 [Credentials]
 Username = XXX
 Password = XXX
+# Your pixiv ID is optional. If you fill it in, you don't have to
+# paste it every time you go to mode 3
+ID = XXX
 ```
 
 3. Run:
