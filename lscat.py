@@ -193,13 +193,16 @@ class Card(View):
             # Display the three previews
             # fmt: off
             for (j, coord) in enumerate(self.preview_xcoords):
-                display_page(
-                    ((self.preview_images[i][j],),),
-                    self.rowspaces,
-                    self.cols,
-                    coord,
-                    self.preview_paths
-                )
+                try:
+                    display_page(
+                        ((self.preview_images[i][j],),),
+                        self.rowspaces,
+                        self.cols,
+                        coord,
+                        self.preview_paths
+                    )
+                except IndexError: # Less than three previews
+                    pass
             # fmt: on
 
 
