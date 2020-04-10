@@ -15,7 +15,6 @@ Capitalized tag definitions:
 import os
 import re
 import sys
-sys.path.insert(0, "../pixivpy/")
 import time
 import queue
 import threading
@@ -23,6 +22,7 @@ from abc import ABC, abstractmethod
 from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
+import funcy
 from tqdm import tqdm
 from blessed import Terminal
 from pixivpy3 import AppPixivAPI, PixivError
@@ -117,14 +117,13 @@ def async_download_core(
                     )
 
 
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+def protected_download(url):
+    API.download(url)
+
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads one pic given the single url, rename if needed."""
-    try:
-        # print(f"Downloading {img_name}")
-        API.download(url)
-    except (ConnectionError, PixivError) as e:
-        # TODO: retry for all functions that use API
-        print(f"Network error! Caught {e}")
+    protected_download(url)
 
     if pbar:
         pbar.update(1)
@@ -709,8 +708,8 @@ class Users(ABC):
     """
 
     @abstractmethod
-    def __init__(self, publicity="private"):
-        self.publicity = publicity
+    def __init__(self, user_or_id):
+        self.input = user_or_id
         self.offset = 0
         self.page_num = 1
         self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
@@ -824,13 +823,13 @@ class SearchUsers(Users):
     """
     Inherits from Users class, define self.input as the search string (user)
     Parent directory for downloads should go to search/
-    Note that the pixivpy3 api does not have search_user() yet; It's on my fork
-    and I'm trying to get it merged upstream.
+    Note that pixivpy3 does not have search_user() yet (not released yet);
+    you need to install the master branch (which should be done if you used
+    the requirements.txt)
     """
     def __init__(self, user):
-        self.input = user
         self.main_path = f"{KONEKODIR}/search"
-        super().__init__()
+        super().__init__(user)
 
     def pixivrequest(self):
         return API.search_user(self.input, offset=self.offset)
@@ -842,10 +841,10 @@ class FollowingUsers(Users):
     (Or any other pixiv ID that the user wants to look at their following users)
     Parent directory for downloads should go to following/
     """
-    def __init__(self, your_id):
-        self.input = your_id
+    def __init__(self, your_id, publicity='private'):
+        self.publicity = publicity
         self.main_path = f"{KONEKODIR}/following"
-        super().__init__()
+        super().__init__(your_id)
 
     def pixivrequest(self):
         return API.user_following(
