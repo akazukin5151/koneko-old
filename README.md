@@ -69,7 +69,7 @@ git clone https://github.com/twenty5151/koneko.git
 git clone -b 'v0.1' --depth 1 https://github.com/twenty5151/koneko.git`
 
 cd koneko
-pip install -r requirements.txt
+pip install -r requirements.txt --upgrade
 python koneko.py
 ```
 
