@@ -1070,6 +1070,8 @@ class Loop(ABC):
     def process_url_or_input(self):
         if "pixiv" in self.url_or_id:
             self.user_input = pure.split_backslash_last(self.url_or_id)
+        else:
+            self.user_input = self.url_or_id
 
     def validate_input(self):
         try:
