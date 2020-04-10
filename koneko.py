@@ -346,6 +346,7 @@ class Image:
         print(f"Opened {link} in browser")
 
     def download_image(self):
+        # FIXME: doesn't work on multi-image posts
         download_image_verified(self.image_id)
 
     def next_image(self):
@@ -498,6 +499,7 @@ class Gallery:
         else:  # Gallery -> next -> image prompt -> back
             self.all_pages_cache[str(self.current_page_num)] = self.current_page
 
+        pure.print_multiple_imgs(self.current_page_illusts)
         print(f"Page {self.current_page_num}")
 
     def download_image_coords(self, first_num, second_num):
@@ -779,6 +781,7 @@ class Users(ABC):
 
     def show_page(self):
         try:
+            # TODO: append 0-index number to artist name
             lscat.Card(
                 self.download_path,
                 f"{self.main_path}/{self.input}/{self.page_num}/previews/",
@@ -904,19 +907,11 @@ def user_prompt(user_class):
                 print(keyseqs)
 
                 # End of the sequence...
-                # Two digit sequence -- view image given coords
+                # Two digit sequence -- view artist given number
                 if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
 
-                    first_num = int(keyseqs[0])
-                    second_num = int(keyseqs[1])
-                    selected_user_num = pure.find_number_map(first_num, second_num)
-                    break  # leave cbreak(), go to gallery
-
-                # One letter two digit sequence
-                elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
-
-                    first_num = keyseqs[1]
-                    second_num = keyseqs[2]
+                    first_num = keyseqs[0]
+                    second_num = keyseqs[1]
                     selected_user_num = int(f"{first_num}{second_num}")
                     break  # leave cbreak(), go to gallery
 
@@ -961,7 +956,6 @@ def show_gallery(
 
     if show:
         utils.show_artist_illusts(download_path)
-    pure.print_multiple_imgs(current_page_illusts)
 
     if not all_pages_cache:
         all_pages_cache = {"1": current_page}
