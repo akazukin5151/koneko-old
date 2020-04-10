@@ -6,6 +6,7 @@ import os
 import fnmatch
 
 import cytoolz
+import funcy
 from pixcat import Image
 
 from pure import cd
@@ -24,8 +25,8 @@ def filter_jpg(path):
 
 
 @cytoolz.curry
-def xcoord(image_number, number_of_columns, width):
-    return image_number % number_of_columns * width + 2  # Magic
+def xcoord(image_number, number_of_columns, width, increment=2):
+    return image_number % number_of_columns * width + increment
 
 
 def number_prefix(myfile):
@@ -33,6 +34,7 @@ def number_prefix(myfile):
 
 
 # Impure functions
+@funcy.ignore(IndexError, TypeError)
 def display_page(page, rowspaces, cols, left_shifts, path):
     with cd(path):
         for (index, space) in enumerate(rowspaces):
@@ -42,8 +44,18 @@ def display_page(page, rowspaces, cols, left_shifts, path):
                 )
 
 
-def scroll_display_page(
-    page_space, page, rowspaces, cols, left_shifts, path, messages=None
+def render_with_previews(
+    page_space,
+    page,
+    rowspaces,
+    cols,
+    left_shifts,
+    path,
+    i,
+    preview_images,
+    preview_xcoords,
+    preview_paths,
+    messages,
 ):
     """
     The reason for using pages is because every time something in a different
@@ -56,14 +68,14 @@ def scroll_display_page(
                                 this.
     Hence, the need to plot each row of images in order
     """
-    if messages:
-        print("\n" * 2)
-        print(" " * 19, messages)
+    print("\n" * 2)
+    print(" " * 19, messages)
+
     print("\n" * page_space)  # Scroll to new 'page'
-    try:
-        display_page(page, rowspaces, cols, left_shifts, path)
-    except (IndexError, TypeError):
-        pass
+    display_page(page, rowspaces, cols, left_shifts, path)
+
+    for (j, xcoord) in enumerate(preview_xcoords):
+        display_page(((preview_images[i][j],),), rowspaces, cols, xcoord, preview_paths)
 
 
 def main(
@@ -73,6 +85,8 @@ def main(
     page_spaces=(26, 24, 24),
     rows_in_page=2,
     print_rows=True,
+    preview_xcoords=None,
+    preview_paths=None,
     messages=None,
 ):
     """
@@ -92,6 +106,16 @@ def main(
         Number of rows in each page
     print_rows : bool
         Whether to print row numbers in the bottom
+
+    The following parameters are for single image per row, user view
+    ========
+    preview_xcoords : list of list of int
+        For printing previews next to artists. len == 3 (three previews)
+        len of inner list == 1 (one column only, only one int needed)
+    preview_paths : list of str
+        Path to where the preview images are downloaded to
+        len must be 3, for three previews. The number of images in each dir/path
+        must be == number of pages == len(page_spaces) == number of images
     messages : list of str
         List of text to print next to the images. Only for when rows_in_page = 1
         len must be >= rows_in_page
@@ -119,6 +143,9 @@ def main(
     # where row1 == (file1, file2, ...)
     pages_list = list(cytoolz.partition(rows_in_page, each_row, pad=None))
 
+    if preview_paths:
+        preview_images = list(cytoolz.partition_all(3, sorted(os.listdir(preview_paths))))
+
     assert len(pages_list[0]) <= len(rowspaces) == rows_in_page
     assert len(pages_list) <= len(page_spaces)
     if messages:
@@ -128,13 +155,23 @@ def main(
     os.system("clear")
     if not messages:
         for (i, page) in enumerate(pages_list):
-            scroll_display_page(
-                page_spaces[i], page, rowspaces, cols, left_shifts, path
-            )
+            print("\n" * page_spaces[i])  # Scroll to new 'page'
+            display_page(page, rowspaces, cols, left_shifts, path)
     else:
         for (i, page) in enumerate(pages_list):
-            scroll_display_page(
-                page_spaces[i], page, rowspaces, cols, left_shifts, path, messages[i]
+            # TODO: simplify this monster
+            render_with_previews(
+                page_spaces[i],
+                page,
+                rowspaces,
+                cols,
+                left_shifts,
+                path,
+                i,
+                preview_images,
+                preview_xcoords,
+                preview_paths,
+                messages[i],
             )
 
     if print_rows:

@@ -1,4 +1,5 @@
 import os
+import shutil
 import imghdr
 
 import pixcat
@@ -49,6 +50,7 @@ def begin_prompt(printmessage=True):
         "4. Search for artists\n",
         "?. Info",
         "m. Manual",
+        "c. Clear koneko cache",
         "q. Quit",
     )
     if printmessage:
@@ -77,6 +79,22 @@ def show_man_loop():
         help_command = input("\n\nPress any key to return: ")
         if help_command or help_command == "":
             os.system("clear")
+            break
+
+
+@pure.catch_ctrl_c
+def clear_cache_loop():
+    print("Do you want to remove all cached images?")
+    print("This will not remove images you explicitly downloaded.")
+    while True:
+        help_command = input("\nEnter y to confirm: ")
+        if help_command == "y":
+            shutil.rmtree("/tmp/koneko/")
+            os.system('clear')
+            break
+        else:
+            print("Operation aborted!")
+            os.system('clear')
             break
 
 

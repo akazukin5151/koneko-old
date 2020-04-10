@@ -721,7 +721,8 @@ class Users(ABC):
         self.prefetch_next_page()
 
     def parse_and_download(self):
-        """Parse info and initiate the variables, download then show"""
+        """Parse info and initiate the variables, download them"""
+        # TODO: download profile pics and previews concurrently
         self.parse_user_infos()
         pbar = tqdm(total=len(self.profile_pic_urls), smoothing=0)
         # fmt: off
@@ -733,9 +734,22 @@ class Users(ABC):
             pbar=pbar
         )
         pbar.close()
+
+        # If an artist has less than 3 works, the previews will not match up
+        # and cause an IndexError when displaying.
+        pbar = tqdm(total=len(self.image_urls), smoothing=0)
+        async_download_core(
+            f"{self.main_path}/{self.input}/{self.page_num}/previews/",
+            self.image_urls,
+            rename_images=True,
+            file_names=map(pure.split_backslash_last, self.image_urls),
+            pbar=pbar
+        )
+        pbar.close()
         # fmt: on
 
-    @abstractmethod # TODO: funcy.retry
+    @abstractmethod
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def pixivrequest(self):
         """Blank method, classes that inherit this ABC must override this"""
         raise NotImplementedError
@@ -754,8 +768,10 @@ class Users(ABC):
         self.names_cache.update({self.page_num: self.names})
 
         self.profile_pic_urls = list(map(self.user_profile_pic, page))
-        # TODO: display preview
-        self.image_urls = [page[i]['illusts'][j]['image_urls']['medium']
+
+        # max(i) == number of artists on this page
+        # max(j) == 3 == 3 previews for every artist
+        self.image_urls = [page[i]['illusts'][j]['image_urls']['square_medium']
                             for i in range(len(page))
                             for j in range(len(page[i]['illusts']))]
 
@@ -769,6 +785,8 @@ class Users(ABC):
                 page_spaces=(20,)*30,
                 rows_in_page=1,
                 print_rows=False,
+                preview_xcoords=[[40], [58], [75]],
+                preview_paths=f"{self.main_path}/{self.input}/{self.page_num}/previews/",
                 messages=self.names_cache[self.page_num],
             )
         except FileNotFoundError:
@@ -1180,6 +1198,9 @@ def main_loop(prompted, main_command, user_input, your_id=None):
 
         elif main_command == "m":
             utils.show_man_loop()
+
+        elif main_command == "c":
+            utils.clear_cache_loop()
 
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
