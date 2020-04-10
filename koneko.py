@@ -29,6 +29,7 @@ from pixivpy3 import AppPixivAPI, PixivError
 
 import pure
 import utils
+import lscat
 
 
 # - API FUNCTIONS ======================================================
@@ -778,16 +779,10 @@ class Users(ABC):
 
     def show_page(self):
         try:
-            utils.show_artist_illusts(
-                path=self.download_path,
-                number_of_columns=1,
-                rowspaces=(0,),
-                page_spaces=(20,)*30,
-                rows_in_page=1,
-                print_rows=False,
-                preview_xcoords=[[40], [58], [75]],
-                preview_paths=f"{self.main_path}/{self.input}/{self.page_num}/previews/",
-                messages=self.names_cache[self.page_num],
+            lscat.Card(
+                self.download_path,
+                f"{self.main_path}/{self.input}/{self.page_num}/previews/",
+                self.names_cache[self.page_num],
             )
         except FileNotFoundError:
             print("This is the last page!")
