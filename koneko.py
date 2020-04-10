@@ -735,27 +735,30 @@ class Users(ABC):
         pbar.close()
         # fmt: on
 
-    @abstractmethod
+    @abstractmethod # TODO: funcy.retry
     def pixivrequest(self):
         """Blank method, classes that inherit this ABC must override this"""
         raise NotImplementedError
 
-    @pure.spinner('')
+    @pure.spinner('Parsing info...')
     def parse_user_infos(self):
         """Parse json and get list of artist names, profile pic urls, and id"""
-        try:
-            result = self.pixivrequest()
-        except (ConnectionError, PixivError):
-            print("============ Network error! ================")
-        else:
-            page = result["user_previews"]
-            self.next_url = result["next_url"]
+        result = self.pixivrequest()
+        page = result["user_previews"]
+        self.next_url = result["next_url"]
 
-            self.ids = list(map(self.user_id, page))
-            self.ids_cache.update({self.page_num: self.ids})
-            self.names = list(map(self.user_name, page))
-            self.names_cache.update({self.page_num: self.names})
-            self.profile_pic_urls = list(map(self.user_profile_pic, page))
+        self.ids = list(map(self.user_id, page))
+        self.ids_cache.update({self.page_num: self.ids})
+
+        self.names = list(map(self.user_name, page))
+        self.names_cache.update({self.page_num: self.names})
+
+        self.profile_pic_urls = list(map(self.user_profile_pic, page))
+        # TODO: display preview
+        self.image_urls = [page[i]['illusts'][j]['image_urls']['medium']
+                            for i in range(len(page))
+                            for j in range(len(page[i]['illusts']))]
+
 
     def show_page(self):
         try:
@@ -817,6 +820,11 @@ class Users(ABC):
     @staticmethod
     def user_profile_pic(json):
         return json["user"]["profile_image_urls"]["medium"]
+
+    @staticmethod
+    def image_urls(illusts_json):
+        """page[i]['illusts'][j]['image_urls']['medium']"""
+        return illusts_json['image_urls']['medium']
 
 
 class SearchUsers(Users):
