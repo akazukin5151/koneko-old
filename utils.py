@@ -5,8 +5,8 @@ import imghdr
 import pixcat
 
 import pure
-from lscat import main as lscat
-from koneko import Image, Users, Gallery
+import lscat
+import koneko
 
 
 def verify_full_download(filepath):
@@ -27,7 +27,7 @@ def show_artist_illusts(path, renderer="lscat", **kwargs):
 
     with pure.cd(path):
         if renderer == "lscat":
-            lscat(path, **kwargs)
+            lscat.gallery(path, **kwargs)
         elif renderer == "lscat old":
             os.system(f"{lscat_path}/legacy/lscat")
         elif renderer == "lsix":
@@ -70,11 +70,11 @@ def artist_user_id_prompt():
 @pure.catch_ctrl_c
 def show_man_loop():
     os.system("clear")
-    print(Image.__doc__)
+    print(koneko.Image.__doc__)
     print(" " * 3, "=" * 30)
-    print(Gallery.__doc__)
+    print(koneko.Gallery.__doc__)
     print(" " * 3, "=" * 30)
-    print(Users.__doc__)
+    print(koneko.Users.__doc__)
     while True:
         help_command = input("\n\nPress any key to return: ")
         if help_command or help_command == "":

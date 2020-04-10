@@ -4,6 +4,7 @@ The default image renderer for koneko.
 
 import os
 import fnmatch
+from abc import ABC, abstractmethod
 
 import cytoolz
 import funcy
@@ -44,19 +45,7 @@ def display_page(page, rowspaces, cols, left_shifts, path):
                 )
 
 
-def render_with_previews(
-    page_space,
-    page,
-    rowspaces,
-    cols,
-    left_shifts,
-    path,
-    i,
-    preview_images,
-    preview_xcoords,
-    preview_paths,
-    messages,
-):
+class View(ABC):
     """
     The reason for using pages is because every time something in a different
     row is displayed, the entire terminal shifts.
@@ -68,27 +57,42 @@ def render_with_previews(
                                 this.
     Hence, the need to plot each row of images in order
     """
-    print("\n" * 2)
-    print(" " * 19, messages)
+    def __init__(self, path, number_of_columns, rowspaces, page_spaces, rows_in_page):
+        self.path = path
+        self.number_of_columns = number_of_columns
+        self.rowspaces = rowspaces
+        self.page_spaces = page_spaces
+        self.rows_in_page = rows_in_page
 
-    print("\n" * page_space)  # Scroll to new 'page'
-    display_page(page, rowspaces, cols, left_shifts, path)
+        self.cols = range(number_of_columns)
+        total_width = 90
+        width = total_width // number_of_columns
 
-    for (j, xcoord) in enumerate(preview_xcoords):
-        display_page(((preview_images[i][j],),), rowspaces, cols, xcoord, preview_paths)
+        file_list = filter_jpg(path)
+        calc = xcoord(number_of_columns=number_of_columns, width=width)
+        self.left_shifts = list(map(calc, self.cols))
+
+        # partitions list of files into tuples with len == number_of_columns
+        # so each row will contain 5 files, if number_of_columns == 5
+        # [(file1, file2, ... , file5), (file6, ... , file10), ...]
+        each_row = cytoolz.partition_all(number_of_columns, file_list)
+
+        # each page has `rows_in_page` rows. every row is grouped with another.
+        # [(row1, row2), (row3, row4), ...]
+        # where row1 == (file1, file2, ...)
+        self.pages_list = list(cytoolz.partition(rows_in_page, each_row, pad=None))
+
+        assert len(self.pages_list[0]) <= len(self.rowspaces) == self.rows_in_page
+        assert len(self.pages_list) <= len(self.page_spaces)
+
+        self.render()
+
+    @abstractmethod
+    def render(self):
+        raise NotImplementedError
 
 
-def main(
-    path,
-    number_of_columns=5,
-    rowspaces=(0, 9),
-    page_spaces=(26, 24, 24),
-    rows_in_page=2,
-    print_rows=True,
-    preview_xcoords=None,
-    preview_paths=None,
-    messages=None,
-):
+class Gallery(View):
     """
     Each page has 2 rows by default. A page means printing blank lines to move
     the cursor down (and the terminal screen). The number of blank lines to
@@ -107,7 +111,38 @@ def main(
     print_rows : bool
         Whether to print row numbers in the bottom
 
-    The following parameters are for single image per row, user view
+    Info
+    ========
+    left_shifts : list of ints
+        Horizontal position of the image
+    """
+
+    def __init__(
+        self,
+        path,
+        number_of_columns=5,
+        rowspaces=(0, 9),
+        page_spaces=(26, 24, 24),
+        rows_in_page=2,
+    ):
+
+        super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
+
+    def render(self):
+        os.system("clear")
+        for (i, page) in enumerate(self.pages_list):
+            print("\n" * self.page_spaces[i])  # Scroll to new 'page'
+            display_page(page, self.rowspaces, self.cols, self.left_shifts, self.path)
+
+        print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")
+
+
+class Card(View):
+    """
+    Display each image (artist profile pic) in one row, their name, and three
+    preview images alongside.
+
+    Special parameters
     ========
     preview_xcoords : list of list of int
         For printing previews next to artists. len == 3 (three previews)
@@ -119,64 +154,54 @@ def main(
     messages : list of str
         List of text to print next to the images. Only for when rows_in_page = 1
         len must be >= rows_in_page
-
-    Info
-    ========
-    left_shifts : list of ints
-        Horizontal position of the image
     """
-    cols = range(number_of_columns)
-    total_width = 90
-    width = total_width // number_of_columns
 
-    file_list = filter_jpg(path)
-    calc = xcoord(number_of_columns=number_of_columns, width=width)
-    left_shifts = list(map(calc, cols))
+    def __init__(
+        self,
+        path,
+        preview_paths,
+        messages,
+        preview_xcoords=[[40], [58], [75]],
+        number_of_columns=1,
+        rowspaces=(0,),
+        page_spaces=(20,) * 30,
+        rows_in_page=1,
+    ):
 
-    # Partitions list of files into tuples with len == number_of_columns
-    # So each row will contain 5 files, if number_of_columns == 5
-    # [(file1, file2, ... , file5), (file6, ... , file10), ...]
-    each_row = cytoolz.partition_all(number_of_columns, file_list)
+        self.preview_paths = preview_paths
+        self.messages = messages
+        self.preview_xcoords = preview_xcoords
+        super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
 
-    # Each page has `rows_in_page` rows. Every row is grouped with another.
-    # [(row1, row2), (row3, row4), ...]
-    # where row1 == (file1, file2, ...)
-    pages_list = list(cytoolz.partition(rows_in_page, each_row, pad=None))
+    def render(self):
+        assert self.rows_in_page == 1
+        assert len(self.messages) >= self.rows_in_page
 
-    if preview_paths:
-        preview_images = list(cytoolz.partition_all(3, sorted(os.listdir(preview_paths))))
+        self.preview_images = list(
+            cytoolz.partition_all(3, sorted(os.listdir(self.preview_paths)))
+        )
 
-    assert len(pages_list[0]) <= len(rowspaces) == rows_in_page
-    assert len(pages_list) <= len(page_spaces)
-    if messages:
-        assert rows_in_page == 1
-        assert len(messages) >= rows_in_page
+        os.system("clear")
+        for (i, page) in enumerate(self.pages_list):
+            # Print the message (artist name) first
+            print("\n" * 2)
+            print(" " * 19, self.messages[i])
 
-    os.system("clear")
-    if not messages:
-        for (i, page) in enumerate(pages_list):
-            print("\n" * page_spaces[i])  # Scroll to new 'page'
-            display_page(page, rowspaces, cols, left_shifts, path)
-    else:
-        for (i, page) in enumerate(pages_list):
-            # TODO: simplify this monster
-            render_with_previews(
-                page_spaces[i],
-                page,
-                rowspaces,
-                cols,
-                left_shifts,
-                path,
-                i,
-                preview_images,
-                preview_xcoords,
-                preview_paths,
-                messages[i],
-            )
+            print("\n" * self.page_spaces[i])  # Scroll to new 'page'
+            display_page(page, self.rowspaces, self.cols, self.left_shifts, self.path)
 
-    if print_rows:
-        print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")
+            # Display the three previews
+            # fmt: off
+            for (j, coord) in enumerate(self.preview_xcoords):
+                display_page(
+                    ((self.preview_images[i][j],),),
+                    self.rowspaces,
+                    self.cols,
+                    coord,
+                    self.preview_paths
+                )
+            # fmt: on
 
 
 if __name__ == "__main__":
-    main("/tmp/koneko/2232374/1/")
+    Gallery("/tmp/koneko/2232374/1/")
