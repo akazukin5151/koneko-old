@@ -164,15 +164,15 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 * Revert to the old lscat shell script.
 
-    1. In `show_artist_illusts()` (`koneko.py`), change `renderer="lscat"` to `renderer="lscat old"`.
+    1. In `show_artist_illusts()` (`utils.py`), change `renderer="lscat"` to `renderer="lscat old"`.
 
 * Revert to the original lsix script. This would be more reliable than 1., because it has all the checks for terminal sizes. However, you cannot use kitty; xterm works.
 
     1. Make sure you're cd'ed into the koneko dir, then `curl "https://raw.githubusercontent.com/hackerb9/lsix/master/lsix" -o legacy/lsix && chmod +x legacy/lsix`
 
-    2. In `show_artist_illusts()` (`koneko.py`), change `renderer="lscat"` to `renderer="lsix"`.
+    2. In `show_artist_illusts()` (`utils.py`), change `renderer="lscat"` to `renderer="lsix"`.
 
-* Adjust the 'magic numbers'. There are around 4-5 types and they are commented in `lscat.py`
+* Adjust the 'magic numbers'. They are commented in `lscat.py`.
 * You can contribute to `lscat.py` by checking terminal size and doing all the maths and send a PR
 
 | Feature  | lscat.py | legacy/lscat | [hackerb9/lsix](https://github.com/hackerb9/lsix/) |
@@ -193,7 +193,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 ```
 
 ## Unit tests
-Use `pytest testing.py` or `coverage run -m pytest *.py -v` to also generate a code coverage report. Use `coverage report` or `coverage html -d testing/htmlcov/` to view. The coverage badge can be generated with `rm coverage.svg; coverage-badge -o coverage.svg`.
+Use `pytest testing.py`
 
 
 Here's a random shell command to get (but not download) and display any pixiv image url:
