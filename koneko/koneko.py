@@ -470,7 +470,7 @@ class Gallery:
         n                  -- view the next page
         p                  -- view the previous page
         h                  -- show this help
-        q                  -- exit
+        q                  -- quit (with confirmation)
 
     Examples:
         i09   --->  Display the ninth image in image view (must have leading 0)
@@ -479,8 +479,8 @@ class Gallery:
         D9    --->  Download the ninth image, in large resolution
 
         25    --->  Display the image on column 2, row 5 (index starts at 1)
-        d25    --->  Open the image on column 2, row 5 (index starts at 1) in browser
-        o25    --->  Download the image on column 2, row 5 (index starts at 1)
+        d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
+        o25   --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
 
