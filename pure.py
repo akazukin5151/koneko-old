@@ -74,6 +74,10 @@ def prefix_filename(old_name, new_name, number):
     new_file_name = f"{number_prefix}_{new_name}.{img_ext}"
     return new_file_name
 
+def prefix_artist_name(name, number):
+    number_prefix = str(number).rjust(2, "0")
+    new_file_name = f"{number_prefix}\n{' ' * 19}{name}"
+    return new_file_name
 
 def find_number_map(x, y):
     if not (x >= 1 and y >= 1):

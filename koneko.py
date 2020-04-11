@@ -497,6 +497,8 @@ class Gallery:
         self.artist_user_id = artist_user_id
         self.all_pages_cache = all_pages_cache
 
+        pure.print_multiple_imgs(self.current_page_illusts)
+        print(f"Page {self.current_page_num}")
         # Fixes: Gallery -> next page -> image prompt -> back -> prev page
         # Gallery -> Image -> back still retains all_pages_cache, no need to
         # prefetch again
@@ -515,8 +517,6 @@ class Gallery:
         # They do not have show_page() method as
         # utils.show_artist_illusts() is called before class is instantiated
         # But Users class does handle it.
-        pure.print_multiple_imgs(self.current_page_illusts)
-        print(f"Page {self.current_page_num}")
 
     def download_image_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -797,12 +797,18 @@ class Users(ABC):
 
 
     def show_page(self):
+        names = self.names_cache[self.page_num]
+        names_prefixed = list(map(
+            pure.prefix_artist_name,
+            names,
+            range(len(names))
+        ))
+
         try:
-            # TODO: append 0-index number to artist name
             lscat.Card(
                 self.download_path,
                 f"{self.main_path}/{self.input}/{self.page_num}/previews/",
-                self.names_cache[self.page_num],
+                messages=names_prefixed,
             )
         except FileNotFoundError:
             print("This is the last page!")

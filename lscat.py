@@ -185,7 +185,7 @@ class Card(View):
         for (i, page) in enumerate(self.pages_list):
             # Print the message (artist name) first
             print("\n" * 2)
-            print(" " * 19, self.messages[i])
+            print(" " * 18, self.messages[i])
 
             print("\n" * self.page_spaces[i])  # Scroll to new 'page'
             display_page(page, self.rowspaces, self.cols, self.left_shifts, self.path)
