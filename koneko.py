@@ -57,6 +57,10 @@ def user_illusts_spinner(artist_user_id):
     return API.user_illusts(artist_user_id)
 
 
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+def protected_illust_detail(image_id):
+    return API.illust_detail(image_id)
+
 @pure.spinner("Getting full image details... ")
 def full_img_details(png=False, post_json=None, image_id=None):
     """
@@ -64,10 +68,7 @@ def full_img_details(png=False, post_json=None, image_id=None):
     filepath of given image id. Or it can get the id given the post json
     """
     if image_id and not post_json:
-        try:
-            current_image = API.illust_detail(image_id)
-        except (ConnectionError, PixivError) as e:
-            print("Connection error!")
+        current_image = protected_illust_detail(image_id)
 
         post_json = current_image.illust
 
@@ -510,6 +511,10 @@ class Gallery:
         else:  # Gallery -> next -> image prompt -> back
             self.all_pages_cache[str(self.current_page_num)] = self.current_page
 
+        # TODO: Gallery and Image classes should show_artist_illusts() themselves
+        # They do not have show_page() method as
+        # utils.show_artist_illusts() is called before class is instantiated
+        # But Users class does handle it.
         pure.print_multiple_imgs(self.current_page_illusts)
         print(f"Page {self.current_page_num}")
 
@@ -737,6 +742,7 @@ class Users(ABC):
     def parse_and_download(self):
         """Parse info and initiate the variables, download them"""
         # TODO: download profile pics and previews concurrently
+        # The problem is downloading to a different path
         self.parse_user_infos()
         pbar = tqdm(total=len(self.profile_pic_urls), smoothing=0)
         # fmt: off
