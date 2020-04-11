@@ -73,8 +73,6 @@ pip install -r requirements.txt --upgrade
 python koneko.py
 ```
 
-**NOTE:** requirements.txt will install a newer, unreleased version of pixivpy (from its master branch), because mode 4 relies on a new feature that hasn't been uploaded to Pypi yet. Artist search was not supported by pixivpy, but I made a [PR](https://github.com/upbit/pixivpy/pull/123) to add that feature and it has been merged. However, there has been no new release yet.
-
 4. There are four modes of operation:
     1. Show artist illustrations: equivalent to going to the artist page
     2. View post: equivalent to going directly to a post (think getting a 'sauce' link)
