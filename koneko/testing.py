@@ -108,14 +108,14 @@ def test_change_url_to_full():
 
 # From lscat.py
 def test_is_image():
-    assert lscat.is_image("testing/04_祝！！！.jpg") == True
-    assert lscat.is_image("testing/17_ミコニャン.jpg") == True
-    assert lscat.is_image("testing/77803142_p0.png") == True
-    assert lscat.is_image("testing/not_an_image.txt") == False
+    assert lscat.is_image("../testing/04_祝！！！.jpg") == True
+    assert lscat.is_image("../testing/17_ミコニャン.jpg") == True
+    assert lscat.is_image("../testing/77803142_p0.png") == True
+    assert lscat.is_image("../testing/not_an_image.txt") == False
 
 
 def test_filter_jpg():
-    assert lscat.filter_jpg("testing/") == [
+    assert lscat.filter_jpg("../testing/") == [
         "04_祝！！！.jpg",
         "17_ミコニャン.jpg",
         "77803142_p0.png",
