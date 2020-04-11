@@ -68,9 +68,9 @@ git clone https://github.com/twenty5151/koneko.git
 # Update the tag for the latest released version
 git clone -b 'v0.1' --depth 1 https://github.com/twenty5151/koneko.git`
 
+cd koneko && pip install -r requirements.txt --upgrade
 cd koneko
-pip install -r requirements.txt --upgrade
-python koneko.py
+./koneko.py
 ```
 
 4. There are four modes of operation:
