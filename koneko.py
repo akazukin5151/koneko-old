@@ -71,7 +71,7 @@ def full_img_details(png=False, post_json=None, image_id=None):
 
         post_json = current_image.illust
 
-    url = pure.change_url_to_full(post_json, png)
+    url = pure.change_url_to_full(post_json=post_json, png=png)
     filename = pure.split_backslash_last(url)
     filepath = pure.generate_filepath(filename)
     return url, filename, filepath
@@ -169,20 +169,26 @@ def download_core(large_dir, url, filename, try_make_dir=True):
             downloadr(url, filename, None)
 
 
-def download_image_verified(image_id=None, post_json=None, png=False):
+def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
     """
     This downloads an image, checks if it's valid. If not, retry with png.
     """
-    url, filename, filepath = full_img_details(
-        image_id=image_id, post_json=post_json, png=png
-    )
+    if not kwargs:
+        url, filename, filepath = full_img_details(
+            image_id=image_id, post_json=post_json, png=png
+        )
+    else:
+        url = kwargs['url']
+        filename = kwargs['filename']
+        filepath = kwargs['filepath']
+
     homepath = os.path.expanduser("~")
     download_path = f"{homepath}/Downloads/"
     download_core(download_path, url, filename, try_make_dir=False)
 
     verified = utils.verify_full_download(filepath)
     if not verified:
-        download_image(image_id, png=True)
+        download_image_verified(image_id=image_id, png=True)
     print(f"Image downloaded at {filepath}\n")
 
 
@@ -345,9 +351,14 @@ class Image:
         os.system(f"xdg-open {link}")
         print(f"Opened {link} in browser")
 
-    def download_image(self):
-        # FIXME: doesn't work on multi-image posts
-        download_image_verified(self.image_id)
+    def download_image(self, png=False):
+        current_url = self.page_urls[self.img_post_page_num]
+        # Need to work on multi-image posts
+        # Doing the same job as full_img_details
+        large_url = pure.change_url_to_full(url=current_url)
+        filename = pure.split_backslash_last(large_url)
+        filepath = pure.generate_filepath(filename)
+        download_image_verified(url=large_url, filename=filename, filepath=filepath)
 
     def next_image(self):
         if not self.page_urls:
