@@ -1,11 +1,12 @@
 import os
+import shutil
 import imghdr
 
 import pixcat
 
 import pure
-from lscat import main as lscat
-from koneko import Image, Users, Gallery
+import lscat
+import koneko
 
 
 def verify_full_download(filepath):
@@ -16,7 +17,7 @@ def verify_full_download(filepath):
     return True
 
 
-def show_artist_illusts(path, renderer="lscat"):
+def show_artist_illusts(path, renderer="lscat", **kwargs):
     """
     Use specified renderer to display all images in the given path
     Default is "lscat"; can be "lscat old" or "lsix" (needs to install lsix first)
@@ -26,11 +27,13 @@ def show_artist_illusts(path, renderer="lscat"):
 
     with pure.cd(path):
         if renderer == "lscat":
-            lscat(path)
+            lscat.Gallery(path, **kwargs)
         elif renderer == "lscat old":
-            os.system(f"{lscat_path}/legacy/lscat")
+            from pathlib import Path
+            os.system(f"{Path(lscat_path).parent}/legacy/lscat")
         elif renderer == "lsix":
-            os.system(f"{lscat_path}/legacy/lsix")
+            from pathlib import Path
+            os.system(f"{Path(lscat_path).parent}/legacy/lsix")
 
 
 def display_image_vp(filepath):
@@ -49,13 +52,14 @@ def begin_prompt(printmessage=True):
         "4. Search for artists\n",
         "?. Info",
         "m. Manual",
+        "c. Clear koneko cache",
         "q. Quit",
     )
     if printmessage:
         for message in messages:
             print(" " * 24, message)
 
-    pixcat.Image("pics/71471144_p0.png").thumbnail(500).show(align="left", y=0)
+    pixcat.Image("../pics/71471144_p0.png").thumbnail(500).show(align="left", y=0)
     command = input("\nEnter a command: ")
     return command
 
@@ -68,15 +72,31 @@ def artist_user_id_prompt():
 @pure.catch_ctrl_c
 def show_man_loop():
     os.system("clear")
-    print(Image.__doc__)
+    print(koneko.Image.__doc__)
     print(" " * 3, "=" * 30)
-    print(Gallery.__doc__)
+    print(koneko.Gallery.__doc__)
     print(" " * 3, "=" * 30)
-    print(Users.__doc__)
+    print(koneko.Users.__doc__)
     while True:
         help_command = input("\n\nPress any key to return: ")
         if help_command or help_command == "":
             os.system("clear")
+            break
+
+
+@pure.catch_ctrl_c
+def clear_cache_loop():
+    print("Do you want to remove all cached images?")
+    print("This will not remove images you explicitly downloaded.")
+    while True:
+        help_command = input("\nEnter y to confirm: ")
+        if help_command == "y":
+            shutil.rmtree("/tmp/koneko/")
+            os.system('clear')
+            break
+        else:
+            print("Operation aborted!")
+            os.system('clear')
             break
 
 
@@ -88,10 +108,10 @@ def info_screen_loop():
         "koneko こねこ version 0.2 beta\n",
         "Browse pixiv in the terminal using kitty's icat to display",
         "images with images embedded in the terminal\n",
-        "View an artist's illustrations with mode 1",
-        "View a post with mode 2. Posts support one or multiple images.",
-        "View artists you followed with mode 3.",
-        "Search for artists and browse their works with mode 4.\n",
+        "1. View an artist's illustrations",
+        "2.View a post (support multiple images)",
+        "3. View artists you followed",
+        "4. Search for artists and browse their works.\n",
         "Thank you for using koneko!",
         "Please star, report bugs and contribute in:",
         "https://github.com/twenty5151/koneko",
@@ -104,7 +124,7 @@ def info_screen_loop():
     for message in messages:
         print(" " * 26, message)
 
-    pixcat.Image("pics/79494300_p0.png").thumbnail(750).show(align="left", y=0)
+    pixcat.Image("../pics/79494300_p0.png").thumbnail(750).show(align="left", y=0)
 
     while True:
         help_command = input("\nPress any key to return: ")

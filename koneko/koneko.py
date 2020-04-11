@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Browse pixiv in the terminal using kitty's icat to display images (in the
 terminal!)
@@ -15,7 +16,6 @@ Capitalized tag definitions:
 import os
 import re
 import sys
-sys.path.insert(0, "../pixivpy/")
 import time
 import queue
 import threading
@@ -23,12 +23,14 @@ from abc import ABC, abstractmethod
 from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
+import funcy
 from tqdm import tqdm
 from blessed import Terminal
 from pixivpy3 import AppPixivAPI, PixivError
 
 import pure
 import utils
+import lscat
 
 
 # - API FUNCTIONS ======================================================
@@ -56,6 +58,10 @@ def user_illusts_spinner(artist_user_id):
     return API.user_illusts(artist_user_id)
 
 
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+def protected_illust_detail(image_id):
+    return API.illust_detail(image_id)
+
 @pure.spinner("Getting full image details... ")
 def full_img_details(png=False, post_json=None, image_id=None):
     """
@@ -63,14 +69,11 @@ def full_img_details(png=False, post_json=None, image_id=None):
     filepath of given image id. Or it can get the id given the post json
     """
     if image_id and not post_json:
-        try:
-            current_image = API.illust_detail(image_id)
-        except (ConnectionError, PixivError) as e:
-            print("Connection error!")
+        current_image = protected_illust_detail(image_id)
 
         post_json = current_image.illust
 
-    url = pure.change_url_to_full(post_json, png)
+    url = pure.change_url_to_full(post_json=post_json, png=png)
     filename = pure.split_backslash_last(url)
     filepath = pure.generate_filepath(filename)
     return url, filename, filepath
@@ -117,20 +120,19 @@ def async_download_core(
                     )
 
 
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+def protected_download(url):
+    API.download(url)
+
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads one pic given the single url, rename if needed."""
-    try:
-        # print(f"Downloading {img_name}")
-        API.download(url)
-    except (ConnectionError, PixivError) as e:
-        # TODO: retry for all functions that use API
-        print(f"Network error! Caught {e}")
+    protected_download(url)
 
     if pbar:
         pbar.update(1)
     # print(f"{img_name} done!")
     if new_file_name:
-        os.rename(img_name, new_file_name)
+        os.rename(img_name, new_file_name) # FIXME Sometimes it misses a file?!
 
 
 # - Wrappers around the core functions for async download
@@ -169,20 +171,26 @@ def download_core(large_dir, url, filename, try_make_dir=True):
             downloadr(url, filename, None)
 
 
-def download_image_verified(image_id=None, post_json=None, png=False):
+def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
     """
     This downloads an image, checks if it's valid. If not, retry with png.
     """
-    url, filename, filepath = full_img_details(
-        image_id=image_id, post_json=post_json, png=png
-    )
+    if not kwargs:
+        url, filename, filepath = full_img_details(
+            image_id=image_id, post_json=post_json, png=png
+        )
+    else:
+        url = kwargs['url']
+        filename = kwargs['filename']
+        filepath = kwargs['filepath']
+
     homepath = os.path.expanduser("~")
     download_path = f"{homepath}/Downloads/"
     download_core(download_path, url, filename, try_make_dir=False)
 
     verified = utils.verify_full_download(filepath)
     if not verified:
-        download_image(image_id, png=True)
+        download_image_verified(image_id=image_id, png=True)
     print(f"Image downloaded at {filepath}\n")
 
 
@@ -345,8 +353,14 @@ class Image:
         os.system(f"xdg-open {link}")
         print(f"Opened {link} in browser")
 
-    def download_image(self):
-        download_image_verified(self.image_id)
+    def download_image(self, png=False):
+        current_url = self.page_urls[self.img_post_page_num]
+        # Need to work on multi-image posts
+        # Doing the same job as full_img_details
+        large_url = pure.change_url_to_full(url=current_url)
+        filename = pure.split_backslash_last(large_url)
+        filepath = pure.generate_filepath(filename)
+        download_image_verified(url=large_url, filename=filename, filepath=filepath)
 
     def next_image(self):
         if not self.page_urls:
@@ -455,7 +469,7 @@ class Gallery:
         n                  -- view the next page
         p                  -- view the previous page
         h                  -- show this help
-        q                  -- exit
+        q                  -- quit (with confirmation)
 
     Examples:
         i09   --->  Display the ninth image in image view (must have leading 0)
@@ -464,8 +478,8 @@ class Gallery:
         D9    --->  Download the ninth image, in large resolution
 
         25    --->  Display the image on column 2, row 5 (index starts at 1)
-        d25    --->  Open the image on column 2, row 5 (index starts at 1) in browser
-        o25    --->  Download the image on column 2, row 5 (index starts at 1)
+        d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
+        o25   --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
     def __init__(
@@ -482,6 +496,8 @@ class Gallery:
         self.artist_user_id = artist_user_id
         self.all_pages_cache = all_pages_cache
 
+        pure.print_multiple_imgs(self.current_page_illusts)
+        print(f"Page {self.current_page_num}")
         # Fixes: Gallery -> next page -> image prompt -> back -> prev page
         # Gallery -> Image -> back still retains all_pages_cache, no need to
         # prefetch again
@@ -496,7 +512,10 @@ class Gallery:
         else:  # Gallery -> next -> image prompt -> back
             self.all_pages_cache[str(self.current_page_num)] = self.current_page
 
-        print(f"Page {self.current_page_num}")
+        # TODO: Gallery and Image classes should show_artist_illusts() themselves
+        # They do not have show_page() method as
+        # utils.show_artist_illusts() is called before class is instantiated
+        # But Users class does handle it.
 
     def download_image_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -707,8 +726,8 @@ class Users(ABC):
     """
 
     @abstractmethod
-    def __init__(self, publicity="private"):
-        self.publicity = publicity
+    def __init__(self, user_or_id):
+        self.input = user_or_id
         self.offset = 0
         self.page_num = 1
         self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
@@ -720,42 +739,81 @@ class Users(ABC):
         self.prefetch_next_page()
 
     def parse_and_download(self):
-        """Parse info and initiate the variables, download then show"""
+        """Parse info and initiate the variables, download them"""
+        # TODO: download profile pics and previews concurrently
+        # The problem is downloading to a different path
+        # Lots of options, each with advantages and disadvantages
+        # 1) put the `with cd` inside the function submitted to thread
+        # 2) 'for path in download path': submit; need to use while loop
+        # 3) download all in same dir, then rename, then move
+        # 4) download all in same dir and rename, then move
         self.parse_user_infos()
+        pbar = tqdm(total=len(self.profile_pic_urls), smoothing=0)
         # fmt: off
-        async_download_spinner(
+        async_download_core(
             self.download_path,
             self.profile_pic_urls,
             rename_images=True,
-            file_names=self.names
+            file_names=self.names,
+            pbar=pbar
         )
+        pbar.close()
+
+        # If an artist has less than 3 works, the previews will not match up
+        # and cause an IndexError when displaying.
+        pbar = tqdm(total=len(self.image_urls), smoothing=0)
+        async_download_core(
+            f"{self.main_path}/{self.input}/{self.page_num}/previews/",
+            self.image_urls,
+            rename_images=True,
+            file_names=map(pure.split_backslash_last, self.image_urls),
+            pbar=pbar
+        )
+        pbar.close()
         # fmt: on
 
     @abstractmethod
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def pixivrequest(self):
         """Blank method, classes that inherit this ABC must override this"""
         raise NotImplementedError
 
+    @pure.spinner('Parsing info...')
     def parse_user_infos(self):
         """Parse json and get list of artist names, profile pic urls, and id"""
-        try:
-            result = self.pixivrequest()
-        except (ConnectionError, PixivError):
-            print("============ Network error! ================")
-        else:
-            page = result["user_previews"]
-            self.next_url = result["next_url"]
+        result = self.pixivrequest()
+        page = result["user_previews"]
+        self.next_url = result["next_url"]
 
-            self.ids = list(map(self.user_id, page))
-            self.ids_cache.update({self.page_num: self.ids})
-            self.names = list(map(self.user_name, page))
-            self.names_cache.update({self.page_num: self.names})
-            self.profile_pic_urls = list(map(self.user_profile_pic, page))
+        self.ids = list(map(self.user_id, page))
+        self.ids_cache.update({self.page_num: self.ids})
+
+        self.names = list(map(self.user_name, page))
+        self.names_cache.update({self.page_num: self.names})
+
+        self.profile_pic_urls = list(map(self.user_profile_pic, page))
+
+        # max(i) == number of artists on this page
+        # max(j) == 3 == 3 previews for every artist
+        self.image_urls = [page[i]['illusts'][j]['image_urls']['square_medium']
+                            for i in range(len(page))
+                            for j in range(len(page[i]['illusts']))]
+
 
     def show_page(self):
-        # TODO: more sophiscated layout for artist search that shows details
+        names = self.names_cache[self.page_num]
+        names_prefixed = list(map(
+            pure.prefix_artist_name,
+            names,
+            range(len(names))
+        ))
+
         try:
-            utils.show_artist_illusts(self.download_path)
+            lscat.Card(
+                self.download_path,
+                f"{self.main_path}/{self.input}/{self.page_num}/previews/",
+                messages=names_prefixed,
+            )
         except FileNotFoundError:
             print("This is the last page!")
             self.page_num -= 1
@@ -806,18 +864,23 @@ class Users(ABC):
     def user_profile_pic(json):
         return json["user"]["profile_image_urls"]["medium"]
 
+    @staticmethod
+    def image_urls(illusts_json):
+        """page[i]['illusts'][j]['image_urls']['medium']"""
+        return illusts_json['image_urls']['medium']
+
 
 class SearchUsers(Users):
     """
     Inherits from Users class, define self.input as the search string (user)
     Parent directory for downloads should go to search/
-    Note that the pixivpy3 api does not have search_user() yet; It's on my fork
-    and I'm trying to get it merged upstream.
+    Note that pixivpy3 does not have search_user() yet (not released yet);
+    you need to install the master branch (which should be done if you used
+    the requirements.txt)
     """
     def __init__(self, user):
-        self.input = user
         self.main_path = f"{KONEKODIR}/search"
-        super().__init__()
+        super().__init__(user)
 
     def pixivrequest(self):
         return API.search_user(self.input, offset=self.offset)
@@ -829,10 +892,10 @@ class FollowingUsers(Users):
     (Or any other pixiv ID that the user wants to look at their following users)
     Parent directory for downloads should go to following/
     """
-    def __init__(self, your_id):
-        self.input = your_id
+    def __init__(self, your_id, publicity='private'):
+        self.publicity = publicity
         self.main_path = f"{KONEKODIR}/following"
-        super().__init__()
+        super().__init__(your_id)
 
     def pixivrequest(self):
         return API.user_following(
@@ -871,19 +934,11 @@ def user_prompt(user_class):
                 print(keyseqs)
 
                 # End of the sequence...
-                # Two digit sequence -- view image given coords
+                # Two digit sequence -- view artist given number
                 if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
 
-                    first_num = int(keyseqs[0])
-                    second_num = int(keyseqs[1])
-                    selected_user_num = pure.find_number_map(first_num, second_num)
-                    break  # leave cbreak(), go to gallery
-
-                # One letter two digit sequence
-                elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
-
-                    first_num = keyseqs[1]
-                    second_num = keyseqs[2]
+                    first_num = keyseqs[0]
+                    second_num = keyseqs[1]
                     selected_user_num = int(f"{first_num}{second_num}")
                     break  # leave cbreak(), go to gallery
 
@@ -928,7 +983,6 @@ def show_gallery(
 
     if show:
         utils.show_artist_illusts(download_path)
-    pure.print_multiple_imgs(current_page_illusts)
 
     if not all_pages_cache:
         all_pages_cache = {"1": current_page}
@@ -1037,6 +1091,8 @@ class Loop(ABC):
     def process_url_or_input(self):
         if "pixiv" in self.url_or_id:
             self.user_input = pure.split_backslash_last(self.url_or_id)
+        else:
+            self.user_input = self.url_or_id
 
     def validate_input(self):
         try:
@@ -1088,7 +1144,11 @@ class SearchUsersModeLoop(Loop):
     before proceeding
     """
     def prompt_url_id(self):
-        self.user_input = input("Enter search string:\n")
+        self.url_or_id = input("Enter search string:\n")
+
+    def process_url_or_input(self):
+        """the 'url or id' name doesn't really apply; accepts all strings"""
+        self.user_input = self.url_or_id
 
     def validate_input(self):
         """Overriding base class: search string doesn't need to be int"""
@@ -1107,7 +1167,7 @@ class FollowingUserModeLoop(Loop):
     skipped
     """
     def prompt_url_id(self):
-        self.user_input = input("Enter your pixiv ID or url: ")
+        self.url_or_id = input("Enter your pixiv ID or url: ")
 
     def go_to_mode(self):
         following = FollowingUsers(self.user_input)
@@ -1141,7 +1201,7 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
-                if ans == "y" or ans == "":
+                if ans in {"y", ""}:
                     FollowingUserModeLoop(prompted, your_id)
 
             # If your_id not stored, or if ans is no, ask for your_id
@@ -1156,6 +1216,9 @@ def main_loop(prompted, main_command, user_input, your_id=None):
 
         elif main_command == "m":
             utils.show_man_loop()
+
+        elif main_command == "c":
+            utils.clear_cache_loop()
 
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")

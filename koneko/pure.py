@@ -74,6 +74,10 @@ def prefix_filename(old_name, new_name, number):
     new_file_name = f"{number_prefix}_{new_name}.{img_ext}"
     return new_file_name
 
+def prefix_artist_name(name, number):
+    number_prefix = str(number).rjust(2, "0")
+    new_file_name = f"{number_prefix}\n{' ' * 19}{name}"
+    return new_file_name
 
 def find_number_map(x, y):
     if not (x >= 1 and y >= 1):
@@ -140,13 +144,14 @@ def page_urls_in_post(post_json, size="medium"):
     return number_of_pages, page_urls
 
 
-def change_url_to_full(post_json, png=False):
+def change_url_to_full(post_json=None, png=False, url=None):
     """
     The 'large' resolution url isn't the largest. This uses changes the url to
     the highest resolution available
     """
-    url = url_given_size(post_json, "large")
-    url = re.sub(r"_p0_master\d+", "_p0", url)
+    if post_json:
+        url = url_given_size(post_json, "large")
+    url = re.sub(r"_master\d+", "", url)
     url = re.sub(r"c\/\d+x\d+_\d+_\w+\/img-master", "img-original", url)
 
     # If it doesn't work, try changing to png

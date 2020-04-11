@@ -1,12 +1,18 @@
-# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Coverage](pics/coverage.svg)](testing.py)
+# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
+Gallery view, square medium
+![Gallery view_square_medium1](pics/gallery_view_square_medium1.png)
+![Gallery view_square_medium2](pics/gallery_view_square_medium2.png)
+Gallery view, medium (non-square)
 ![Gallery view](pics/gallery_view.png)
-
-![Gallery view_square_medium](pics/gallery_view_square_medium.png)
-
+Image view
 ![Image_view](pics/image_view.png)
+Artist search (artist profile picture on the left, 3 previews on right)
+![artist_search](pics/artist_search.png)
+View artists you're following
+![following_users_view](pics/following_users_view.png)
 
 Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the magical `kitty +kitten icat` 'kitten' to display images. For more info see the [kitty documentation](https://sw.kovidgoyal.net/kitty/kittens/icat.html). Actually, `lscat.py` uses [pixcat](https://github.com/mirukana/pixcat), which is a Python API for icat.
 
@@ -54,8 +60,7 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 [Credentials]
 Username = XXX
 Password = XXX
-# Your pixiv ID is optional. If you fill it in, you don't have to
-# paste it every time you go to mode 3
+# Your pixiv ID is optional. If you fill it in, you don't have to paste it every time you go to mode 3
 ID = XXX
 ```
 
@@ -68,12 +73,10 @@ git clone https://github.com/twenty5151/koneko.git
 # Update the tag for the latest released version
 git clone -b 'v0.1' --depth 1 https://github.com/twenty5151/koneko.git`
 
+cd koneko && pip install -r requirements.txt --upgrade
 cd koneko
-pip install -r requirements.txt
-python koneko.py
+./koneko.py
 ```
-
-**NOTE:** requirements.txt will install a newer, unreleased version of pixivpy (from its master branch), because mode 4 relies on a new feature that hasn't been uploaded to Pypi yet. Artist search was not supported by pixivpy, but I made a [PR](https://github.com/upbit/pixivpy/pull/123) to add that feature and it has been merged. However, there has been no new release yet.
 
 4. There are four modes of operation:
     1. Show artist illustrations: equivalent to going to the artist page
@@ -81,15 +84,15 @@ python koneko.py
     3. View artists you are following. (Or any other user ID)
     4. Search for artist/user.
 
-Enter digits 1-4 to proceed. Then, paste in a valid pixiv ID or url. See below for url examples. Pressing ctrl+c in a prompt bring you back to the 'home' prompt.
+Enter digits 1-4 to proceed. Then, paste in a valid pixiv ID or url. See below for url examples.
 
 Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. Example:
 
 ```sh
-python koneko.py https://www.pixiv.net/en/users/2232374 # Mode 1
-python koneko.py https://www.pixiv.net/en/artworks/78823485 # Mode 2
-python koneko.py -f https://www.pixiv.net/en/users/2232374 # Mode 3
-python koneko.py "raika9" # Mode 4
+./koneko.py https://www.pixiv.net/en/users/2232374 # Mode 1
+./koneko.py https://www.pixiv.net/en/artworks/78823485 # Mode 2
+./koneko.py -f https://www.pixiv.net/en/users/2232374 # Mode 3
+./koneko.py "raika9" # Mode 4
 ```
 
 # Roadmap
@@ -103,7 +106,7 @@ python koneko.py "raika9" # Mode 4
 
 ## Speed
 
-* Cache API.user_illusts()
+* Download artist profile pics and their previews in the same ThreadPoolExecutor context
 * If files already downloaded, show them immediately before logging in
 
 # Manual
@@ -123,7 +126,7 @@ Using image number, where {number} is the nth image in order (see examples)
     n                  -- view the next page
     p                  -- view the previous page
     h                  -- show this help
-    q                  -- exit
+    q                  -- quit (with confirmation)
 
 Examples:
     i09   --->  Display the ninth image in image view (must have leading 0)
@@ -132,8 +135,8 @@ Examples:
     D9    --->  Download the ninth image, in large resolution
 
     25    --->  Display the image on column 2, row 5 (index starts at 1)
-    d25    --->  Open the image on column 2, row 5 (index starts at 1) in browser
-    o25    --->  Download the image on column 2, row 5 (index starts at 1)
+    d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
+    o25   --->  Download the image on column 2, row 5 (index starts at 1)
 ```
 
 ```
@@ -156,7 +159,7 @@ User view commands (No need to press enter):
     q -- quit (with confirmation)
 ```
 
-## lscat rewrite
+## Image rendering with lscat
 
 **Note on terminology**: [lsix](https://github.com/hackerb9/lsix/) is the name of the original shell script I used, which uses sixel. I edited it to use icat and renamed it **lscat**. Then I rewrote it with python, which is named **lscat.py**. **lscat.py is the default renderer and the fastest.**
 
@@ -164,22 +167,22 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 * Revert to the old lscat shell script.
 
-    1. In `show_artist_illusts()` (`koneko.py`), change `renderer="lscat"` to `renderer="lscat old"`.
+    1. In `show_artist_illusts()` (`utils.py`), change `renderer="lscat"` to `renderer="lscat old"`.
 
 * Revert to the original lsix script. This would be more reliable than 1., because it has all the checks for terminal sizes. However, you cannot use kitty; xterm works.
 
     1. Make sure you're cd'ed into the koneko dir, then `curl "https://raw.githubusercontent.com/hackerb9/lsix/master/lsix" -o legacy/lsix && chmod +x legacy/lsix`
 
-    2. In `show_artist_illusts()` (`koneko.py`), change `renderer="lscat"` to `renderer="lsix"`.
+    2. In `show_artist_illusts()` (`utils.py`), change `renderer="lscat"` to `renderer="lsix"`.
 
-* Adjust the 'magic numbers'. There are around 4-5 types and they are commented in `lscat.py`
+* Adjust the 'magic numbers'. They are commented in `lscat.py`.
 * You can contribute to `lscat.py` by checking terminal size and doing all the maths and send a PR
 
 | Feature  | lscat.py | legacy/lscat | [hackerb9/lsix](https://github.com/hackerb9/lsix/) |
 | --- | --- | --- | --- |
-| Speed  | Fastest | Slow\* | Slow\*
-| Reliability (eg, resizing the terminal) | Poor | Medium | Good
-| Adaptability (eg, other terminals, tmux) | Poor | Poor | Medium
+| Speed  | :heavy_check_mark: | :x:\* | :x:\*
+| Reliability (eg, resizing the terminal) | :x: | :interrobang: | :heavy_check_mark:
+| Adaptability (eg, other terminals, tmux) | :x: | :x: | :interrobang:
 
 \* lsix will appear faster because the images are much smaller. Once you scale them up, lsix will be the slowest.
 
@@ -193,7 +196,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 ```
 
 ## Unit tests
-Use `pytest testing.py` or `coverage run -m pytest *.py -v` to also generate a code coverage report. Use `coverage report` or `coverage html -d testing/htmlcov/` to view. The coverage badge can be generated with `rm coverage.svg; coverage-badge -o coverage.svg`.
+Use `pytest testing.py`
 
 
 Here's a random shell command to get (but not download) and display any pixiv image url:
