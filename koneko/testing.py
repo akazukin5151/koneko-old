@@ -5,6 +5,7 @@ import pytest
 import pure
 import lscat
 import koneko
+import utils
 from page_json import *  # Imports the current_page (dict) stored in disk
 
 page_illusts = page_json["illusts"]
@@ -106,14 +107,19 @@ def test_change_url_to_full():
 
 
 # From lscat.py
-def test_is_jpg():
-    assert lscat.is_jpg("testing/04_祝！！！.jpg") == True
-    assert lscat.is_jpg("testing/17_ミコニャン.jpg") == True
-    assert lscat.is_jpg("testing/77803142_p0.png") == False
+def test_is_image():
+    assert lscat.is_image("../testing/04_祝！！！.jpg") == True
+    assert lscat.is_image("../testing/17_ミコニャン.jpg") == True
+    assert lscat.is_image("../testing/77803142_p0.png") == True
+    assert lscat.is_image("../testing/not_an_image.txt") == False
 
 
 def test_filter_jpg():
-    assert lscat.filter_jpg("testing/") == ["04_祝！！！.jpg", "17_ミコニャン.jpg"]
+    assert lscat.filter_jpg("../testing/") == [
+        "04_祝！！！.jpg",
+        "17_ミコニャン.jpg",
+        "77803142_p0.png",
+    ]
 
 
 mywidth = 90 // 5  # == 18
@@ -133,5 +139,5 @@ def test_artist_user_id_prompt(monkeypatch):
     monkeypatch.setattr(
         "builtins.input", lambda x: "https://www.pixiv.net/en/users/2232374"
     )
-    myinput = koneko.artist_user_id_prompt()
+    myinput = utils.artist_user_id_prompt()
     myinput == "https://www.pixiv.net/en/users/2232374"
