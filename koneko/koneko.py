@@ -743,6 +743,11 @@ class Users(ABC):
         """Parse info and initiate the variables, download them"""
         # TODO: download profile pics and previews concurrently
         # The problem is downloading to a different path
+        # Lots of options, each with advantages and disadvantages
+        # 1) put the `with cd` inside the function submitted to thread
+        # 2) 'for path in download path': submit; need to use while loop
+        # 3) download all in same dir, then rename, then move
+        # 4) download all in same dir and rename, then move
         self.parse_user_infos()
         pbar = tqdm(total=len(self.profile_pic_urls), smoothing=0)
         # fmt: off
@@ -1197,7 +1202,7 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
-                if ans == "y" or ans == "":
+                if ans in {"y", ""}:
                     FollowingUserModeLoop(prompted, your_id)
 
             # If your_id not stored, or if ans is no, ask for your_id

@@ -29,9 +29,11 @@ def show_artist_illusts(path, renderer="lscat", **kwargs):
         if renderer == "lscat":
             lscat.Gallery(path, **kwargs)
         elif renderer == "lscat old":
-            os.system(f"{lscat_path}/legacy/lscat")
+            from pathlib import Path
+            os.system(f"{Path(lscat_path).parent}/legacy/lscat")
         elif renderer == "lsix":
-            os.system(f"{lscat_path}/legacy/lsix")
+            from pathlib import Path
+            os.system(f"{Path(lscat_path).parent}/legacy/lsix")
 
 
 def display_image_vp(filepath):
@@ -57,7 +59,7 @@ def begin_prompt(printmessage=True):
         for message in messages:
             print(" " * 24, message)
 
-    pixcat.Image("pics/71471144_p0.png").thumbnail(500).show(align="left", y=0)
+    pixcat.Image("../pics/71471144_p0.png").thumbnail(500).show(align="left", y=0)
     command = input("\nEnter a command: ")
     return command
 
@@ -122,7 +124,7 @@ def info_screen_loop():
     for message in messages:
         print(" " * 26, message)
 
-    pixcat.Image("pics/79494300_p0.png").thumbnail(750).show(align="left", y=0)
+    pixcat.Image("../pics/79494300_p0.png").thumbnail(750).show(align="left", y=0)
 
     while True:
         help_command = input("\nPress any key to return: ")
