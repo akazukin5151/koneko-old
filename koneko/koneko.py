@@ -1169,7 +1169,7 @@ class FollowingUserModeLoop(Loop):
     skipped
     """
     def prompt_url_id(self):
-        self.user_input = input("Enter your pixiv ID or url: ")
+        self.url_or_id = input("Enter your pixiv ID or url: ")
 
     def go_to_mode(self):
         following = FollowingUsers(self.user_input)
