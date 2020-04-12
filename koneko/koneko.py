@@ -509,13 +509,13 @@ class Gallery:
         # prefetch again
         if len(self.all_pages_cache) == 1:
             # Prefetch the next page on first gallery load
-            try:
+            with funcy.suppress(LastPageException):
                 self.all_pages_cache = prefetch_next_page(
                     self.current_page_num, self.artist_user_id, self.all_pages_cache
                 )
-            except LastPageException:
-                pass
-        else:  # Gallery -> next -> image prompt -> back
+
+        else:
+            # Gallery -> next -> image prompt -> back
             self.all_pages_cache[str(self.current_page_num)] = self.current_page
 
 
