@@ -62,6 +62,7 @@ def user_illusts_spinner(artist_user_id):
 def protected_illust_detail(image_id):
     return API.illust_detail(image_id)
 
+
 @pure.spinner("Getting full image details... ")
 def full_img_details(png=False, post_json=None, image_id=None):
     """
@@ -77,7 +78,9 @@ def full_img_details(png=False, post_json=None, image_id=None):
     filename = pure.split_backslash_last(url)
     filepath = pure.generate_filepath(filename)
     return url, filename, filepath
+
 # - API FUNCTIONS ======================================================
+
 
 
 # - DOWNLOAD FUNCTIONS ==================================================
@@ -104,15 +107,14 @@ def async_download_core(
     """
     oldnames = list(map(pure.split_backslash_last, urls))
     if rename_images:
-        newnames = list(
-            map(pure.prefix_filename, oldnames, file_names, range(len((urls))))
-        )
+        newnames = map(pure.prefix_filename, oldnames, file_names, range(len(urls)))
+        newnames = list(newnames)
     else:
         newnames = oldnames
 
     os.makedirs(download_path, exist_ok=True)
     with pure.cd(download_path):
-        with ThreadPoolExecutor(max_workers=30) as executor:
+        with ThreadPoolExecutor(max_workers=len(urls)) as executor:
             for (i, name) in enumerate(newnames):
                 if not os.path.isfile(name):
                     executor.submit(
@@ -124,6 +126,7 @@ def async_download_core(
 def protected_download(url):
     API.download(url)
 
+
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads one pic given the single url, rename if needed."""
     protected_download(url)
@@ -132,11 +135,10 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
         pbar.update(1)
     # print(f"{img_name} done!")
     if new_file_name:
-        os.rename(img_name, new_file_name) # FIXME Sometimes it misses a file?!
+        os.rename(img_name, new_file_name)  # FIXME Sometimes it misses a file?!
 
 
 # - Wrappers around the core functions for async download
-#@pure.spinner(" Downloading illustrations...  ")
 def download_page(current_page_illusts, current_page_num, artist_user_id, pbar=None):
     """
     Download the illustrations on one page of given artist id (using threads),
@@ -180,9 +182,9 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
             image_id=image_id, post_json=post_json, png=png
         )
     else:
-        url = kwargs['url']
-        filename = kwargs['filename']
-        filepath = kwargs['filepath']
+        url = kwargs["url"]
+        filename = kwargs["filename"]
+        filepath = kwargs["filepath"]
 
     homepath = os.path.expanduser("~")
     download_path = f"{homepath}/Downloads/"
@@ -299,7 +301,9 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     os.system(
         f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
     )
+
 # - DOWNLOAD FUNCTIONS ==================================================
+
 
 
 # - Interactive functions (frontend)
@@ -514,10 +518,6 @@ class Gallery:
         else:  # Gallery -> next -> image prompt -> back
             self.all_pages_cache[str(self.current_page_num)] = self.current_page
 
-        # TODO: Gallery and Image classes should show_artist_illusts() themselves
-        # They do not have show_page() method as
-        # utils.show_artist_illusts() is called before class is instantiated
-        # But Users class does handle it.
 
     def download_image_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -736,43 +736,41 @@ class Users(ABC):
         self.names_cache = {}
         self.ids_cache = {}
 
+        # TODO: if dir exists, show page first then parse
         self.parse_and_download()
         self.show_page()
         self.prefetch_next_page()
 
     def parse_and_download(self):
-        """Parse info and initiate the variables, download them"""
-        # TODO: download profile pics and previews concurrently
-        # The problem is downloading to a different path
-        # Lots of options, each with advantages and disadvantages
-        # 1) put the `with cd` inside the function submitted to thread
-        # 2) 'for path in download path': submit; need to use while loop
-        # 3) download all in same dir, then rename, then move
-        # 4) download all in same dir and rename, then move
+        """
+        Parse info, combine profile pics and previews, download all concurrently,
+        move the profile pics to the correct dir (less files to move)
+        """
         self.parse_user_infos()
-        pbar = tqdm(total=len(self.profile_pic_urls), smoothing=0)
+        preview_path = f"{self.main_path}/{self.input}/{self.page_num}/previews/"
+        all_urls = self.profile_pic_urls + self.image_urls
+        all_names = self.names + list(map(pure.split_backslash_last, self.image_urls))
+        splitpoint = len(self.profile_pic_urls)
+
+        pbar = tqdm(total=len(all_urls), smoothing=0)
         # fmt: off
         async_download_core(
-            self.download_path,
-            self.profile_pic_urls,
+            preview_path,
+            all_urls,
             rename_images=True,
-            file_names=self.names,
-            pbar=pbar
-        )
-        pbar.close()
-
-        # If an artist has less than 3 works, the previews will not match up
-        # and cause an IndexError when displaying.
-        pbar = tqdm(total=len(self.image_urls), smoothing=0)
-        async_download_core(
-            f"{self.main_path}/{self.input}/{self.page_num}/previews/",
-            self.image_urls,
-            rename_images=True,
-            file_names=map(pure.split_backslash_last, self.image_urls),
+            file_names=all_names,
             pbar=pbar
         )
         pbar.close()
         # fmt: on
+
+        # Move artist profile pics to their correct dir
+        to_move = sorted(os.listdir(preview_path))[:splitpoint]
+        with pure.cd(self.download_path):
+            for pic in to_move:
+                os.rename(f"{self.download_path}/previews/{pic}",
+                            f"{self.download_path}/{pic}")
+
 
     @abstractmethod
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
