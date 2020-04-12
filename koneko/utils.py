@@ -109,7 +109,7 @@ def info_screen_loop():
         "Browse pixiv in the terminal using kitty's icat to display",
         "images with images embedded in the terminal\n",
         "1. View an artist's illustrations",
-        "2.View a post (support multiple images)",
+        "2. View a post (support multiple images)",
         "3. View artists you followed",
         "4. Search for artists and browse their works.\n",
         "Thank you for using koneko!",

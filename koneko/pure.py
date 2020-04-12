@@ -67,10 +67,10 @@ def generate_filepath(filename):
     filepath = f"{os.path.expanduser('~')}/Downloads/{filename}"
     return filepath
 
-
+@cytoolz.curry
 def prefix_filename(old_name, new_name, number):
     img_ext = old_name.split(".")[-1]
-    number_prefix = str(number).rjust(2, "0")
+    number_prefix = str(number).rjust(3, "0")
     new_file_name = f"{number_prefix}_{new_name}.{img_ext}"
     return new_file_name
 
