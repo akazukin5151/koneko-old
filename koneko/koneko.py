@@ -116,7 +116,8 @@ def main():
 
 def main_loop(prompted, main_command, user_input, your_id=None):
     """
-    Ask for mode selection
+    Ask for mode selection, if no command line arguments supplied
+    call the right function depending on the mode
     user_input : str or int
         For artist_illusts_mode, it is artist_user_id : int
         For view_post_mode, it is image_id : int
@@ -175,6 +176,13 @@ def main_loop(prompted, main_command, user_input, your_id=None):
 
 #- Loop classes ==========================================================
 class Loop(ABC):
+    """Ask for details relevant to mode then go to mode
+    prompt user for details, if no command line arguments supplied
+    process input (can be overridden)
+    validate input (can be overridden)
+    wait for api thread to finish logging in
+    activates the selected mode (needs to be overridden)
+    """
     def __init__(self, prompted, user_input):
         self.prompted = prompted
         self.user_input = user_input
