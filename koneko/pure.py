@@ -5,8 +5,6 @@ Collection of functions that are pure and side effect free
 
 import re
 import os
-import time
-import functools
 import itertools
 import threading
 from contextlib import contextmanager
