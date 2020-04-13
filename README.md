@@ -102,6 +102,7 @@ For more details look at the [manual](#manual).
 
 ## Features
 
+* View new posts/illusts from all the artists you're following
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
