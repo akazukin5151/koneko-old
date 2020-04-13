@@ -5,8 +5,6 @@ Collection of functions that are pure and side effect free
 
 import re
 import os
-import time
-import functools
 import itertools
 import threading
 from contextlib import contextmanager
@@ -67,10 +65,10 @@ def generate_filepath(filename):
     filepath = f"{os.path.expanduser('~')}/Downloads/{filename}"
     return filepath
 
-
+@cytoolz.curry
 def prefix_filename(old_name, new_name, number):
     img_ext = old_name.split(".")[-1]
-    number_prefix = str(number).rjust(2, "0")
+    number_prefix = str(number).rjust(3, "0")
     new_file_name = f"{number_prefix}_{new_name}.{img_ext}"
     return new_file_name
 
@@ -139,7 +137,7 @@ def page_urls_in_post(post_json, size="medium"):
         for i in range(number_of_pages):
             page_urls.append(url_given_size(list_of_pages[i], size))
     else:
-        page_urls = None
+        page_urls = [url_given_size(post_json, size)]
 
     return number_of_pages, page_urls
 

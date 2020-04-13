@@ -128,6 +128,7 @@ class Gallery(View):
 
         super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
 
+    @funcy.ignore(IndexError)
     def render(self):
         os.system("clear")
         for (i, page) in enumerate(self.pages_list):
@@ -173,6 +174,7 @@ class Card(View):
         self.preview_xcoords = preview_xcoords
         super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
 
+    @funcy.ignore(IndexError)
     def render(self):
         assert self.rows_in_page == 1
         assert len(self.messages) >= self.rows_in_page
