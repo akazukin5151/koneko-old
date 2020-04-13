@@ -1194,7 +1194,13 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
     """
     This downloads an image, checks if it's valid. If not, retry with png.
     """
-    if not kwargs:
+    if png and 'url' in kwargs: # Called from recursion
+        # IMPROVEMENT This is copied from full_img_details()...
+        url = pure.change_url_to_full(url=kwargs['url'], png=True)
+        filename = pure.split_backslash_last(url)
+        filepath = pure.generate_filepath(filename)
+
+    elif not kwargs:
         url, filename, filepath = full_img_details(
             image_id=image_id, post_json=post_json, png=png
         )
@@ -1209,8 +1215,9 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
 
     verified = utils.verify_full_download(filepath)
     if not verified:
-        download_image_verified(image_id=image_id, png=True)
-    print(f"Image downloaded at {filepath}\n")
+        download_image_verified(url=url, png=True)
+    else:
+        print(f"Image downloaded at {filepath}\n")
 
 
 # - Functions that are wrappers around download functions, making them impure

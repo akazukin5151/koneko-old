@@ -137,7 +137,7 @@ def page_urls_in_post(post_json, size="medium"):
         for i in range(number_of_pages):
             page_urls.append(url_given_size(list_of_pages[i], size))
     else:
-        page_urls = None
+        page_urls = [url_given_size(post_json, size)]
 
     return number_of_pages, page_urls
 
