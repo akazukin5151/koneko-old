@@ -219,6 +219,15 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 \* lsix will appear faster because the images are much smaller. Once you scale them up, lsix will be the slowest.
 
+# Contributing
+* Fork it
+* Edit the files on your fork
+* Submit a pull request
+* If you want to, you can create an issue first. Ask any questions by opening a new issue.
+
+UML diagram of the classes:
+
+![classes](pics/classes.png)
 
 ## `Dev` branch
 
