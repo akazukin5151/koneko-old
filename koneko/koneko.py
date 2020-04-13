@@ -26,13 +26,11 @@ Required arguments if a mode is specified:
 Options:
   -h  Show this help
 """
-"""
-Capitalized tag definitions:
-    TODO: to-do, high priority
-    SPEED: speed things up, high priority
-    FEATURE: extra feature, low priority
-    BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
-"""
+# Capitalized tag definitions:
+#     TODO: to-do, high priority
+#     SPEED: speed things up, high priority
+#     FEATURE: extra feature, low priority
+#     BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 
 import os
 import re
@@ -139,7 +137,6 @@ def process_mode2(url_or_id):
         user_input = pure.split_backslash_last(url_or_id).split("\\")[0]
     elif "illust_id" in url_or_id:
         user_input = re.findall(r"&illust_id.*", url_or_id)[0].split("=")[-1]
-        user_input = int(image_id)
     return user_input, "2"
 
 
@@ -215,6 +212,8 @@ class Loop(ABC):
     def __init__(self, prompted, user_input):
         self._prompted = prompted
         self._user_input = user_input
+        # Defined by classes that inherit this in _prompt_url_id()
+        self._url_or_id = None
 
     def start(self):
         while True:
@@ -233,6 +232,7 @@ class Loop(ABC):
 
     @abstractmethod
     def _prompt_url_id(self):
+        """define self._url_or_id here"""
         raise NotImplementedError
 
     def _process_url_or_input(self):
@@ -339,9 +339,8 @@ def artist_illusts_mode(artist_user_id, current_page_num=1):
     current_page = user_illusts_spinner(artist_user_id)
     show_gallery(artist_user_id, current_page_num, current_page, show=show)
 
-def show_gallery(
-    artist_user_id, current_page_num, current_page, show=True, all_pages_cache=None
-):
+def show_gallery(artist_user_id, current_page_num, current_page, show=True,
+                 all_pages_cache=None):
     """
     Downloads images, show if requested, instantiate all_pages_cache, prompt.
     """
@@ -421,9 +420,9 @@ def view_post_mode(image_id):
 
 # - Interactive functions (frontend)
 def quit():
-    with term.cbreak():
+    with TERM.cbreak():
         while True:
-            ans = term.inkey()
+            ans = TERM.inkey()
             if ans == "y" or ans == "q" or ans.code == 343:  # Enter
                 sys.exit(0)
             elif ans:
@@ -444,19 +443,14 @@ class Image:
 
     """
     # fmt: off
-    def __init__(
-        self,
-        image_id,
-        artist_user_id,
-        current_page=None,
-        current_page_num=1,
-        **kwargs
-    ):
+    def __init__(self, image_id, artist_user_id, current_page=None,
+                 current_page_num=1, **kwargs):
     # fmt: on
         self._image_id = image_id
         self._artist_user_id = artist_user_id
         self._current_page = current_page
         self._current_page_num = current_page_num
+        self._all_pages_cache = None # Defined in self.leave()
 
         if kwargs:  # Posts with multiple pages
             self._page_urls = kwargs["page_urls"]
@@ -470,7 +464,7 @@ class Image:
         os.system(f"xdg-open {link}")
         print(f"Opened {link} in browser")
 
-    def download_image(self, png=False):
+    def download_image(self):
         current_url = self._page_urls[self._img_post_page_num]
         # Need to work on multi-image posts
         # Doing the same job as full_img_details
@@ -537,10 +531,10 @@ def image_prompt(image):
         "p": image.previous_image,
     }
 
-    with term.cbreak():
+    with TERM.cbreak():
         while True:
             print("Enter an image view command:")
-            image_prompt_command = term.inkey()
+            image_prompt_command = TERM.inkey()
 
             # Simplify if-else chain with case-switch
             func = case.get(image_prompt_command, None)
@@ -601,14 +595,8 @@ class Gallery:
 
     """
 
-    def __init__(
-        self,
-        current_page_illusts,
-        current_page,
-        current_page_num,
-        artist_user_id,
-        all_pages_cache,
-    ):
+    def __init__(self, current_page_illusts, current_page, current_page_num,
+                 artist_user_id, all_pages_cache):
         self._current_page_illusts = current_page_illusts
         self._current_page = current_page
         self._current_page_num = current_page_num
@@ -634,14 +622,14 @@ class Gallery:
 
     def download_image_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
-        if not selected_user_num:
+        if not selected_image_num:
             print("Invalid number!")
         else:
             self.download_image_num(selected_image_num)
 
     def open_link_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
-        if not selected_user_num:
+        if not selected_image_num:
             print("Invalid number!")
         else:
             self.open_link_num(selected_image_num)
@@ -655,7 +643,7 @@ class Gallery:
         os.system(f"xdg-open {link}")
         print(f"Opened {link}!\n")
 
-    def download_image_num(self, number, png=False):
+    def download_image_num(self, number):
         # Update current_page_illusts, in case if you're in another page
         self._current_page = self._all_pages_cache[str(self._current_page_num)]
         self._current_page_illusts = self._current_page["illusts"]
@@ -736,12 +724,12 @@ def gallery_prompt(gallery):
     Otherwise for keys that do not need a sequence, execute their actions normally
     """
     sequenceable_keys = ("o", "d", "i", "O", "D")
-    with term.cbreak():
+    with TERM.cbreak():
         keyseqs = []
         seq_num = 0
         print("Enter a gallery command:")
         while True:
-            gallery_command = term.inkey()
+            gallery_command = TERM.inkey()
 
             # Wait for the rest of the sequence
             if gallery_command in sequenceable_keys:
@@ -841,12 +829,18 @@ class Users(ABC):
 
     @abstractmethod
     def __init__(self, user_or_id):
+        self._main_path = None # Defined in child classes
         self._input = user_or_id
         self._offset = 0
         self._page_num = 1
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._names_cache = {}
         self._ids_cache = {}
+        # Defined in _parse_user_infos():
+        self._next_url = None
+        self._ids = None
+        self._names = None
+        self._profile_pic_urls = None
 
     def start(self):
         # TODO: if dir exists, show page first then parse
@@ -883,7 +877,7 @@ class Users(ABC):
         with pure.cd(self._download_path):
             for pic in to_move:
                 os.rename(f"{self._download_path}/previews/{pic}",
-                            f"{self._download_path}/{pic}")
+                          f"{self._download_path}/{pic}")
 
 
     @abstractmethod
@@ -1022,10 +1016,10 @@ def user_prompt(user_class):
     keyseqs = []
     seq_num = 0
     sequenceable_keys = "i"
-    with term.cbreak():
+    with TERM.cbreak():
         while True:
             print("Enter a user view command:")
-            user_prompt_command = term.inkey()
+            user_prompt_command = TERM.inkey()
 
             if user_prompt_command == "n":
                 user_class.next_page()
@@ -1130,9 +1124,8 @@ def full_img_details(png=False, post_json=None, image_id=None):
 # - DOWNLOAD FUNCTIONS ==================================================
 # - Core download functions (for async)
 @pure.spinner("")
-def async_download_spinner(
-    download_path, urls, rename_images=False, file_names=None, pbar=None
-):
+def async_download_spinner(download_path, urls, rename_images=False,
+                           file_names=None, pbar=None):
     async_download_core(
         download_path,
         urls,
@@ -1142,9 +1135,8 @@ def async_download_spinner(
     )
 
 
-def async_download_core(
-    download_path, urls, rename_images=False, file_names=None, pbar=None
-):
+def async_download_core(download_path, urls, rename_images=False,
+                        file_names=None, pbar=None):
     """
     Core logic for async downloading. Rename files with given new name
     if needed. Submit each url to the ThreadPoolExecutor.
@@ -1277,9 +1269,8 @@ def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
     return all_pages_cache
 
 
-def go_next_image(
-    page_urls, img_post_page_num, number_of_pages, downloaded_images, download_path,
-):
+def go_next_image(page_urls, img_post_page_num, number_of_pages,
+                  downloaded_images, download_path):
     """
     Intended to be from image_prompt, for posts with multiple images.
     Downloads next image it not downloaded, open it, download the next image
@@ -1357,8 +1348,8 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
 
 
 if __name__ == "__main__":
-    global term
-    term = Terminal()
+    global TERM
+    TERM = Terminal()
     global KONEKODIR
     KONEKODIR = "/tmp/koneko"
     main()
