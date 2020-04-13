@@ -213,41 +213,41 @@ class Loop(ABC):
     activates the selected mode (needs to be overridden)
     """
     def __init__(self, prompted, user_input):
-        self.prompted = prompted
-        self.user_input = user_input
+        self._prompted = prompted
+        self._user_input = user_input
 
         while True:
-            if self.prompted and not self.user_input:
-                self.prompt_url_id()
+            if self._prompted and not self._user_input:
+                self._prompt_url_id()
                 os.system("clear")
 
-                self.process_url_or_input()
-                self.validate_input()
+                self._process_url_or_input()
+                self._validate_input()
 
             API_THREAD.join()  # Wait for API to finish
             global API
             API = API_QUEUE.get()  # Assign API to PixivAPI object
 
-            self.go_to_mode()
+            self._go_to_mode()
 
     @abstractmethod
-    def prompt_url_id(self):
+    def _prompt_url_id(self):
         raise NotImplementedError
 
-    def process_url_or_input(self):
-        if "pixiv" in self.url_or_id:
-            self.user_input = pure.split_backslash_last(self.url_or_id)
+    def _process_url_or_input(self):
+        if "pixiv" in self._url_or_id:
+            self._user_input = pure.split_backslash_last(self._url_or_id)
         else:
-            self.user_input = self.url_or_id
+            self._user_input = self._url_or_id
 
-    def validate_input(self):
+    def _validate_input(self):
         try:
-            int(self.user_input)
+            int(self._user_input)
         except ValueError:
             print("Invalid image ID!")
 
     @abstractmethod
-    def go_to_mode(self):
+    def _go_to_mode(self):
         raise NotImplementedError
 
 
@@ -256,11 +256,11 @@ class ArtistModeLoop(Loop):
     Ask for artist ID and process it, wait for API to finish logging in
     before proceeding
     """
-    def prompt_url_id(self):
-        self.url_or_id = utils.artist_user_id_prompt()
+    def _prompt_url_id(self):
+        self._url_or_id = utils.artist_user_id_prompt()
 
-    def go_to_mode(self):
-        artist_illusts_mode(self.user_input)
+    def _go_to_mode(self):
+        artist_illusts_mode(self._user_input)
 
 
 class ViewPostModeLoop(Loop):
@@ -268,20 +268,20 @@ class ViewPostModeLoop(Loop):
     Ask for post ID and process it, wait for API to finish logging in
     before proceeding
     """
-    def prompt_url_id(self):
-        self.url_or_id = input("Enter pixiv post url or ID:\n")
+    def _prompt_url_id(self):
+        self._url_or_id = input("Enter pixiv post url or ID:\n")
 
-    def process_url_or_input(self):
+    def _process_url_or_input(self):
         """Overriding base class to account for 'illust_id' cases"""
-        if "illust_id" in self.url_or_id:
-            self.user_input = re.findall(r"&illust_id.*", self.url_or_id)[0].split("=")[-1]
-        elif "pixiv" in self.url_or_id:
-            self.user_input = pure.split_backslash_last(self.url_or_id)
+        if "illust_id" in self._url_or_id:
+            self._user_input = re.findall(r"&illust_id.*", self._url_or_id)[0].split("=")[-1]
+        elif "pixiv" in self._url_or_id:
+            self._user_input = pure.split_backslash_last(self._url_or_id)
         else:
-            self.user_input = self.url_or_id
+            self._user_input = self._url_or_id
 
-    def go_to_mode(self):
-        view_post_mode(self.user_input)
+    def _go_to_mode(self):
+        view_post_mode(self._user_input)
 
 
 class SearchUsersModeLoop(Loop):
@@ -289,19 +289,19 @@ class SearchUsersModeLoop(Loop):
     Ask for search string and process it, wait for API to finish logging in
     before proceeding
     """
-    def prompt_url_id(self):
-        self.url_or_id = input("Enter search string:\n")
+    def _prompt_url_id(self):
+        self._url_or_id = input("Enter search string:\n")
 
-    def process_url_or_input(self):
+    def _process_url_or_input(self):
         """the 'url or id' name doesn't really apply; accepts all strings"""
-        self.user_input = self.url_or_id
+        self._user_input = self._url_or_id
 
-    def validate_input(self):
+    def _validate_input(self):
         """Overriding base class: search string doesn't need to be int"""
         pass
 
-    def go_to_mode(self):
-        searching = SearchUsers(self.user_input)
+    def _go_to_mode(self):
+        searching = SearchUsers(self._user_input)
         user_prompt(searching)
 
 
@@ -312,11 +312,11 @@ class FollowingUserModeLoop(Loop):
     If user agrees to use the your_id saved in configu, prompt_url_id() will be
     skipped
     """
-    def prompt_url_id(self):
-        self.url_or_id = input("Enter your pixiv ID or url: ")
+    def _prompt_url_id(self):
+        self._url_or_id = input("Enter your pixiv ID or url: ")
 
-    def go_to_mode(self):
-        following = FollowingUsers(self.user_input)
+    def _go_to_mode(self):
+        following = FollowingUsers(self._user_input)
         user_prompt(following)
 #- Loop classes ==========================================================
 
@@ -452,25 +452,25 @@ class Image:
         **kwargs
     ):
     # fmt: on
-        self.image_id = image_id
-        self.artist_user_id = artist_user_id
-        self.current_page = current_page
-        self.current_page_num = current_page_num
+        self._image_id = image_id
+        self._artist_user_id = artist_user_id
+        self._current_page = current_page
+        self._current_page_num = current_page_num
 
         if kwargs:  # Posts with multiple pages
-            self.page_urls = kwargs["page_urls"]
-            self.img_post_page_num = kwargs["img_post_page_num"]
-            self.number_of_pages = kwargs["number_of_pages"]
-            self.downloaded_images = kwargs["downloaded_images"]
-        self.kwargs = kwargs  # Make it accessible to the methods
+            self._page_urls = kwargs["page_urls"]
+            self._img_post_page_num = kwargs["img_post_page_num"]
+            self._number_of_pages = kwargs["number_of_pages"]
+            self._downloaded_images = kwargs["downloaded_images"]
+        self._kwargs = kwargs  # Make it accessible to the methods
 
     def open_image(self):
-        link = f"https://www.pixiv.net/artworks/{self.image_id}"
+        link = f"https://www.pixiv.net/artworks/{self._image_id}"
         os.system(f"xdg-open {link}")
         print(f"Opened {link} in browser")
 
     def download_image(self, png=False):
-        current_url = self.page_urls[self.img_post_page_num]
+        current_url = self._page_urls[self._img_post_page_num]
         # Need to work on multi-image posts
         # Doing the same job as full_img_details
         large_url = pure.change_url_to_full(url=current_url)
@@ -479,46 +479,46 @@ class Image:
         download_image_verified(url=large_url, filename=filename, filepath=filepath)
 
     def next_image(self):
-        if not self.page_urls:
+        if not self._page_urls:
             print("This is the only page in the post!")
-        elif self.img_post_page_num + 1 == self.number_of_pages:
+        elif self._img_post_page_num + 1 == self._number_of_pages:
             print("This is the last image in the post!")
 
         else:
-            self.img_post_page_num += 1  # Be careful of 0 index
-            self.downloaded_images = go_next_image(
-                self.page_urls,
-                self.img_post_page_num,
-                self.number_of_pages,
-                self.downloaded_images,
-                download_path=self.kwargs["download_path"],
+            self._img_post_page_num += 1  # Be careful of 0 index
+            self._downloaded_images = go_next_image(
+                self._page_urls,
+                self._img_post_page_num,
+                self._number_of_pages,
+                self._downloaded_images,
+                download_path=self._kwargs["download_path"],
             )
 
     def previous_image(self):
-        if not self.page_urls:
+        if not self._page_urls:
             print("This is the only page in the post!")
-        elif self.img_post_page_num == 0:
+        elif self._img_post_page_num == 0:
             print("This is the first image in the post!")
         else:
-            download_path = self.kwargs["download_path"]
-            self.img_post_page_num -= 1
-            image_filename = self.downloaded_images[self.img_post_page_num]
+            download_path = self._kwargs["download_path"]
+            self._img_post_page_num -= 1
+            image_filename = self._downloaded_images[self._img_post_page_num]
             utils.display_image_vp(f"{download_path}{image_filename}")
-            print(f"Page {self.img_post_page_num+1}/{self.number_of_pages}")
+            print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
     def leave(self):
-        if self.current_page_num > 1 or self.current_page:
-            self.all_pages_cache = self.kwargs["all_pages_cache"]
+        if self._current_page_num > 1 or self._current_page:
+            self._all_pages_cache = self._kwargs["all_pages_cache"]
             show_gallery(
-                self.artist_user_id,
-                self.current_page_num,
-                self.current_page,
-                all_pages_cache=self.all_pages_cache,
+                self._artist_user_id,
+                self._current_page_num,
+                self._current_page,
+                all_pages_cache=self._all_pages_cache,
             )
         else:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
-            artist_illusts_mode(self.artist_user_id)
+            artist_illusts_mode(self._artist_user_id)
 
 
 # - Prompt functions with logic
@@ -608,27 +608,27 @@ class Gallery:
         artist_user_id,
         all_pages_cache,
     ):
-        self.current_page_illusts = current_page_illusts
-        self.current_page = current_page
-        self.current_page_num = current_page_num
-        self.artist_user_id = artist_user_id
-        self.all_pages_cache = all_pages_cache
+        self._current_page_illusts = current_page_illusts
+        self._current_page = current_page
+        self._current_page_num = current_page_num
+        self._artist_user_id = artist_user_id
+        self._all_pages_cache = all_pages_cache
 
-        pure.print_multiple_imgs(self.current_page_illusts)
-        print(f"Page {self.current_page_num}")
+        pure.print_multiple_imgs(self._current_page_illusts)
+        print(f"Page {self._current_page_num}")
         # Fixes: Gallery -> next page -> image prompt -> back -> prev page
         # Gallery -> Image -> back still retains all_pages_cache, no need to
         # prefetch again
-        if len(self.all_pages_cache) == 1:
+        if len(self._all_pages_cache) == 1:
             # Prefetch the next page on first gallery load
             with funcy.suppress(LastPageException):
-                self.all_pages_cache = prefetch_next_page(
-                    self.current_page_num, self.artist_user_id, self.all_pages_cache
+                self._all_pages_cache = prefetch_next_page(
+                    self._current_page_num, self._artist_user_id, self._all_pages_cache
                 )
 
         else:
             # Gallery -> next -> image prompt -> back
-            self.all_pages_cache[str(self.current_page_num)] = self.current_page
+            self._all_pages_cache[str(self._current_page_num)] = self._current_page
 
 
     def download_image_coords(self, first_num, second_num):
@@ -647,28 +647,28 @@ class Gallery:
 
     def open_link_num(self, number):
         # Update current_page_illusts, in case if you're in another page
-        self.current_page = self.all_pages_cache[str(self.current_page_num)]
-        self.current_page_illusts = self.current_page["illusts"]
-        image_id = self.current_page_illusts[number]["id"]
+        self._current_page = self._all_pages_cache[str(self._current_page_num)]
+        self._current_page_illusts = self._current_page["illusts"]
+        image_id = self._current_page_illusts[number]["id"]
         link = f"https://www.pixiv.net/artworks/{image_id}"
         os.system(f"xdg-open {link}")
         print(f"Opened {link}!\n")
 
     def download_image_num(self, number, png=False):
         # Update current_page_illusts, in case if you're in another page
-        self.current_page = self.all_pages_cache[str(self.current_page_num)]
-        self.current_page_illusts = self.current_page["illusts"]
-        post_json = self.current_page_illusts[number]
+        self._current_page = self._all_pages_cache[str(self._current_page_num)]
+        self._current_page_illusts = self._current_page["illusts"]
+        post_json = self._current_page_illusts[number]
         download_image_verified(post_json=post_json)
 
     def view_image(self, selected_image_num):
-        self.current_page = self.all_pages_cache[str(self.current_page_num)]
-        self.current_page_illusts = self.current_page["illusts"]
-        post_json = self.current_page_illusts[selected_image_num]
+        self._current_page = self._all_pages_cache[str(self._current_page_num)]
+        self._current_page_illusts = self._current_page["illusts"]
+        post_json = self._current_page_illusts[selected_image_num]
         image_id = post_json.id
 
         display_image(
-            post_json, self.artist_user_id, selected_image_num, self.current_page_num
+            post_json, self._artist_user_id, selected_image_num, self._current_page_num
         )
 
         # blocking: no way to unblock prompt
@@ -676,50 +676,50 @@ class Gallery:
 
         image = Image(
             image_id,
-            self.artist_user_id,
-            current_page_num=self.current_page_num,
-            current_page=self.current_page,
+            self._artist_user_id,
+            current_page_num=self._current_page_num,
+            current_page=self._current_page,
             page_urls=page_urls,
             img_post_page_num=0,
             number_of_pages=number_of_pages,
             downloaded_images=None,
-            all_pages_cache=self.all_pages_cache,
-            download_path=f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num}/large/",
+            all_pages_cache=self._all_pages_cache,
+            download_path=f"{KONEKODIR}/{self._artist_user_id}/{self._current_page_num}/large/",
         )
         image_prompt(image)
 
     def next_page(self):
-        download_path = f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num+1}/"
+        download_path = f"{KONEKODIR}/{self._artist_user_id}/{self._current_page_num+1}/"
         try:
             utils.show_artist_illusts(download_path)
         except FileNotFoundError:
             print("This is the last page!")
         else:
-            self.current_page_num += 1
-            print(f"Page {self.current_page_num}")
+            self._current_page_num += 1
+            print(f"Page {self._current_page_num}")
             print("Enter a gallery command:\n")
 
         # Skip prefetching again for cases like next -> prev -> next
-        if str(self.current_page_num + 1) not in self.all_pages_cache.keys():
+        if str(self._current_page_num + 1) not in self._all_pages_cache.keys():
             try:
                 # After showing gallery, pre-fetch the next page
-                self.all_pages_cache = prefetch_next_page(
-                    self.current_page_num, self.artist_user_id, self.all_pages_cache
+                self._all_pages_cache = prefetch_next_page(
+                    self._current_page_num, self._artist_user_id, self._all_pages_cache
                 )
             except LastPageException:
                 print("This is the last page!")
 
     def previous_page(self):
-        if self.current_page_num > 1:
-            self.current_page = self.all_pages_cache[str(self.current_page_num - 1)]
-            self.current_page_illusts = self.current_page["illusts"]
-            self.current_page_num -= 1
+        if self._current_page_num > 1:
+            self._current_page = self._all_pages_cache[str(self._current_page_num - 1)]
+            self._current_page_illusts = self._current_page["illusts"]
+            self._current_page_num -= 1
 
             download_path = (
-                f"{KONEKODIR}/{self.artist_user_id}/{self.current_page_num}/"
+                f"{KONEKODIR}/{self._artist_user_id}/{self._current_page_num}/"
             )
             utils.show_artist_illusts(download_path)
-            print(f"Page {self.current_page_num}")
+            print(f"Page {self._current_page_num}")
             print("Enter a gallery command:\n")
 
         else:
@@ -746,7 +746,6 @@ def gallery_prompt(gallery):
             if gallery_command in sequenceable_keys:
                 keyseqs.append(gallery_command)
                 print(keyseqs)
-                print(term.move_up(1) + term.move_right(1))
                 seq_num += 1
 
             elif gallery_command.code == 361:  # Escape
@@ -841,28 +840,28 @@ class Users(ABC):
 
     @abstractmethod
     def __init__(self, user_or_id):
-        self.input = user_or_id
-        self.offset = 0
-        self.page_num = 1
-        self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
-        self.names_cache = {}
-        self.ids_cache = {}
+        self._input = user_or_id
+        self._offset = 0
+        self._page_num = 1
+        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+        self._names_cache = {}
+        self._ids_cache = {}
 
         # TODO: if dir exists, show page first then parse
-        self.parse_and_download()
-        self.show_page()
-        self.prefetch_next_page()
+        self._parse_and_download()
+        self._show_page()
+        self._prefetch_next_page()
 
-    def parse_and_download(self):
+    def _parse_and_download(self):
         """
         Parse info, combine profile pics and previews, download all concurrently,
         move the profile pics to the correct dir (less files to move)
         """
-        self.parse_user_infos()
-        preview_path = f"{self.main_path}/{self.input}/{self.page_num}/previews/"
-        all_urls = self.profile_pic_urls + self.image_urls
-        all_names = self.names + list(map(pure.split_backslash_last, self.image_urls))
-        splitpoint = len(self.profile_pic_urls)
+        self._parse_user_infos()
+        preview_path = f"{self._main_path}/{self._input}/{self._page_num}/previews/"
+        all_urls = self._profile_pic_urls + self._image_urls
+        all_names = self._names + list(map(pure.split_backslash_last, self._image_urls))
+        splitpoint = len(self._profile_pic_urls)
 
         pbar = tqdm(total=len(all_urls), smoothing=0)
         # fmt: off
@@ -878,86 +877,83 @@ class Users(ABC):
 
         # Move artist profile pics to their correct dir
         to_move = sorted(os.listdir(preview_path))[:splitpoint]
-        with pure.cd(self.download_path):
+        with pure.cd(self._download_path):
             for pic in to_move:
-                os.rename(f"{self.download_path}/previews/{pic}",
-                            f"{self.download_path}/{pic}")
+                os.rename(f"{self._download_path}/previews/{pic}",
+                            f"{self._download_path}/{pic}")
 
 
     @abstractmethod
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    def pixivrequest(self):
+    def _pixivrequest(self):
         """Blank method, classes that inherit this ABC must override this"""
         raise NotImplementedError
 
     @pure.spinner('Parsing info...')
-    def parse_user_infos(self):
+    def _parse_user_infos(self):
         """Parse json and get list of artist names, profile pic urls, and id"""
-        result = self.pixivrequest()
+        result = self._pixivrequest()
         page = result["user_previews"]
-        self.next_url = result["next_url"]
+        self._next_url = result["next_url"]
 
-        self.ids = list(map(self.user_id, page))
-        self.ids_cache.update({self.page_num: self.ids})
+        self._ids = list(map(self._user_id, page))
+        self._ids_cache.update({self._page_num: self._ids})
 
-        self.names = list(map(self.user_name, page))
-        self.names_cache.update({self.page_num: self.names})
+        self._names = list(map(self._user_name, page))
+        self._names_cache.update({self._page_num: self._names})
 
-        self.profile_pic_urls = list(map(self.user_profile_pic, page))
+        self._profile_pic_urls = list(map(self._user_profile_pic, page))
 
         # max(i) == number of artists on this page
         # max(j) == 3 == 3 previews for every artist
-        self.image_urls = [page[i]['illusts'][j]['image_urls']['square_medium']
+        self._image_urls = [page[i]['illusts'][j]['image_urls']['square_medium']
                             for i in range(len(page))
                             for j in range(len(page[i]['illusts']))]
 
 
-    def show_page(self):
-        names = self.names_cache[self.page_num]
-        names_prefixed = list(map(
-            pure.prefix_artist_name,
-            names,
-            range(len(names))
-        ))
+    def _show_page(self):
+        names = self._names_cache[self._page_num]
+        names_prefixed = map(pure.prefix_artist_name, names, range(len(names)))
+        names_prefixed = list(names_prefixed)
 
         try:
             lscat.Card(
-                self.download_path,
-                f"{self.main_path}/{self.input}/{self.page_num}/previews/",
+                self._download_path,
+                f"{self._main_path}/{self._input}/{self._page_num}/previews/",
                 messages=names_prefixed,
-            )
+            ).render()
         except FileNotFoundError:
             print("This is the last page!")
-            self.page_num -= 1
-            self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
+            self._page_num -= 1
+            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
-    def prefetch_next_page(self):
-        self.page_num += 1
-        self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
+    def _prefetch_next_page(self):
+        self._page_num += 1
+        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
-        if self.next_url:
-            self.offset = API.parse_qs(self.next_url)["offset"]
-            self.parse_and_download()
-        self.page_num -= 1
-        self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
+        if self._next_url:
+            self._offset = API.parse_qs(self._next_url)["offset"]
+            self._parse_and_download()
+        self._page_num -= 1
+        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
     def next_page(self):
-        self.page_num += 1
-        self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
-        self.show_page()
+        self._page_num += 1
+        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+        self._show_page()
 
-        self.prefetch_next_page()
+        self._prefetch_next_page()
 
     def previous_page(self):
-        if self.page_num > 1:
-            self.page_num -= 1
-            self.download_path = f"{self.main_path}/{self.input}/{self.page_num}"
-            self.show_page()
+        if self._page_num > 1:
+            self._page_num -= 1
+            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+            self._show_page()
         else:
             print("This is the first page!")
 
     def go_artist_mode(self, selected_user_num):
-        current_page_ids = self.ids_cache[self.page_num]
+        current_page_ids = self._ids_cache[self._page_num]
         try:
             artist_user_id = current_page_ids[selected_user_num]
         except IndexError:
@@ -965,53 +961,53 @@ class Users(ABC):
         artist_illusts_mode(artist_user_id)
 
     @staticmethod
-    def user_id(json):
+    def _user_id(json):
         return json["user"]["id"]
 
     @staticmethod
-    def user_name(json):
+    def _user_name(json):
         return json["user"]["name"]
 
     @staticmethod
-    def user_profile_pic(json):
+    def _user_profile_pic(json):
         return json["user"]["profile_image_urls"]["medium"]
 
     @staticmethod
-    def image_urls(illusts_json):
+    def _image_urls(illusts_json):
         """page[i]['illusts'][j]['image_urls']['medium']"""
         return illusts_json['image_urls']['medium']
 
 
 class SearchUsers(Users):
     """
-    Inherits from Users class, define self.input as the search string (user)
+    Inherits from Users class, define self._input as the search string (user)
     Parent directory for downloads should go to search/
     Note that pixivpy3 does not have search_user() yet (not released yet);
     you need to install the master branch (which should be done if you used
     the requirements.txt)
     """
     def __init__(self, user):
-        self.main_path = f"{KONEKODIR}/search"
+        self._main_path = f"{KONEKODIR}/search"
         super().__init__(user)
 
-    def pixivrequest(self):
-        return API.search_user(self.input, offset=self.offset)
+    def _pixivrequest(self):
+        return API.search_user(self._input, offset=self._offset)
 
 
 class FollowingUsers(Users):
     """
-    Inherits from Users class, define self.input as the user's pixiv ID
+    Inherits from Users class, define self._input as the user's pixiv ID
     (Or any other pixiv ID that the user wants to look at their following users)
     Parent directory for downloads should go to following/
     """
     def __init__(self, your_id, publicity='private'):
-        self.publicity = publicity
-        self.main_path = f"{KONEKODIR}/following"
+        self._publicity = publicity
+        self._main_path = f"{KONEKODIR}/following"
         super().__init__(your_id)
 
-    def pixivrequest(self):
+    def _pixivrequest(self):
         return API.user_following(
-            self.input, restrict=self.publicity, offset=self.offset
+            self._input, restrict=self._publicity, offset=self._offset
         )
 
 
@@ -1098,9 +1094,7 @@ def setup(out_queue, credentials):
 # - Uses web requests, impure
 @pure.spinner("Fetching user illustrations... ")
 def user_illusts_spinner(artist_user_id):
-    # There's a delay here
-    # Threading won't do anything meaningful here...
-    # SPEED: Caching it (in non volatile storage) might work
+    # TODO api.illust_follow(restrict='private')
     return API.user_illusts(artist_user_id)
 
 
