@@ -91,9 +91,10 @@ Alternatively, you can supply a pixiv url as a command line argument to `koneko.
 ```sh
 ./koneko.py https://www.pixiv.net/en/users/2232374 # Mode 1
 ./koneko.py https://www.pixiv.net/en/artworks/78823485 # Mode 2
-./koneko.py -f https://www.pixiv.net/en/users/2232374 # Mode 3
+./koneko.py f https://www.pixiv.net/en/users/2232374 # Mode 3
 ./koneko.py "raika9" # Mode 4
 ```
+For more details look at the [manual](#manual).
 
 # Roadmap
 
@@ -110,6 +111,35 @@ Alternatively, you can supply a pixiv url as a command line argument to `koneko.
 * If files already downloaded, show them immediately before logging in
 
 # Manual
+
+```
+Browse pixiv in the terminal using kitty's icat to display images (in the
+terminal!)
+
+Usage:
+  ./koneko.py       [<link>]
+  ./koneko.py [1|a] <link_or_id>
+  ./koneko.py [2|i] <link_or_id>
+  ./koneko.py (3|f) <link_or_id>
+  ./koneko.py [4|s] <searchstr>
+  ./koneko.py -h
+
+Note that if you supply a link and want to go to mode 3,
+you must give the (3|f) argument, otherwise it would default to mode 1.
+
+Optional arguments (for specifying a mode):
+  1 a  Mode 1 (Artist gallery)
+  2 i  Mode 2 (Image view)
+  3 f  Mode 3 (Following artists)
+  4 s  Mode 4 (Search for artists)
+
+Required arguments if a mode is specified:
+  <link>        pixiv url, auto detect mode. Can only detect either mode 1 or 2
+  <link_or_id>  either pixiv url or artist ID or image ID
+
+Options:
+  -h  Show this help
+```
 
 ```
 Gallery commands: (No need to press enter)

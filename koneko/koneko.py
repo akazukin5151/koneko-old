@@ -1,11 +1,32 @@
 #!/usr/bin/env python3
-"""
-Browse pixiv in the terminal using kitty's icat to display images (in the
+"""Browse pixiv in the terminal using kitty's icat to display images (in the
 terminal!)
 
-Requires [kitty](https://github.com/kovidgoyal/kitty) on Linux. It uses the
-magical `kitty +kitten icat` 'kitten' to display images.
+Usage:
+  ./koneko.py       [<link>]
+  ./koneko.py [1|a] <link_or_id>
+  ./koneko.py [2|i] <link_or_id>
+  ./koneko.py (3|f) <link_or_id>
+  ./koneko.py [4|s] <searchstr>
+  ./koneko.py -h
 
+Note that if you supply a link and want to go to mode 3,
+you must give the (3|f) argument, otherwise it would default to mode 1.
+
+Optional arguments (for specifying a mode):
+  1 a  Mode 1 (Artist gallery)
+  2 i  Mode 2 (Image view)
+  3 f  Mode 3 (Following artists)
+  4 s  Mode 4 (Search for artists)
+
+Required arguments if a mode is specified:
+  <link>        pixiv url, auto detect mode. Can only detect either mode 1 or 2
+  <link_or_id>  either pixiv url or artist ID or image ID
+
+Options:
+  -h  Show this help
+"""
+"""
 Capitalized tag definitions:
     TODO: to-do, high priority
     SPEED: speed things up, high priority
@@ -25,6 +46,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import funcy
 from tqdm import tqdm
+from docopt import docopt
 from blessed import Terminal
 from pixivpy3 import AppPixivAPI, PixivError
 
@@ -49,58 +71,47 @@ def main():
     API_THREAD.start()  # Start logging in
 
     # During this part, the API can still be logging in but we can proceed
+    args = docopt(__doc__)
     os.system("clear")
-    if len(sys.argv) == 2:
+    if len(sys.argv) > 1:
         print("Logging in...")
-
-    # Direct command line arguments, skip utils.begin_prompt()
-    if len(sys.argv) == 2:
         prompted = False
-        cli_args = sys.argv[1]
-
-        if "users" in cli_args:
-            if "\\" in cli_args:
-                user_input = pure.split_backslash_last(cli_args).split("\\")[-1][1:]
-            else:
-                user_input = pure.split_backslash_last(cli_args)
-            main_command = "1"
-
-        elif "artworks" in cli_args:
-            user_input = pure.split_backslash_last(cli_args).split("\\")[0]
-            main_command = "2"
-
-        elif "illust_id" in cli_args:
-            user_input = re.findall(r"&illust_id.*", cli_args)[0].split("=")[-1]
-            user_input = int(image_id)
-            main_command = "2"
-
-        else:  # Mode 4, string to search for artists
-            user_input = cli_args
-            main_command = "4"
-
-    elif len(sys.argv) == 3:
-        if sys.argv[1] == "-f":
-            cli_args = sys.argv[2]
-            prompted = False
-
-            if "\\" in cli_args:
-                user_input = pure.split_backslash_last(cli_args).split("\\")[-1][1:]
-            else:
-                user_input = pure.split_backslash_last(cli_args)
-            main_command = "3"
-
-        else:
-            print("Too many arguments!")
-            sys.exit(1)
-
-    elif len(sys.argv) > 3:
-        print("Too many arguments!")
-        sys.exit(1)
-
     else:  # No cli arguments
         prompted = True
         main_command = None
         user_input = None
+
+    # Direct command line arguments
+    if args['<link>']:
+        # Link given, no mode specified
+        url_or_str = args['<link>']
+
+        if "users" in url_or_str:
+            user_input, main_command = process_mode1(url_or_str)
+
+        elif "artworks" in url_or_str or "illust_id" in url_or_str:
+            user_input, main_command = process_mode2(url_or_str)
+
+        else:  # Mode 4, string to search for artists
+            user_input = url_or_str
+            main_command = "4"
+
+    elif args['<link_or_id>']:
+        # Mode specified, argument can be link or id
+        url_or_id = args['<link_or_id>']
+        if args['1'] or args['a']:
+            user_input, main_command = process_mode1(url_or_id)
+
+        elif args['2'] or args['i']:
+            user_input, main_command = process_mode2(url_or_id)
+
+        elif args['3'] or args['f']:
+            user_input, main_command = process_mode1(url_or_id)
+            main_command = "3"
+
+    elif args['<searchstr>']:
+        user_input = args['<searchstr>']
+        main_command = "4"
 
 
     try:
@@ -112,6 +123,24 @@ def main():
             sys.exit(0)
         else:
             main()
+
+def process_mode1(url_or_id):
+    if "users" in url_or_id:
+        if "\\" in url_or_id:
+            user_input = pure.split_backslash_last(url_or_id).split("\\")[-1][1:]
+        else:
+            user_input = pure.split_backslash_last(url_or_id)
+    else:
+        user_input = url_or_id
+    return user_input, "1"
+
+def process_mode2(url_or_id):
+    if "artworks" in url_or_id:
+        user_input = pure.split_backslash_last(url_or_id).split("\\")[0]
+    elif "illust_id" in url_or_id:
+        user_input = re.findall(r"&illust_id.*", url_or_id)[0].split("=")[-1]
+        user_input = int(image_id)
+    return user_input, "2"
 
 
 def main_loop(prompted, main_command, user_input, your_id=None):
