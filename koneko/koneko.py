@@ -161,23 +161,23 @@ def main_loop(prompted, main_command, user_input, your_id=None):
             main_command = utils.begin_prompt(printmessage)
 
         if main_command == "1":
-            ArtistModeLoop(prompted, user_input)
+            ArtistModeLoop(prompted, user_input).start()
 
         elif main_command == "2":
-            ViewPostModeLoop(prompted, user_input)
+            ViewPostModeLoop(prompted, user_input).start()
 
         # fmt: off
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
                 if ans in {"y", ""}:
-                    FollowingUserModeLoop(prompted, your_id)
+                    FollowingUserModeLoop(prompted, your_id).start()
 
             # If your_id not stored, or if ans is no, ask for your_id
-            FollowingUserModeLoop(prompted, user_input)
+            FollowingUserModeLoop(prompted, user_input).start()
 
         elif main_command == "4":
-            SearchUsersModeLoop(prompted, user_input)
+            SearchUsersModeLoop(prompted, user_input).start()
 
         # fmt: on
         elif main_command == "?":
@@ -216,6 +216,7 @@ class Loop(ABC):
         self._prompted = prompted
         self._user_input = user_input
 
+    def start(self):
         while True:
             if self._prompted and not self._user_input:
                 self._prompt_url_id()
@@ -847,6 +848,7 @@ class Users(ABC):
         self._names_cache = {}
         self._ids_cache = {}
 
+    def start(self):
         # TODO: if dir exists, show page first then parse
         self._parse_and_download()
         self._show_page()
@@ -863,6 +865,7 @@ class Users(ABC):
         all_names = self._names + list(map(pure.split_backslash_last, self._image_urls))
         splitpoint = len(self._profile_pic_urls)
 
+        # FIXME: downloads images even if it's already downloaded
         pbar = tqdm(total=len(all_urls), smoothing=0)
         # fmt: off
         async_download_core(
@@ -1015,6 +1018,7 @@ def user_prompt(user_class):
     """
     Handles key presses for user views (following users and user search)
     """
+    user_class.start()
     keyseqs = []
     seq_num = 0
     sequenceable_keys = "i"
