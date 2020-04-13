@@ -4,7 +4,6 @@ import pytest
 
 import pure
 import lscat
-import koneko
 import utils
 from page_json import *  # Imports the current_page (dict) stored in disk
 
@@ -135,10 +134,9 @@ def test_number_prefix():
     assert lscat.number_prefix("11_file.png") == 11
 
 
-# From koneko.py
 def test_artist_user_id_prompt(monkeypatch):
     monkeypatch.setattr(
         "builtins.input", lambda x: "https://www.pixiv.net/en/users/2232374"
     )
     myinput = utils.artist_user_id_prompt()
-    myinput == "https://www.pixiv.net/en/users/2232374"
+    assert myinput == "https://www.pixiv.net/en/users/2232374"
