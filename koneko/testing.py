@@ -37,8 +37,8 @@ def test_generate_filepath():
 
 
 def test_prefix_filename():
-    assert pure.prefix_filename("old.jpg", "new", 2) == "02_new.jpg"
-    assert pure.prefix_filename("old.jpg", "new", 10) == "10_new.jpg"
+    assert pure.prefix_filename("old.jpg", "new", 2) == "002_new.jpg"
+    assert pure.prefix_filename("old.jpg", "new", 10) == "010_new.jpg"
 
 
 def test_find_number_map():
@@ -85,7 +85,8 @@ def test_page_urls_in_post():
     assert len(pure.page_urls_in_post(page_illusts[14], size="medium")) == 2
     assert pure.page_urls_in_post(page_illusts[14], size="medium")[0] == 8
     assert len(pure.page_urls_in_post(page_illusts[14], size="medium")[1]) == 8
-    assert pure.page_urls_in_post(page_illusts[0], size="medium") == (1, None)
+    assert pure.page_urls_in_post(page_illusts[0], size="medium")[0] == 1
+    assert len(pure.page_urls_in_post(page_illusts[0], size="medium")[1]) == 1
 
 
 def test_post_titles_in_page():
