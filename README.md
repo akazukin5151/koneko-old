@@ -71,7 +71,7 @@ git clone https://github.com/twenty5151/koneko.git
 
 # Or use this for the latest 'stable' release
 # Update the tag for the latest released version
-git clone -b 'v0.1' --depth 1 https://github.com/twenty5151/koneko.git`
+git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git`
 
 cd koneko && pip install -r requirements.txt --upgrade
 cd koneko
