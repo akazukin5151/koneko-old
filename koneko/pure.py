@@ -46,11 +46,11 @@ def spinner(call, message=""):
     See http://hackflow.com/blog/2013/11/03/painless-decorators/
     """
     done = threading.Event()
-    spinner = threading.Thread(target=spin, args=(done, message))
-    spinner.start()
+    spinner_thread = threading.Thread(target=spin, args=(done, message))
+    spinner_thread.start()
     result = call()
     done.set()
-    spinner.join()
+    spinner_thread.join()
     return result
 
 

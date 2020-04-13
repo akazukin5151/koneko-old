@@ -80,7 +80,8 @@ class View(ABC):
         # each page has `rows_in_page` rows. every row is grouped with another.
         # [(row1, row2), (row3, row4), ...]
         # where row1 == (file1, file2, ...)
-        self._pages_list = list(cytoolz.partition(self._rows_in_page, each_row, pad=None))
+        self._pages_list = cytoolz.partition(self._rows_in_page, each_row, pad=None)
+        self._pages_list = list(self._pages_list)
 
         assert len(self._pages_list[0]) <= len(self._rowspaces) == self._rows_in_page
         assert len(self._pages_list) <= len(self._page_spaces)
@@ -115,15 +116,9 @@ class Gallery(View):
         Horizontal position of the image
     """
 
-    def __init__(
-        self,
-        path,
-        number_of_columns=5,
-        rowspaces=(0, 9),
-        page_spaces=(26, 24, 24),
-        rows_in_page=2,
-    ):
-
+    def __init__(self, path, number_of_columns=5, rowspaces=(0, 9),
+                 page_spaces=(26, 24, 24), rows_in_page=2):
+        # Only to set default arguments here, no overriding
         super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
 
     @funcy.ignore(IndexError)
@@ -155,21 +150,14 @@ class Card(View):
         len must be >= rows_in_page
     """
 
-    def __init__(
-        self,
-        path,
-        preview_paths,
-        messages,
-        preview_xcoords=[[40], [58], [75]],
-        number_of_columns=1,
-        rowspaces=(0,),
-        page_spaces=(20,) * 30,
-        rows_in_page=1,
-    ):
-
+    def __init__(self, path, preview_paths, messages,
+                 preview_xcoords=[[40], [58], [75]], number_of_columns=1,
+                 rowspaces=(0,), page_spaces=(20,) * 30, rows_in_page=1):
+        # Set defaults ^^^
         self._preview_paths = preview_paths
         self._messages = messages
         self._preview_xcoords = preview_xcoords
+        self._preview_images = None # Defined in self.render()
         super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
 
     @funcy.ignore(IndexError)
