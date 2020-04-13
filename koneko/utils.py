@@ -72,6 +72,7 @@ def artist_user_id_prompt():
 @pure.catch_ctrl_c
 def show_man_loop():
     os.system("clear")
+    print(koneko.__doc__)
     print(koneko.Image.__doc__)
     print(" " * 3, "=" * 30)
     print(koneko.Gallery.__doc__)
