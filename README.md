@@ -43,7 +43,7 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 
 <a href="url"><img src="pics/pixiv_ublock.png" height="350"></a>
 
-The mobile app even directly tells you Google "and our 198 partners" "collect and use data"! See [prompt 1](pics/ads1.png) and [prompt 2](pics/ads2.png) (Github can't render the images correctly for some reason)
+The mobile app even directly tells you Google "and our 198 partners" "collect and use data"! See [prompt 1](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads1.png) and [prompt 2](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads2.png) (Github can't render the images correctly for some reason)
 
 * TUIs make you cool
 * TUIs *with embedded pictures* make you even cooler
