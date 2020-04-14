@@ -412,7 +412,7 @@ class ArtistGalleryMode(GalleryLikeMode):
             self.artist_user_id,
             self.all_pages_cache,
         )
-        gallery_prompt(gallery)
+        gallery.prompt()
 
 
 class IllustFollowMode(GalleryLikeMode):
@@ -434,7 +434,7 @@ class IllustFollowMode(GalleryLikeMode):
                 self.current_page_num,
                 self.all_pages_cache
         )
-        gallery_prompt(gallery)
+        gallery.prompt()
 
 # - Mode and loop functions (some interactive and some not)
 def show_gallery(artist_user_id, current_page_num, current_page, show=True,
@@ -464,7 +464,7 @@ def show_gallery(artist_user_id, current_page_num, current_page, show=True,
         artist_user_id,
         all_pages_cache,
     )
-    gallery_prompt(gallery)
+    gallery.prompt()
 
 
 def view_post_mode(image_id):
@@ -748,7 +748,7 @@ class AbstractGallery(ABC):
             print("This is the first page!")
 
     @abstractmethod
-    def _pixivrequest(self):
+    def _pixivrequest(self, **kwargs):
         raise NotImplementedError
 
     def prefetch_next_page(self):
@@ -758,7 +758,7 @@ class AbstractGallery(ABC):
             raise LastPageException
 
         parse_page = API.parse_qs(next_url)
-        next_page = self._pixivrequest()
+        next_page = self._pixivrequest(**parse_page)
         self._all_pages_cache[str(self._current_page_num + 1)] = next_page
         current_page_illusts = next_page["illusts"]
 
@@ -807,8 +807,8 @@ class ArtistGallery(AbstractGallery):
         super().__init__(current_page_illusts, current_page, current_page_num,
                          all_pages_cache)
 
-    def _pixivrequest(self):
-        return API.user_illusts(self._artist_user_id)
+    def _pixivrequest(self, **kwargs):
+        return API.user_illusts(**kwargs)
 
     def download_image_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -849,110 +849,109 @@ class ArtistGallery(AbstractGallery):
         )
         image_prompt(image)
 
-def gallery_prompt(gallery):
-    """
-    Only contains logic for interpreting key presses, and do the correct action
-    Sequence means a combination of more than one key.
-    When a sequenceable key is pressed, wait for the next keys in the sequence
-        If the sequence is valid, execute their corresponding actions
-    Otherwise for keys that do not need a sequence, execute their actions normally
-    """
-    sequenceable_keys = ("o", "d", "i", "O", "D")
-    with TERM.cbreak():
-        keyseqs = []
-        seq_num = 0
-        print("Enter a gallery command:")
-        while True:
-            gallery_command = TERM.inkey()
+    def prompt(self):
+        """
+        Only contains logic for interpreting key presses, and do the correct action
+        Sequence means a combination of more than one key.
+        When a sequenceable key is pressed, wait for the next keys in the sequence
+            If the sequence is valid, execute their corresponding actions
+        Otherwise for keys that do not need a sequence, execute their actions normally
+        """
+        sequenceable_keys = ("o", "d", "i", "O", "D")
+        with TERM.cbreak():
+            keyseqs = []
+            seq_num = 0
+            print("Enter a gallery command:")
+            while True:
+                gallery_command = TERM.inkey()
 
-            # Wait for the rest of the sequence
-            if gallery_command in sequenceable_keys:
-                keyseqs.append(gallery_command)
-                print(keyseqs)
-                seq_num += 1
-
-            elif gallery_command.code == 361:  # Escape
-                keyseqs = []
-                seq_num = 0
-                print(keyseqs)
-
-            # Digits continue the sequence
-            elif gallery_command.isdigit():
-                keyseqs.append(gallery_command)
-                print(keyseqs)
-
-                # End of the sequence...
-                # Two digit sequence -- view image given coords
-                if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
-
-                    first_num = int(keyseqs[0])
-                    second_num = int(keyseqs[1])
-                    selected_image_num = pure.find_number_map(first_num, second_num)
-
-                    break  # leave cbreak(), go to image prompt
-
-                # One letter two digit sequence
-                elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
-
-                    first_num = keyseqs[1]
-                    second_num = keyseqs[2]
-
-                    # Open or download given coords
-                    if keyseqs[0] == "o":
-                        gallery.open_link_coords(first_num, second_num)
-
-                    elif keyseqs[0] == "d":
-                        gallery.download_image_coords(first_num, second_num)
-
-                    # Open, download, or view image, given image number
-                    selected_image_num = int(f"{first_num}{second_num}")
-
-                    if keyseqs[0] == "O":
-                        gallery.open_link_num(selected_image_num)
-                    elif keyseqs[0] == "D":
-                        gallery.download_image_num(selected_image_num)
-                    elif keyseqs[0] == "i":
-                        break  # leave cbreak(), go to image prompt
-
-                    # Reset sequence info after running everything
-                    keyseqs = []
-                    seq_num = 0
-
-                # Not the end of the sequence yet, continue while block
-                else:
+                # Wait for the rest of the sequence
+                if gallery_command in sequenceable_keys:
+                    keyseqs.append(gallery_command)
+                    print(keyseqs)
                     seq_num += 1
 
-            # No sequence, execute their functions immediately
-            elif gallery_command == "n":
-                gallery.next_page()
+                elif gallery_command.code == 361:  # Escape
+                    keyseqs = []
+                    seq_num = 0
+                    print(keyseqs)
 
-            elif gallery_command == "p":
-                gallery.previous_page()
+                # Digits continue the sequence
+                elif gallery_command.isdigit():
+                    keyseqs.append(gallery_command)
+                    print(keyseqs)
 
-            elif gallery_command == "q":
-                print("Are you sure you want to exit?")
-                quit()
-                # If exit cancelled
-                print("Enter a gallery command:")
+                    # End of the sequence...
+                    # Two digit sequence -- view image given coords
+                    if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
 
-            elif gallery_command.code == 343:  # Enter
-                pass
-            elif gallery_command == "h":
-                print(gallery.__doc__)
-            elif gallery_command:
-                print("Invalid command! Press h to show help")
-                keyseqs = []
-                seq_num = 0
-            # End if
-        # End while
-    # End cbreak()
+                        first_num = int(keyseqs[0])
+                        second_num = int(keyseqs[1])
+                        selected_image_num = pure.find_number_map(first_num, second_num)
 
-    # Display image (using either coords or image number), the show this prompt
-    gallery.view_image(selected_image_num)
+                        break  # leave cbreak(), go to image prompt
+
+                    # One letter two digit sequence
+                    elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
+
+                        first_num = keyseqs[1]
+                        second_num = keyseqs[2]
+
+                        # Open or download given coords
+                        if keyseqs[0] == "o":
+                            self.open_link_coords(first_num, second_num)
+
+                        elif keyseqs[0] == "d":
+                            self.download_image_coords(first_num, second_num)
+
+                        # Open, download, or view image, given image number
+                        selected_image_num = int(f"{first_num}{second_num}")
+
+                        if keyseqs[0] == "O":
+                            self.open_link_num(selected_image_num)
+                        elif keyseqs[0] == "D":
+                            self.download_image_num(selected_image_num)
+                        elif keyseqs[0] == "i":
+                            break  # leave cbreak(), go to image prompt
+
+                        # Reset sequence info after running everything
+                        keyseqs = []
+                        seq_num = 0
+
+                    # Not the end of the sequence yet, continue while block
+                    else:
+                        seq_num += 1
+
+                # No sequence, execute their functions immediately
+                elif gallery_command == "n":
+                    self.next_page()
+
+                elif gallery_command == "p":
+                    self.previous_page()
+
+                elif gallery_command == "q":
+                    print("Are you sure you want to exit?")
+                    quit()
+                    # If exit cancelled
+                    print("Enter a gallery command:")
+
+                elif gallery_command.code == 343:  # Enter
+                    pass
+                elif gallery_command == "h":
+                    print(self.__doc__)
+                elif gallery_command:
+                    print("Invalid command! Press h to show help")
+                    keyseqs = []
+                    seq_num = 0
+                # End if
+            # End while
+        # End cbreak()
+
+        # Display image (using either coords or image number), the show this prompt
+        self.view_image(selected_image_num)
 
 
 class IllustFollowGallery(AbstractGallery):
-    # TODO: make its own prompt function
     # TODO: back
     """
     Gallery commands: (No need to press enter)
@@ -994,6 +993,102 @@ class IllustFollowGallery(AbstractGallery):
     def display_image_core(self):
         artist_user_id = self.post_json['user']['id']
         ArtistGalleryMode(artist_user_id)
+    
+    def prompt(self):
+        """
+        Only contains logic for interpreting key presses, and do the correct action
+        Sequence means a combination of more than one key.
+        When a sequenceable key is pressed, wait for the next keys in the sequence
+            If the sequence is valid, execute their corresponding actions
+        Otherwise for keys that do not need a sequence, execute their actions normally
+        """
+        sequenceable_keys = ("o", "i", "O")
+        with TERM.cbreak():
+            keyseqs = []
+            seq_num = 0
+            print("Enter a gallery command:")
+            while True:
+                gallery_command = TERM.inkey()
+
+                # Wait for the rest of the sequence
+                if gallery_command in sequenceable_keys:
+                    keyseqs.append(gallery_command)
+                    print(keyseqs)
+                    seq_num += 1
+
+                elif gallery_command.code == 361:  # Escape
+                    keyseqs = []
+                    seq_num = 0
+                    print(keyseqs)
+
+                # Digits continue the sequence
+                elif gallery_command.isdigit():
+                    keyseqs.append(gallery_command)
+                    print(keyseqs)
+
+                    # End of the sequence...
+                    # Two digit sequence -- view image given coords
+                    if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
+
+                        first_num = int(keyseqs[0])
+                        second_num = int(keyseqs[1])
+                        selected_image_num = pure.find_number_map(first_num, second_num)
+
+                        break  # leave cbreak(), go to image prompt
+
+                    # One letter two digit sequence
+                    elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
+
+                        first_num = keyseqs[1]
+                        second_num = keyseqs[2]
+
+                        # Open or download given coords
+                        if keyseqs[0] == "o":
+                            self.open_link_coords(first_num, second_num)
+
+                        # Open, download, or view image, given image number
+                        selected_image_num = int(f"{first_num}{second_num}")
+
+                        if keyseqs[0] == "O":
+                            self.open_link_num(selected_image_num)
+                        elif keyseqs[0] == "i":
+                            break  # leave cbreak(), go to image prompt
+
+                        # Reset sequence info after running everything
+                        keyseqs = []
+                        seq_num = 0
+
+                    # Not the end of the sequence yet, continue while block
+                    else:
+                        seq_num += 1
+
+                # No sequence, execute their functions immediately
+                elif gallery_command == "n":
+                    self.next_page()
+
+                elif gallery_command == "p":
+                    self.previous_page()
+
+                elif gallery_command == "q":
+                    print("Are you sure you want to exit?")
+                    quit()
+                    # If exit cancelled
+                    print("Enter a gallery command:")
+
+                elif gallery_command.code == 343:  # Enter
+                    pass
+                elif gallery_command == "h":
+                    print(self.__doc__)
+                elif gallery_command:
+                    print("Invalid command! Press h to show help")
+                    keyseqs = []
+                    seq_num = 0
+                # End if
+            # End while
+        # End cbreak()
+
+        # Display image (using either coords or image number), the show this prompt
+        self.view_image(selected_image_num)
 
 
 class Users(ABC):
