@@ -366,7 +366,7 @@ class GalleryLikeMode(ABC):
             show = True
 
         self.current_page = self._pixivrequest()
-        self.show_gallery(show=show) # TODO: remove duplicate function outside
+        self.show_gallery(show=show)
         self.instantiate()
 
     @pure.spinner("Fetching user illustrations... ")
@@ -396,10 +396,18 @@ class GalleryLikeMode(ABC):
         raise NotImplementedError
 
 class ArtistGalleryMode(GalleryLikeMode):
-    def __init__(self, artist_user_id, current_page_num=1):
+    def __init__(self, artist_user_id, current_page_num=1, **kwargs):
         self.artist_user_id = artist_user_id
         self.download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
-        super().__init__(current_page_num)
+
+        if kwargs:
+            self.current_page_num = current_page_num
+            self.current_page = kwargs['current_page']
+            self.all_pages_cache = kwargs['all_pages_cache']
+
+            self.artist_illusts_mode()
+        else:
+            super().__init__(current_page_num)
 
     def _pixivrequest(self):
         return API.user_illusts(self.artist_user_id)
@@ -437,36 +445,6 @@ class IllustFollowMode(GalleryLikeMode):
         gallery.prompt()
 
 # - Mode and loop functions (some interactive and some not)
-def show_gallery(artist_user_id, current_page_num, current_page, show=True,
-                 all_pages_cache=None):
-    """
-    Downloads images, show if requested, instantiate all_pages_cache, prompt.
-    """
-    download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
-    current_page_illusts = current_page["illusts"]
-
-    if not os.path.isdir(download_path):
-        pbar = tqdm(total=len(current_page_illusts), smoothing=0)
-        download_page(current_page_illusts, download_path, pbar=pbar)
-        pbar.close()
-
-    if show:
-        utils.show_artist_illusts(download_path)
-
-    if not all_pages_cache:
-        all_pages_cache = {"1": current_page}
-
-    # Instantiate a gallery class
-    gallery = ArtistGallery(
-        current_page_illusts,
-        current_page,
-        current_page_num,
-        artist_user_id,
-        all_pages_cache,
-    )
-    gallery.prompt()
-
-
 def view_post_mode(image_id):
     """
     Fetch all the illust info, download it in the correct directory, then display it.
@@ -602,10 +580,10 @@ class Image:
     def leave(self):
         if self._current_page_num > 1 or self._current_page:
             self._all_pages_cache = self._kwargs["all_pages_cache"]
-            show_gallery(
+            ArtistGalleryMode(
                 self._artist_user_id,
-                self._current_page_num,
-                self._current_page,
+                current_page_num=self._current_page_num,
+                current_page=self._current_page,
                 all_pages_cache=self._all_pages_cache,
             )
         else:
@@ -769,6 +747,10 @@ class AbstractGallery(ABC):
                 current_page_illusts, download_path, pbar=pbar
             )
             pbar.close
+            
+    @abstractmethod
+    def prompt(self):
+        raise NotImplementedError
 
 
 class ArtistGallery(AbstractGallery):
