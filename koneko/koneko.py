@@ -260,7 +260,7 @@ class ArtistModeLoop(Loop):
         self._url_or_id = utils.artist_user_id_prompt()
 
     def _go_to_mode(self):
-        ArtistGalleryMode(self._user_input)
+        self.mode = ArtistGalleryMode(self._user_input)
 
 
 class ViewPostModeLoop(Loop):
@@ -281,7 +281,7 @@ class ViewPostModeLoop(Loop):
             self._user_input = self._url_or_id
 
     def _go_to_mode(self):
-        view_post_mode(self._user_input)
+        self.mode = view_post_mode(self._user_input)
 
 
 class SearchUsersModeLoop(Loop):
@@ -301,8 +301,8 @@ class SearchUsersModeLoop(Loop):
         pass
 
     def _go_to_mode(self):
-        searching = SearchUsers(self._user_input)
-        user_prompt(searching)
+        self.searching = SearchUsers(self._user_input)
+        user_prompt(self.searching)
 
 
 class FollowingUserModeLoop(Loop):
@@ -316,8 +316,8 @@ class FollowingUserModeLoop(Loop):
         self._url_or_id = input("Enter your pixiv ID or url: ")
 
     def _go_to_mode(self):
-        following = FollowingUsers(self._user_input)
-        user_prompt(following)
+        self.following = FollowingUsers(self._user_input)
+        user_prompt(self.following)
 
 class IllustFollowModeLoop(Loop):
     """
@@ -336,91 +336,91 @@ class IllustFollowModeLoop(Loop):
     def _prompt_url_id(self): pass
 
     def _go_to_mode(self):
-        IllustFollowMode()
+        self.mode = IllustFollowMode()
 
 #- Loop classes ==========================================================
 
 # - Mode classes
 class GalleryLikeMode(ABC):
     def __init__(self, current_page_num=1):
-        self.current_page_num = current_page_num
-        # Defined in self.artist_illusts_mode()
-        self.current_page = None
-        # Defined in self.show_gallery()
-        self.current_page_illusts = None
-        self.all_pages_cache = None
+        self._current_page_num = current_page_num
+        # Defined in self.start()
+        self._current_page = None
+        # Defined in self._show_gallery()
+        self._current_page_illusts = None
+        self._all_pages_cache = None
 
-        self.artist_illusts_mode()
+        self.start()
 
-    def artist_illusts_mode(self):
+    def start(self):
         """
         If artist_user_id dir exists, show immediately (without checking
         for contents!)
         Else, fetch current_page json and proceed download -> show -> prompt
         """
         # If path exists, show immediately (without checking for contents!)
-        if os.path.isdir(self.download_path):
-            utils.show_artist_illusts(self.download_path)
+        if os.path.isdir(self._download_path):
+            utils.show_artist_illusts(self._download_path)
             show = False
         else:
             show = True
 
-        self.current_page = self._pixivrequest()
-        self.show_gallery(show=show)
-        self.instantiate()
+        self._current_page = self._pixivrequest()
+        self._show_gallery(show=show)
+        self._instantiate()
 
     @pure.spinner("Fetching user illustrations... ")
     @abstractmethod
     def _pixivrequest(self):
         raise NotImplementedError
 
-    def show_gallery(self, show=True):
+    def _show_gallery(self, show=True):
         """
         Downloads images, show if requested, instantiate all_pages_cache, prompt.
         """
-        self.current_page_illusts = self.current_page["illusts"]
+        self._current_page_illusts = self._current_page["illusts"]
 
-        if not os.path.isdir(self.download_path):
-            pbar = tqdm(total=len(self.current_page_illusts), smoothing=0)
-            download_page(self.current_page_illusts, self.download_path, pbar=pbar)
+        if not os.path.isdir(self._download_path):
+            pbar = tqdm(total=len(self._current_page_illusts), smoothing=0)
+            download_page(self._current_page_illusts, self._download_path, pbar=pbar)
             pbar.close()
 
         if show:
-            utils.show_artist_illusts(self.download_path)
+            utils.show_artist_illusts(self._download_path)
 
-        if not self.all_pages_cache:
-            self.all_pages_cache = {"1": self.current_page}
+        if not self._all_pages_cache:
+            self._all_pages_cache = {"1": self._current_page}
 
     @abstractmethod
-    def instantiate(self):
+    def _instantiate(self):
         raise NotImplementedError
 
 class ArtistGalleryMode(GalleryLikeMode):
     def __init__(self, artist_user_id, current_page_num=1, **kwargs):
-        self.artist_user_id = artist_user_id
-        self.download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
+        self._artist_user_id = artist_user_id
+        self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
 
         if kwargs:
-            self.current_page_num = current_page_num
-            self.current_page = kwargs['current_page']
-            self.all_pages_cache = kwargs['all_pages_cache']
+            self._current_page_num = current_page_num
+            self._current_page = kwargs['current_page']
+            self._all_pages_cache = kwargs['all_pages_cache']
 
-            self.artist_illusts_mode()
+            self.start()
         else:
             super().__init__(current_page_num)
 
     def _pixivrequest(self):
-        return API.user_illusts(self.artist_user_id)
+        return API.user_illusts(self._artist_user_id)
 
-    def instantiate(self):
-        gallery = ArtistGallery(
-            self.current_page_illusts,
-            self.current_page,
-            self.current_page_num,
-            self.artist_user_id,
-            self.all_pages_cache,
+    def _instantiate(self):
+        self.gallery = ArtistGallery(
+            self._current_page_illusts,
+            self._current_page,
+            self._current_page_num,
+            self._artist_user_id,
+            self._all_pages_cache,
         )
-        gallery.prompt()
+        self.gallery.prompt()
 
 
 class IllustFollowMode(GalleryLikeMode):
@@ -429,20 +429,20 @@ class IllustFollowMode(GalleryLikeMode):
     It's set to a string for now, will remove later
     """
     def __init__(self, current_page_num=1):
-        self.download_path = f"{KONEKODIR}/illustfollow/{current_page_num}/"
+        self._download_path = f"{KONEKODIR}/illustfollow/{current_page_num}/"
         super().__init__(current_page_num)
 
     def _pixivrequest(self):
         return API.illust_follow(restrict='private')
 
-    def instantiate(self):
-        gallery = IllustFollowGallery(
-                self.current_page_illusts,
-                self.current_page,
-                self.current_page_num,
-                self.all_pages_cache
+    def _instantiate(self):
+        self.gallery = IllustFollowGallery(
+                self._current_page_illusts,
+                self._current_page,
+                self._current_page_num,
+                self._all_pages_cache
         )
-        gallery.prompt()
+        self.gallery.prompt()
 
 # - Mode and loop functions (some interactive and some not)
 def view_post_mode(image_id):
@@ -491,7 +491,6 @@ def view_post_mode(image_id):
     image_prompt(image)
     # Will only be used for multi-image posts, so it's safe to use large_dir
     # Without checking for number_of_pages
-    # artist_illusts_mode(artist_user_id)
 # - Mode and loop functions (some interactive and some not)
 
 # - Interactive functions (frontend)
@@ -656,7 +655,7 @@ class AbstractGallery(ABC):
         if len(self._all_pages_cache) == 1:
             # Prefetch the next page on first gallery load
             with funcy.suppress(LastPageException):
-                self.prefetch_next_page()
+                self._prefetch_next_page()
 
         else:
             # Gallery -> next -> image prompt -> back
@@ -679,15 +678,15 @@ class AbstractGallery(ABC):
         print(f"Opened {link}!\n")
 
     def view_image(self, selected_image_num):
-        self.selected_image_num = selected_image_num
+        self._selected_image_num = selected_image_num
         self._current_page = self._all_pages_cache[str(self._current_page_num)]
         self._current_page_illusts = self._current_page["illusts"]
-        self.post_json = self._current_page_illusts[selected_image_num]
+        self._post_json = self._current_page_illusts[selected_image_num]
 
-        self.display_image_core()
+        self._display_image_core()
 
     @abstractmethod
-    def display_image_core(self):
+    def _display_image_core(self):
         raise NotImplementedError
 
     def next_page(self):
@@ -705,7 +704,7 @@ class AbstractGallery(ABC):
         if str(self._current_page_num + 1) not in self._all_pages_cache.keys():
             try:
                 # After showing gallery, pre-fetch the next page
-                self.prefetch_next_page()
+                self._prefetch_next_page()
             except LastPageException:
                 print("This is the last page!")
 
@@ -729,7 +728,7 @@ class AbstractGallery(ABC):
     def _pixivrequest(self, **kwargs):
         raise NotImplementedError
 
-    def prefetch_next_page(self):
+    def _prefetch_next_page(self):
         # print("   Prefetching next page...", flush=True, end="\r")
         next_url = self._all_pages_cache[str(self._current_page_num)]["next_url"]
         if not next_url:  # this is the last page
@@ -747,7 +746,7 @@ class AbstractGallery(ABC):
                 current_page_illusts, download_path, pbar=pbar
             )
             pbar.close
-            
+
     @abstractmethod
     def prompt(self):
         raise NotImplementedError
@@ -806,16 +805,18 @@ class ArtistGallery(AbstractGallery):
         post_json = self._current_page_illusts[number]
         download_image_verified(post_json=post_json)
 
-    def display_image_core(self):
-        image_id = self.post_json.id
+    def _display_image_core(self):
+        image_id = self._post_json.id
 
         display_image(
-            self.post_json,
-            self._artist_user_id, self.selected_image_num, self._current_page_num
+            self._post_json,
+            self._artist_user_id,
+            self._selected_image_num,
+            self._current_page_num
         )
 
         # blocking: no way to unblock prompt
-        number_of_pages, page_urls = pure.page_urls_in_post(self.post_json, "large")
+        number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
 
         image = Image(
             image_id,
@@ -967,15 +968,15 @@ class IllustFollowGallery(AbstractGallery):
 
     def _pixivrequest(self, **kwargs):
         """
-        **kwargs can be **parse_page (for prefetch_next_page), or
+        **kwargs can be **parse_page (for _prefetch_next_page), or
         publicity='private' (for normal)
         """
         return API.illust_follow(**kwargs)
 
-    def display_image_core(self):
-        artist_user_id = self.post_json['user']['id']
+    def _display_image_core(self):
+        artist_user_id = self._post_json['user']['id']
         ArtistGalleryMode(artist_user_id)
-    
+
     def prompt(self):
         """
         Only contains logic for interpreting key presses, and do the correct action
@@ -1493,33 +1494,6 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
 # - Functions that are wrappers around download functions, making them impure
 class LastPageException(ValueError):
     pass
-
-
-# @pure.spinner("")  # No message because it conflicts with download_page()
-def prefetch_next_page(current_page_num, artist_user_id, all_pages_cache):
-    """
-    current_page_num : int
-        It is the CURRENT page number, before incrementing
-    """
-    # print("   Prefetching next page...", flush=True, end="\r")
-    next_url = all_pages_cache[str(current_page_num)]["next_url"]
-    if not next_url:  # this is the last page
-        raise LastPageException
-
-    parse_page = API.parse_qs(next_url)
-    next_page = API.user_illusts(**parse_page)
-
-    all_pages_cache[str(current_page_num + 1)] = next_page
-    current_page_illusts = next_page["illusts"]
-
-    download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num+1}/"
-    if not os.path.isdir(download_path):
-        pbar = tqdm(total=len(current_page_illusts), smoothing=0)
-        download_page(
-            current_page_illusts, download_path, pbar=pbar
-        )
-        pbar.close
-    return all_pages_cache
 
 
 def go_next_image(page_urls, img_post_page_num, number_of_pages,
