@@ -30,6 +30,7 @@ See the [manual](#manual) for more details
     * Browse through different images in a multi-image post.
 3. Browse the artists you are following, and view their illustrations (goes to 1)
 4. Search for an artist, and view their illustrations (goes to 1)
+5. Browse illustrations from all the artists you are following
 * Both gallery and image views can:
     * Download an image([PixivUtil](https://github.com/Nandaka/PixivUtil2/) would be more suitable for batch download) in full resolution
     * Open post in browser
