@@ -80,10 +80,8 @@ def main():
         user_input = None
 
     # Direct command line arguments
-    if args['<link>']:
+    if url_or_str := args['<link>']:
         # Link given, no mode specified
-        url_or_str = args['<link>']
-
         if "users" in url_or_str:
             user_input, main_command = process_mode1(url_or_str)
 
@@ -94,9 +92,8 @@ def main():
             user_input = url_or_str
             main_command = "4"
 
-    elif args['<link_or_id>']:
+    elif url_or_id := args['<link_or_id>']:
         # Mode specified, argument can be link or id
-        url_or_id = args['<link_or_id>']
         if args['1'] or args['a']:
             user_input, main_command = process_mode1(url_or_id)
 
@@ -107,8 +104,7 @@ def main():
             user_input, main_command = process_mode1(url_or_id)
             main_command = "3"
 
-    elif args['<searchstr>']:
-        user_input = args['<searchstr>']
+    elif user_input := args['<searchstr>']:
         main_command = "4"
 
 
