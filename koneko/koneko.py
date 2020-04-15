@@ -404,6 +404,8 @@ class ArtistGalleryMode(GalleryLikeMode):
 
         if 'illust_follow_info' in kwargs:
             self._illust_follow_info = kwargs['illust_follow_info']
+            # If things break, it's most likely because of this line
+            super().__init__(current_page_num, None)
         elif kwargs:
             self._current_page_num = current_page_num
             self._current_page = kwargs['current_page']
@@ -411,8 +413,6 @@ class ArtistGalleryMode(GalleryLikeMode):
 
             self.start()
 
-        else:
-            super().__init__(current_page_num, None)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
