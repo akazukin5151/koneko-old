@@ -400,19 +400,19 @@ class ArtistGalleryMode(GalleryLikeMode):
     def __init__(self, artist_user_id, current_page_num=1, **kwargs):
         self._artist_user_id = artist_user_id
         self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
+        self._illust_follow_info = None
 
         if 'illust_follow_info' in kwargs:
             self._illust_follow_info = kwargs['illust_follow_info']
         elif kwargs:
-            self._illust_follow_info = None
             self._current_page_num = current_page_num
             self._current_page = kwargs['current_page']
             self._all_pages_cache = kwargs['all_pages_cache']
 
             self.start()
 
-        if kwargs:
-            super().__init__(current_page_num)
+        else:
+            super().__init__(current_page_num, None)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
@@ -1110,7 +1110,6 @@ class Users(ABC):
 
     @abstractmethod
     def __init__(self, user_or_id):
-        self._main_path = None # Defined in child classes
         self._input = user_or_id
         self._offset = 0
         self._page_num = 1
