@@ -226,9 +226,10 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 * Submit a pull request
 * If you want to, you can create an issue first. Ask any questions by opening a new issue.
 
-UML diagram of the classes:
+Simplified UML diagram of the classes:
 
-![classes](pics/classes.png)
+![UML](http://plantuml.com:80/plantuml/png/dLPDQzmm4BtxLuYSaZPUwBM49KkWfP12eRINKXR5ddZLbIKZoTc6DF-zjkIFqTTIUbkFtioR6RqPxQqsL9c-vKLXcE50ZbB0KHP5GH-qKRGofE9KQt8lPKTkRYvtrqH1VRNTlXI4l7sPKQyspkLLyLeKpc6d3DFciwp1kexmmO6qWs40ESmdpdjjFaZEvIcDj3_Ns2wBFsKjJw8CADuJ9WwWcD41BCM2m56f7odde9xlsH56U5HrfcvSzXJ2ki_rDCwMBJu131BRJPzJz5HY0dwRVKSR65AoXax14uEJPvCTY3rduhYlf5IrZksYRsUZzMOjSb-BxvHikyIjemJlhadrJCMQuNWdNDBQnGmo20vH6eWgRjyvFfnZTBEUaD2b8Na4EhvuTq7UvDsgWKngq4wzMSBmxX5VSYOmQ-mRa4OoIJXEPsTuCMV6T-6T5PkbzZeLDHTFYySQkCLyanQ-3nhz8lFRHZxyWc6At20CkBsrJpeQbPPK3l7LE2kHs37nJNRiV9CTFDdhmCo1Fe5JOvHrgLXpC3yEhAv1_2otoSqLBBSm26fk57-p2LlWVuu0suwbiOwQYUQR1gMZzZxEnyjKVWMggaCQhUsPGsS2_ri7KYJ_qxjq4jbt946Bdv5KntnTnJqApeDzlq32BT_8FRMZOQzjrbPwzuyInCRrmPh29vk12lDXA7c4oLmdNbjX_6MOLn6bxXM7yBWN_rLMOV-uhgZPZ6Dm_WrN86fGw6rnZdTKrOjuCvXvqILWcBtikn95HPtBeE9LMTmEeSS_Qdy1)
+
 
 ## `Dev` branch
 
