@@ -44,7 +44,7 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 
 <a href="url"><img src="pics/pixiv_ublock.png" height="350"></a>
 
-The mobile app even directly tells you Google "and our 198 partners" "collect and use data"! See [prompt 1](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads1.png) and [prompt 2](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads2.png) (Github can't render the images correctly for some reason)
+The mobile app even directly tells you Google "and our 198 partners" "collect and use data"! See [prompt 1](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads1.png), [prompt 2](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads2.png) (Github can't render the images correctly for some reason) and this [list](#trackers)
 
 * TUIs make you cool
 * TUIs *with embedded pictures* make you even cooler
@@ -247,3 +247,53 @@ Here's a random shell command to get (but not download) and display any pixiv im
 ```sh
 curl -e 'https://www.pixiv.net' "https://i.pximg.net/img-original/img/2019/12/21/20/13/12/78403815_p0.jpg" | kitty +kitten icat --align left --place 800x480@0x5
 ```
+
+## Trackers
+Nine trackers in the Android app, according to [exodus](https://reports.exodus-privacy.eu.org/en/reports/jp.pxv.android/latest/):
+
+* Amazon Advertisement
+* AMoAd
+* Google Ads
+* Google CrashLytics
+* Google DoubleClick
+* Google Firebase Analytics
+* Integral Ad Science
+* Moat
+* Twitter MoPub
+
+Advertisers from pixiv's [privacy policy](https://policies.pixiv.net/en.html#booth):
+
+* Qualaroo
+* DDAI（Date Driven Advertising Initiative）
+* YourAdChoices
+* Rubicon Project
+* i-Mobile Co., Ltd.
+* Akinasista Corporation
+* Axel Mark Inc.
+* AppLovin
+* Amazon Japan G.K.
+* AmoAd Inc.
+* AOL Platforms Japan K.K.
+* OpenX
+* Google Inc.
+* CRITEO K.K.
+* CyberAgent, Inc.
+* Geniee, Inc.
+* Supership Inc.
+* GMO AD Marketing Inc.
+* F@N Communications, Inc.
+* Facebook Inc.
+* Fluct, Inc.
+* Platform One Inc.
+* MicroAd Inc.
+* MoPub Inc.
+* Yahoo! Japan Corporation
+* United, Inc.
+* 株式会社Zucks
+* PubMatic, Inc.
+* Liftoff Mobile, Inc.
+* Mobfox US LLC
+* OneSignal
+* Smaato, Inc.
+* SMN株式会社
+* 株式会社アドインテ
