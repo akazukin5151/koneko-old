@@ -425,7 +425,8 @@ class ArtistGalleryMode(GalleryLikeMode):
             self._current_page_num,
             self._artist_user_id,
             self._all_pages_cache,
-            illust_follow_info=self._illust_follow_info
+            illust_follow_info=self._illust_follow_info,
+            superself=self
         )
         self.gallery.prompt()
 
@@ -585,18 +586,11 @@ class Image:
             print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
     def leave(self):
-        if self._current_page_num > 1 or self._current_page:
-            self._all_pages_cache = self._kwargs["all_pages_cache"]
-            ArtistGalleryMode(
-                self._artist_user_id,
-                current_page_num=self._current_page_num,
-                current_page=self._current_page,
-                all_pages_cache=self._all_pages_cache,
-            )
-        else:
+        if self._current_page_num == 1:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
             ArtistGalleryMode(self._artist_user_id)
+        # Else: image prompt and class ends, goes back to gallery
 
 
 # - Prompt functions with logic
@@ -791,10 +785,11 @@ class ArtistGallery(AbstractGallery):
 
     """
     def __init__(self, current_page_illusts, current_page,
-                 current_page_num, artist_user_id, all_pages_cache, **kwargs):
+                 current_page_num, artist_user_id, all_pages_cache, superself, **kwargs):
         self._main_path = f"{KONEKODIR}/{artist_user_id}/"
         self._artist_user_id = artist_user_id
         self._kwargs = kwargs
+        self._superself = superself
         super().__init__(current_page_illusts, current_page, current_page_num,
                          all_pages_cache)
 
@@ -842,6 +837,8 @@ class ArtistGallery(AbstractGallery):
             download_path=f"{self._main_path}/{self._current_page_num}/large/",
         )
         image_prompt(image)
+        # After user 'back's from image prompt, start mode again
+        ArtistGalleryMode.start(self._superself)
 
     def leave(self):
         IllustFollowMode(*self._kwargs['illust_follow_info'])
