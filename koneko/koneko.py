@@ -342,13 +342,13 @@ class IllustFollowModeLoop(Loop):
 
 # - Mode classes
 class GalleryLikeMode(ABC):
-    def __init__(self, current_page_num=1):
+    def __init__(self, current_page_num=1, all_pages_cache=None):
         self._current_page_num = current_page_num
         # Defined in self.start()
         self._current_page = None
         # Defined in self._show_gallery()
         self._current_page_illusts = None
-        self._all_pages_cache = None
+        self._all_pages_cache = all_pages_cache
 
         self.start()
 
@@ -371,6 +371,7 @@ class GalleryLikeMode(ABC):
 
     @pure.spinner("Fetching user illustrations... ")
     @abstractmethod
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
         raise NotImplementedError
 
@@ -400,15 +401,20 @@ class ArtistGalleryMode(GalleryLikeMode):
         self._artist_user_id = artist_user_id
         self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
 
-        if kwargs:
+        if 'illust_follow_info' in kwargs:
+            self._illust_follow_info = kwargs['illust_follow_info']
+        elif kwargs:
+            self._illust_follow_info = None
             self._current_page_num = current_page_num
             self._current_page = kwargs['current_page']
             self._all_pages_cache = kwargs['all_pages_cache']
 
             self.start()
-        else:
+
+        if kwargs:
             super().__init__(current_page_num)
 
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
         return API.user_illusts(self._artist_user_id)
 
@@ -419,6 +425,7 @@ class ArtistGalleryMode(GalleryLikeMode):
             self._current_page_num,
             self._artist_user_id,
             self._all_pages_cache,
+            illust_follow_info=self._illust_follow_info
         )
         self.gallery.prompt()
 
@@ -428,10 +435,11 @@ class IllustFollowMode(GalleryLikeMode):
     artist_user_id is useless. Only determines where the pics will be saved
     It's set to a string for now, will remove later
     """
-    def __init__(self, current_page_num=1):
+    def __init__(self, current_page_num=1, all_pages_cache=None):
         self._download_path = f"{KONEKODIR}/illustfollow/{current_page_num}/"
-        super().__init__(current_page_num)
+        super().__init__(current_page_num, all_pages_cache)
 
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
         return API.illust_follow(restrict='private')
 
@@ -725,6 +733,7 @@ class AbstractGallery(ABC):
             print("This is the first page!")
 
     @abstractmethod
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self, **kwargs):
         raise NotImplementedError
 
@@ -782,12 +791,14 @@ class ArtistGallery(AbstractGallery):
 
     """
     def __init__(self, current_page_illusts, current_page,
-                 current_page_num, artist_user_id, all_pages_cache):
+                 current_page_num, artist_user_id, all_pages_cache, **kwargs):
         self._main_path = f"{KONEKODIR}/{artist_user_id}/"
         self._artist_user_id = artist_user_id
+        self._kwargs = kwargs
         super().__init__(current_page_illusts, current_page, current_page_num,
                          all_pages_cache)
 
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self, **kwargs):
         return API.user_illusts(**kwargs)
 
@@ -831,6 +842,9 @@ class ArtistGallery(AbstractGallery):
             download_path=f"{self._main_path}/{self._current_page_num}/large/",
         )
         image_prompt(image)
+
+    def leave(self):
+        IllustFollowMode(*self._kwargs['illust_follow_info'])
 
     def prompt(self):
         """
@@ -912,6 +926,9 @@ class ArtistGallery(AbstractGallery):
                 elif gallery_command == "p":
                     self.previous_page()
 
+                elif gallery_command == "b":
+                    break # leave cbreak()
+
                 elif gallery_command == "q":
                     print("Are you sure you want to exit?")
                     quit()
@@ -931,11 +948,13 @@ class ArtistGallery(AbstractGallery):
         # End cbreak()
 
         # Display image (using either coords or image number), the show this prompt
-        self.view_image(selected_image_num)
+        if gallery_command == "b":
+            self.leave()
+        else:
+            self.view_image(selected_image_num)
 
 
 class IllustFollowGallery(AbstractGallery):
-    # TODO: back
     """
     Gallery commands: (No need to press enter)
         Using coordinates, where {digit1} is the row and {digit2} is the column
@@ -966,16 +985,21 @@ class IllustFollowGallery(AbstractGallery):
         super().__init__(current_page_illusts, current_page, current_page_num,
                          all_pages_cache)
 
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self, **kwargs):
         """
         **kwargs can be **parse_page (for _prefetch_next_page), or
         publicity='private' (for normal)
         """
-        return API.illust_follow(**kwargs)
+        if 'restrict' in kwargs:
+            return API.illust_follow(**kwargs)
+        else:
+            return API.illust_follow()
 
     def _display_image_core(self):
         artist_user_id = self._post_json['user']['id']
-        ArtistGalleryMode(artist_user_id)
+        ArtistGalleryMode(artist_user_id,
+                illust_follow_info=(self._current_page_num, self._all_pages_cache))
 
     def prompt(self):
         """
@@ -1244,6 +1268,7 @@ class SearchUsers(Users):
         self._main_path = f"{KONEKODIR}/search"
         super().__init__(user)
 
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
         return API.search_user(self._input, offset=self._offset)
 
@@ -1259,6 +1284,7 @@ class FollowingUsers(Users):
         self._main_path = f"{KONEKODIR}/following"
         super().__init__(your_id)
 
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
         return API.user_following(
             self._input, restrict=self._publicity, offset=self._offset
@@ -1429,10 +1455,9 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
         pbar.update(1)
     # print(f"{img_name} done!")
     if new_file_name:
-        # This thing break renames
+        # This character break renames
         if "/" in new_file_name:
             new_file_name = new_file_name.replace("/", "")
-        print(new_file_name)
         os.rename(img_name, new_file_name)
 
 
