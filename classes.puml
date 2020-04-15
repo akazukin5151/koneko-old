@@ -9,6 +9,7 @@ abstract class Loop <<(A, red)>>{
 
 class ArtistModeLoop {
     + mode
+    +start()
 }
 class IllustFollowModeLoop {
     + mode
@@ -60,8 +61,10 @@ ArtistGalleryMode "1" *-down-- ArtistGallery: composes gallery
 
 class ViewPostModeLoop {
     + mode
+    +start()
 }
 object view_post_mode
+object image_prompt
 class Image <<(C, cyan)>>{
     + download_image()
     + open_image()
@@ -70,17 +73,20 @@ class Image <<(C, cyan)>>{
     + leave()
 }
 
-ViewPostModeLoop -right[hidden]-> IllustFollowModeLoop
+ViewPostModeLoop -right[hidden]-> SearchUsersModeLoop
 Loop <|-down- ViewPostModeLoop: inherits
 ViewPostModeLoop .. view_post_mode
 view_post_mode .. Image
+Image .. image_prompt
 
 
 class FollowingUsersModeLoop {
     + following
+    +start()
 }
 class SearchUsersModeLoop {
     + searching
+    +start()
 }
 FollowingUsersModeLoop -right[hidden]-> IllustFollowModeLoop
 SearchUsersModeLoop -right[hidden]-> IllustFollowModeLoop
