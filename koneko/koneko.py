@@ -1427,7 +1427,11 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
         pbar.update(1)
     # print(f"{img_name} done!")
     if new_file_name:
-        os.rename(img_name, new_file_name)  # FIXME Sometimes it misses a file?!
+        # This thing break renames
+        if "/" in new_file_name:
+            new_file_name = new_file_name.replace("/", "")
+        print(new_file_name)
+        os.rename(img_name, new_file_name)
 
 
 # - Wrappers around the core functions for async download
