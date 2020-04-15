@@ -1266,6 +1266,7 @@ class FollowingUsers(Users):
 
 
 def user_prompt(user_class):
+    # TODO: put inside User ABC
     """
     Handles key presses for user views (following users and user search)
     """
@@ -1378,6 +1379,7 @@ def full_img_details(png=False, post_json=None, image_id=None):
 
 
 # - DOWNLOAD FUNCTIONS ==================================================
+# TODO (Doesn't actually call the API themselves, possible to move to another module?)
 # - Core download functions (for async)
 @pure.spinner("")
 def async_download_spinner(download_path, urls, rename_images=False,
