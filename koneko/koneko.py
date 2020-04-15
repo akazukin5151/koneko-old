@@ -402,17 +402,14 @@ class ArtistGalleryMode(GalleryLikeMode):
         self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
         self._illust_follow_info = None
 
-        if 'illust_follow_info' in kwargs:
-            self._illust_follow_info = kwargs['illust_follow_info']
-        elif kwargs:
+        if kwargs:
             self._current_page_num = current_page_num
             self._current_page = kwargs['current_page']
             self._all_pages_cache = kwargs['all_pages_cache']
 
             self.start()
+        super().__init__(current_page_num, None)
 
-        else:
-            super().__init__(current_page_num, None)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
@@ -426,7 +423,6 @@ class ArtistGalleryMode(GalleryLikeMode):
             self._artist_user_id,
             self._all_pages_cache,
             illust_follow_info=self._illust_follow_info,
-            superself=self
         )
         self.gallery.prompt()
 
@@ -449,7 +445,7 @@ class IllustFollowMode(GalleryLikeMode):
                 self._current_page_illusts,
                 self._current_page,
                 self._current_page_num,
-                self._all_pages_cache
+                self._all_pages_cache,
         )
         self.gallery.prompt()
 
@@ -785,11 +781,10 @@ class ArtistGallery(AbstractGallery):
 
     """
     def __init__(self, current_page_illusts, current_page,
-                 current_page_num, artist_user_id, all_pages_cache, superself, **kwargs):
+                 current_page_num, artist_user_id, all_pages_cache, **kwargs):
         self._main_path = f"{KONEKODIR}/{artist_user_id}/"
         self._artist_user_id = artist_user_id
         self._kwargs = kwargs
-        self._superself = superself
         super().__init__(current_page_illusts, current_page, current_page_num,
                          all_pages_cache)
 
@@ -838,10 +833,9 @@ class ArtistGallery(AbstractGallery):
         )
         image_prompt(image)
         # After user 'back's from image prompt, start mode again
-        ArtistGalleryMode.start(self._superself)
-
-    def leave(self):
-        IllustFollowMode(*self._kwargs['illust_follow_info'])
+        ArtistGalleryMode(self._artist_user_id, self._current_page_num,
+                all_pages_cache=self._all_pages_cache,
+                current_page=self._current_page)
 
     def prompt(self):
         """
@@ -946,7 +940,7 @@ class ArtistGallery(AbstractGallery):
 
         # Display image (using either coords or image number), the show this prompt
         if gallery_command == "b":
-            self.leave()
+            pass # Stop gallery instance, return to previous state
         else:
             self.view_image(selected_image_num)
 
@@ -995,8 +989,9 @@ class IllustFollowGallery(AbstractGallery):
 
     def _display_image_core(self):
         artist_user_id = self._post_json['user']['id']
-        ArtistGalleryMode(artist_user_id,
-                illust_follow_info=(self._current_page_num, self._all_pages_cache))
+        ArtistGalleryMode(artist_user_id)
+        # User 'back's out of artist gallery, start current mode again
+        IllustFollowMode(self._current_page_num, self._all_pages_cache)
 
     def prompt(self):
         """
