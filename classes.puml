@@ -19,7 +19,7 @@ Loop <|-down- IllustFollowModeLoop: inherits
 
 
 abstract class GalleryLikeMode <<(A, red)>>{
-    +{abstract}start()
+    +start()
 }
 class ArtistGalleryMode {
     + gallery
@@ -109,8 +109,24 @@ class lscat.Card {
 class lscat.Gallery {
     + render()
 }
-lscat.View <-up- lscat.Card: inherits
-lscat.View <-up- lscat.Gallery: inherits
+
+lscat.View <-down- lscat.Card: inherits
+lscat.View <-left- lscat.Gallery: inherits
+
+Users "1" *.down. lscat.Card: composes view
+GalleryLikeMode "1" *.up lscat.Gallery: composes view
+AbstractGallery "1" *.up lscat.Gallery: composes view
+
+AbstractGallery --up[hidden]-> GalleryLikeMode
+IllustFollowMode -right[hidden]-> ArtistGalleryMode
+SearchUsers -right[hidden]-> IllustFollowMode
+
+lscat.Gallery --left[hidden]-> IllustFollowGallery
+GalleryLikeMode -down[hidden]-> IllustFollowGallery
+GalleryLikeMode -down[hidden]-> ArtistGallery
+
+Users -right[hidden]-> GalleryLikeMode
+lscat.Card -up[hidden]-> GalleryLikeMode
 
 @enduml
 
