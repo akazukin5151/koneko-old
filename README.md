@@ -103,7 +103,6 @@ For more details look at the [manual](#manual).
 
 ## Features
 
-* View new posts/illusts from all the artists you're following
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -111,8 +110,8 @@ For more details look at the [manual](#manual).
 
 ## Speed
 
-* Download artist profile pics and their previews in the same ThreadPoolExecutor context
 * If files already downloaded, show them immediately before logging in
+* Display each image as soon as they finish downloading (but due to lscat limitations, only one page at a time). Requires "integrating" (read: basically rewriting) lscat.py and threaded download functions
 
 # Manual
 
