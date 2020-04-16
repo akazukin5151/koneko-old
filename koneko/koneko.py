@@ -285,7 +285,7 @@ class ViewPostModeLoop(Loop):
             self._user_input = self._url_or_id
 
     def _go_to_mode(self):
-        self.mode = view_post_mode(self._user_input)
+        view_post_mode(self._user_input)
 
 
 class SearchUsersModeLoop(Loop):
@@ -328,6 +328,8 @@ class FollowingUserModeLoop(Loop):
 class IllustFollowModeLoop(Loop):
     """
     Immediately goes to IllustFollow()
+    Doesn't actually need to inherit from Loop ABC because it's so different
+    But make UML diagrams look better
     """
     def __init__(self): pass
 
@@ -365,7 +367,7 @@ class GalleryLikeMode(ABC):
         Else, fetch current_page json and proceed download -> show -> prompt
         """
         # If path exists, show immediately (without checking for contents!)
-        if os.path.isdir(self._download_path):
+        if os.path.isdir(self._download_path): # Defined in child classes
             utils.show_artist_illusts(self._download_path)
             show = False
         else:
@@ -448,10 +450,10 @@ class IllustFollowMode(GalleryLikeMode):
 
     def _instantiate(self):
         self.gallery = IllustFollowGallery(
-                self._current_page_illusts,
-                self._current_page,
-                self._current_page_num,
-                self._all_pages_cache,
+            self._current_page_illusts,
+            self._current_page,
+            self._current_page_num,
+            self._all_pages_cache,
         )
         self.gallery.prompt()
 
@@ -652,6 +654,7 @@ class AbstractGallery(ABC):
         self._current_page = current_page
         self._current_page_num = current_page_num
         self._all_pages_cache = all_pages_cache
+        self._post_json = None # Defined in self.view_image
 
         pure.print_multiple_imgs(self._current_page_illusts)
         print(f"Page {self._current_page_num}")
@@ -703,6 +706,7 @@ class AbstractGallery(ABC):
         # blocking: no way to unblock prompt
         number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
 
+        # self._main_path defined in child classes
         image = Image(
             image_id,
             artist_user_id,
@@ -843,8 +847,8 @@ class ArtistGallery(AbstractGallery):
     def _back(self):
         # After user 'back's from image prompt, start mode again
         ArtistGalleryMode(self._artist_user_id, self._current_page_num,
-                all_pages_cache=self._all_pages_cache,
-                current_page=self._current_page)
+                          all_pages_cache=self._all_pages_cache,
+                          current_page=self._current_page)
 
     def prompt(self):
         """
@@ -1112,6 +1116,7 @@ class Users(ABC):
         self._input = user_or_id
         self._offset = 0
         self._page_num = 1
+        # self._main_path defined in child classes
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._names_cache = {}
         self._ids_cache = {}
@@ -1596,9 +1601,8 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     # display the already-downloaded medium-res image first, then download and
     # display the large-res
     os.system("clear")
-    os.system(
-        f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
-    )
+    arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
+    os.system(f"kitty +kitten icat --silent {arg}")
 
     url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
@@ -1609,16 +1613,13 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     # received
 
     os.system("clear")
-    os.system(
-        f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
-    )
+    arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
+    os.system(f"kitty +kitten icat --silent {arg}")
 
 # - DOWNLOAD FUNCTIONS ==================================================
 
 
 if __name__ == "__main__":
-    global TERM
     TERM = Terminal()
-    global KONEKODIR
     KONEKODIR = "/tmp/koneko"
     main()

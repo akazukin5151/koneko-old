@@ -44,7 +44,7 @@ def display_image_vp(filepath):
 def begin_prompt(printmessage=True):
     messages = (
         "",
-        "Welcome to koneko v0.2\n",
+        "Welcome to koneko v0.3\n",
         "Select an action:",
         "1. View artist illustrations",
         "2. Open pixiv post",
@@ -58,10 +58,10 @@ def begin_prompt(printmessage=True):
     )
     if printmessage:
         for message in messages:
-            print(" " * 24, message)
+            print(" " * 27, message)
 
-    pixcat.Image("../pics/71471144_p0.png").thumbnail(500).show(align="left", y=0)
-    command = input("\nEnter a command: ")
+    pixcat.Image("../pics/71471144_p0.png").thumbnail(550).show(align="left", y=0)
+    command = input("Enter a command: ")
     return command
 
 
@@ -107,7 +107,7 @@ def info_screen_loop():
     os.system("clear")
     messages = (
         "",
-        "koneko こねこ version 0.2 beta\n",
+        "koneko こねこ version 0.3 beta\n",
         "Browse pixiv in the terminal using kitty's icat to display",
         "images with images embedded in the terminal\n",
         "1. View an artist's illustrations",
