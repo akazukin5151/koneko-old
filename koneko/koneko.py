@@ -1133,12 +1133,16 @@ class Users(ABC):
         move the profile pics to the correct dir (less files to move)
         """
         self._parse_user_infos()
+
         preview_path = f"{self._main_path}/{self._input}/{self._page_num}/previews/"
         all_urls = self._profile_pic_urls + self._image_urls
         all_names = self._names + list(map(pure.split_backslash_last, self._image_urls))
         splitpoint = len(self._profile_pic_urls)
 
-        # FIXME: downloads images even if it's already downloaded
+        if (os.path.isdir(self._download_path) and
+                len(os.listdir(self._download_path)) == splitpoint + 1):
+            return True
+
         pbar = tqdm(total=len(all_urls), smoothing=0)
         # fmt: off
         async_download_core(
@@ -1188,29 +1192,36 @@ class Users(ABC):
 
 
     def _show_page(self):
-        names = self._names_cache[self._page_num]
-        names_prefixed = map(pure.prefix_artist_name, names, range(len(names)))
-        names_prefixed = list(names_prefixed)
-
         try:
+            names = self._names_cache[self._page_num]
+        except KeyError:
+            print("This is the last page!")
+            self._page_num -= 1
+            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+
+        else:
+            names_prefixed = map(pure.prefix_artist_name, names, range(len(names)))
+            names_prefixed = list(names_prefixed)
+
             lscat.Card(
                 self._download_path,
                 f"{self._main_path}/{self._input}/{self._page_num}/previews/",
                 messages=names_prefixed,
             ).render()
-        except FileNotFoundError:
-            print("This is the last page!")
-            self._page_num -= 1
-            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
     def _prefetch_next_page(self):
-        self._page_num += 1
-        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+        breakpoint()
+        oldnum = self._page_num
 
         if self._next_url:
             self._offset = API.parse_qs(self._next_url)["offset"]
+            # For when next -> prev -> next
+            self._page_num = int(self._offset) // 30 + 1
+            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+
             self._parse_and_download()
-        self._page_num -= 1
+
+        self._page_num = oldnum
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
     def next_page(self):
