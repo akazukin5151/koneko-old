@@ -192,7 +192,7 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
             if answer == "y" or not answer:
-                break
+                sys.exit(0)
             else:
                 printmessage = False
                 continue
@@ -437,6 +437,7 @@ class ArtistGalleryMode(GalleryLikeMode):
             illust_follow_info=self._illust_follow_info,
         )
         self.gallery.prompt()
+        main()
 
 
 class IllustFollowMode(GalleryLikeMode):
@@ -806,234 +807,6 @@ class AbstractGallery(ABC):
             )
             pbar.close
 
-    @abstractmethod
-    def prompt(self):
-        raise NotImplementedError
-
-
-class ArtistGallery(AbstractGallery):
-    """
-    Artist Gallery commands: (No need to press enter)
-        Using coordinates, where {digit1} is the row and {digit2} is the column
-        {digit1}{digit2}   -- display the image on row digit1 and column digit2
-        o{digit1}{digit2}  -- open pixiv image/post in browser
-        d{digit1}{digit2}  -- download image in large resolution
-
-    Using image number, where {number} is the nth image in order (see examples)
-        i{number}          -- display the image
-        O{number}          -- open pixiv image/post in browser.
-        D{number}          -- download image in large resolution.
-
-        n                  -- view the next page
-        p                  -- view the previous page
-        h                  -- show this help
-        q                  -- quit (with confirmation)
-
-    Examples:
-        i09   --->  Display the ninth image in image view (must have leading 0)
-        i10   --->  Display the tenth image in image view
-        O9    --->  Open the ninth image's post in browser
-        D9    --->  Download the ninth image, in large resolution
-
-        25    --->  Display the image on column 2, row 5 (index starts at 1)
-        d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
-        o25   --->  Download the image on column 2, row 5 (index starts at 1)
-
-    """
-    def __init__(self, current_page_illusts, current_page,
-                 current_page_num, artist_user_id, all_pages_cache, **kwargs):
-        self._main_path = f"{KONEKODIR}/{artist_user_id}/"
-        self._artist_user_id = artist_user_id
-        self._kwargs = kwargs
-        super().__init__(current_page_illusts, current_page, current_page_num,
-                         all_pages_cache)
-
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    def _pixivrequest(self, **kwargs):
-        return API.user_illusts(**kwargs)
-
-    def _back(self):
-        # After user 'back's from image prompt, start mode again
-        ArtistGalleryMode(self._artist_user_id, self._current_page_num,
-                          all_pages_cache=self._all_pages_cache,
-                          current_page=self._current_page)
-
-    def prompt(self):
-        """
-        Only contains logic for interpreting key presses, and do the correct action
-        Sequence means a combination of more than one key.
-        When a sequenceable key is pressed, wait for the next keys in the sequence
-            If the sequence is valid, execute their corresponding actions
-        Otherwise for keys that do not need a sequence, execute their actions normally
-        """
-        sequenceable_keys = ("o", "d", "i", "O", "D")
-        with TERM.cbreak():
-            keyseqs = []
-            seq_num = 0
-            print("Enter a gallery command:")
-            while True:
-                gallery_command = TERM.inkey()
-
-                # Wait for the rest of the sequence
-                if gallery_command in sequenceable_keys:
-                    keyseqs.append(gallery_command)
-                    print(keyseqs)
-                    seq_num += 1
-
-                elif gallery_command.code == 361:  # Escape
-                    keyseqs = []
-                    seq_num = 0
-                    print(keyseqs)
-
-                # Digits continue the sequence
-                elif gallery_command.isdigit():
-                    keyseqs.append(gallery_command)
-                    print(keyseqs)
-
-                    # End of the sequence...
-                    # Two digit sequence -- view image given coords
-                    if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
-
-                        first_num = int(keyseqs[0])
-                        second_num = int(keyseqs[1])
-                        selected_image_num = pure.find_number_map(first_num, second_num)
-
-                        break  # leave cbreak(), go to image prompt
-
-                    # One letter two digit sequence
-                    elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
-
-                        first_num = keyseqs[1]
-                        second_num = keyseqs[2]
-
-                        # Open or download given coords
-                        if keyseqs[0] == "o":
-                            self.open_link_coords(first_num, second_num)
-
-                        elif keyseqs[0] == "d":
-                            self.download_image_coords(first_num, second_num)
-
-                        # Open, download, or view image, given image number
-                        selected_image_num = int(f"{first_num}{second_num}")
-
-                        if keyseqs[0] == "O":
-                            self.open_link_num(selected_image_num)
-                        elif keyseqs[0] == "D":
-                            self.download_image_num(selected_image_num)
-                        elif keyseqs[0] == "i":
-                            break  # leave cbreak(), go to image prompt
-
-                        # Reset sequence info after running everything
-                        keyseqs = []
-                        seq_num = 0
-
-                    # Not the end of the sequence yet, continue while block
-                    else:
-                        seq_num += 1
-
-                # No sequence, execute their functions immediately
-                elif gallery_command == "n":
-                    self.next_page()
-
-                elif gallery_command == "p":
-                    self.previous_page()
-
-                elif gallery_command == "b":
-                    break # leave cbreak()
-
-                elif gallery_command == "q":
-                    print("Are you sure you want to exit?")
-                    quit()
-                    # If exit cancelled
-                    print("Enter a gallery command:")
-
-                elif gallery_command.code == 343:  # Enter
-                    pass
-                elif gallery_command == "h":
-                    print(self.__doc__)
-                elif gallery_command:
-                    print("Invalid command! Press h to show help")
-                    keyseqs = []
-                    seq_num = 0
-                # End if
-            # End while
-        # End cbreak()
-
-        # Display image (using either coords or image number), the show this prompt
-        if gallery_command == "b":
-            pass # Stop gallery instance, return to previous state
-        else:
-            self.view_image(selected_image_num)
-
-
-class IllustFollowGallery(AbstractGallery):
-    """
-    Illust Follow Gallery commands: (No need to press enter)
-        Using coordinates, where {digit1} is the row and {digit2} is the column
-        {digit1}{digit2}   -- display the image on row digit1 and column digit2
-        o{digit1}{digit2}  -- open pixiv image/post in browser
-        d{digit1}{digit2}  -- download image in large resolution
-        a{digit1}{digit2}  -- view illusts by the artist of the selected image
-
-    Using image number, where {number} is the nth image in order (see examples)
-        i{number}          -- display the image
-        O{number}          -- open pixiv image/post in browser.
-        D{number}          -- download image in large resolution.
-        A{number}          -- view illusts by the artist of the selected image
-
-        n                  -- view the next page
-        p                  -- view the previous page
-        h                  -- show this help
-        q                  -- quit (with confirmation)
-
-    Examples:
-        i09   --->  Display the ninth image in image view (must have leading 0)
-        i10   --->  Display the tenth image in image view
-        O9    --->  Open the ninth image's post in browser
-        D9    --->  Download the ninth image, in large resolution
-
-        25    --->  Display the image on column 2, row 5 (index starts at 1)
-        d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
-        o25   --->  Download the image on column 2, row 5 (index starts at 1)
-
-    """
-    def __init__(self, current_page_illusts, current_page,
-                 current_page_num, all_pages_cache):
-        self._main_path = f"{KONEKODIR}/illustfollow/"
-        super().__init__(current_page_illusts, current_page, current_page_num,
-                         all_pages_cache)
-
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    def _pixivrequest(self, **kwargs):
-        """
-        **kwargs can be **parse_page (for _prefetch_next_page), or
-        publicity='private' (for normal)
-        """
-        if 'restrict' in kwargs:
-            return API.illust_follow(**kwargs)
-        else:
-            return API.illust_follow()
-
-    def go_artist_gallery_coords(self, first_num, second_num):
-        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
-        self.go_artist_gallery_num(selected_image_num)
-
-    def go_artist_gallery_num(self, selected_image_num):
-        """Like self.view_image(), but goes to artist mode instead of image"""
-        self._selected_image_num = selected_image_num
-        self._current_page = self._all_pages_cache[str(self._current_page_num)]
-        self._current_page_illusts = self._current_page["illusts"]
-        self._post_json = self._current_page_illusts[selected_image_num]
-
-        artist_user_id = self._post_json['user']['id']
-        ArtistGalleryMode(artist_user_id)
-        # Gallery prompt ends, user presses back
-        self._back()
-
-    def _back(self):
-        # User 'back's out of artist gallery, start current mode again
-        IllustFollowMode(self._current_page_num, self._all_pages_cache)
-
     def prompt(self):
         """
         Only contains logic for interpreting key presses, and do the correct action
@@ -1046,6 +819,8 @@ class IllustFollowGallery(AbstractGallery):
         with TERM.cbreak():
             keyseqs = []
             seq_num = 0
+            selected_image_num, first_num, second_num = None, None, None
+
             print("Enter a gallery command:")
             while True:
                 gallery_command = TERM.inkey()
@@ -1124,6 +899,9 @@ class IllustFollowGallery(AbstractGallery):
                     # If exit cancelled
                     print("Enter a gallery command:")
 
+                elif gallery_command == "b":
+                    break
+
                 elif gallery_command.code == 343:  # Enter
                     pass
                 elif gallery_command == "h":
@@ -1135,9 +913,149 @@ class IllustFollowGallery(AbstractGallery):
                 # End if
             # End while
         # End cbreak()
+        self.handle_prompt(keyseqs, gallery_command, selected_image_num,
+                           first_num, second_num)
 
+    @abstractmethod
+    def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
+                      first_num, second_num):
+        raise NotImplementedError
+
+
+class ArtistGallery(AbstractGallery):
+    """
+    Artist Gallery commands: (No need to press enter)
+        Using coordinates, where {digit1} is the row and {digit2} is the column
+        {digit1}{digit2}   -- display the image on row digit1 and column digit2
+        o{digit1}{digit2}  -- open pixiv image/post in browser
+        d{digit1}{digit2}  -- download image in large resolution
+
+    Using image number, where {number} is the nth image in order (see examples)
+        i{number}          -- display the image
+        O{number}          -- open pixiv image/post in browser.
+        D{number}          -- download image in large resolution.
+
+        n                  -- view the next page
+        p                  -- view the previous page
+        h                  -- show this help
+        q                  -- quit (with confirmation)
+
+    Examples:
+        i09   --->  Display the ninth image in image view (must have leading 0)
+        i10   --->  Display the tenth image in image view
+        O9    --->  Open the ninth image's post in browser
+        D9    --->  Download the ninth image, in large resolution
+
+        25    --->  Display the image on column 2, row 5 (index starts at 1)
+        d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
+        o25   --->  Download the image on column 2, row 5 (index starts at 1)
+
+    """
+    def __init__(self, current_page_illusts, current_page,
+                 current_page_num, artist_user_id, all_pages_cache, **kwargs):
+        self._main_path = f"{KONEKODIR}/{artist_user_id}/"
+        self._artist_user_id = artist_user_id
+        self._kwargs = kwargs
+        super().__init__(current_page_illusts, current_page, current_page_num,
+                         all_pages_cache)
+
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    def _pixivrequest(self, **kwargs):
+        return API.user_illusts(**kwargs)
+
+    def _back(self):
+        # After user 'back's from image prompt, start mode again
+        ArtistGalleryMode(self._artist_user_id, self._current_page_num,
+                          all_pages_cache=self._all_pages_cache,
+                          current_page=self._current_page)
+
+    def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
+                      first_num, second_num):
         # Display image (using either coords or image number), the show this prompt
-        if keyseqs[0] == "i":
+        if gallery_command == "b":
+            pass # Stop gallery instance, return to previous state
+        elif keyseqs[0] == "i":
+            self.view_image(selected_image_num)
+        elif keyseqs[0].lower() == "a":
+            print("Invalid command! Press h to show help")
+            self.prompt() # Go back to while loop
+
+
+class IllustFollowGallery(AbstractGallery):
+    """
+    Illust Follow Gallery commands: (No need to press enter)
+        Using coordinates, where {digit1} is the row and {digit2} is the column
+        {digit1}{digit2}   -- display the image on row digit1 and column digit2
+        o{digit1}{digit2}  -- open pixiv image/post in browser
+        d{digit1}{digit2}  -- download image in large resolution
+        a{digit1}{digit2}  -- view illusts by the artist of the selected image
+
+    Using image number, where {number} is the nth image in order (see examples)
+        i{number}          -- display the image
+        O{number}          -- open pixiv image/post in browser.
+        D{number}          -- download image in large resolution.
+        A{number}          -- view illusts by the artist of the selected image
+
+        n                  -- view the next page
+        p                  -- view the previous page
+        h                  -- show this help
+        q                  -- quit (with confirmation)
+
+    Examples:
+        i09   --->  Display the ninth image in image view (must have leading 0)
+        i10   --->  Display the tenth image in image view
+        O9    --->  Open the ninth image's post in browser
+        D9    --->  Download the ninth image, in large resolution
+
+        25    --->  Display the image on column 2, row 5 (index starts at 1)
+        d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
+        o25   --->  Download the image on column 2, row 5 (index starts at 1)
+
+    """
+    def __init__(self, current_page_illusts, current_page,
+                 current_page_num, all_pages_cache):
+        self._main_path = f"{KONEKODIR}/illustfollow/"
+        super().__init__(current_page_illusts, current_page, current_page_num,
+                         all_pages_cache)
+
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    def _pixivrequest(self, **kwargs):
+        """
+        **kwargs can be **parse_page (for _prefetch_next_page), or
+        publicity='private' (for normal)
+        """
+        if 'restrict' in kwargs:
+            return API.illust_follow(**kwargs)
+        else:
+            return API.illust_follow()
+
+    def go_artist_gallery_coords(self, first_num, second_num):
+        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
+        self.go_artist_gallery_num(selected_image_num)
+
+    def go_artist_gallery_num(self, selected_image_num):
+        """Like self.view_image(), but goes to artist mode instead of image"""
+        self._selected_image_num = selected_image_num
+        self._current_page = self._all_pages_cache[str(self._current_page_num)]
+        self._current_page_illusts = self._current_page["illusts"]
+        self._post_json = self._current_page_illusts[selected_image_num]
+
+        artist_user_id = self._post_json['user']['id']
+        ArtistGalleryMode(artist_user_id)
+        # Gallery prompt ends, user presses back
+        self._back()
+
+    def _back(self):
+        # User 'back's out of artist gallery, start current mode again
+        IllustFollowMode(self._current_page_num, self._all_pages_cache)
+
+    def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
+                      first_num, second_num):
+        # "b" must be handled first, because keyseqs might be empty
+        if gallery_command == "b":
+            print("Invalid command! Press h to show help")
+            self.prompt() # Go back to while loop
+        elif keyseqs[0] == "i":
             self.view_image(selected_image_num)
         elif keyseqs[0] == "a":
             self.go_artist_gallery_coords(first_num, second_num)
