@@ -38,8 +38,6 @@ Options:
 #     FEATURE: extra feature, low priority
 #     BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 
-# TODO: does ArtistGallery and IllustFollowGallery need to be seperate from
-# ArtistGalleryMode and IllustFollowMode?
 # TODO: Image has too many attributes (passing too many things)
 
 import os
@@ -56,14 +54,15 @@ import funcy
 from tqdm import tqdm
 from docopt import docopt
 from blessed import Terminal
-from pixivpy3 import AppPixivAPI, PixivError
+from pixivpy3 import PixivError, AppPixivAPI
 
 import pure
-import utils
 import lscat
+import utils
 
 
 def main():
+    """Read config file, start login, process any cli arguments, go to main loop"""
     # Read config.ini file
     config_object = ConfigParser()
     config_path = os.path.expanduser("~/.config/koneko/")
@@ -122,7 +121,6 @@ def main():
     elif user_input := args['<searchstr>']:
         main_command = "4"
 
-
     try:
         main_loop(prompted, main_command, user_input, your_id)
     except KeyboardInterrupt:
@@ -174,7 +172,6 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         elif main_command == "2":
             ViewPostModeLoop(prompted, user_input).start()
 
-        # fmt: off
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
@@ -190,7 +187,6 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         elif main_command == "5":
             IllustFollowModeLoop().start()
 
-        # fmt: on
         elif main_command == "?":
             utils.info_screen_loop()
 
@@ -222,6 +218,11 @@ class Loop(ABC):
     validate input (can be overridden)
     wait for api thread to finish logging in
     activates the selected mode (needs to be overridden)
+
+    Note: this violates the Liskov substitution principle, because
+    subclasses can 'remove' methods (by overriding them to `pass`)
+    This isn't a big concern because I just want to reduce code duplication,
+    thematically group functions into the Loop ABC, & those methods are private anyway
     """
     def __init__(self, prompted, user_input):
         self._prompted = prompted
@@ -289,7 +290,11 @@ class ViewPostModeLoop(Loop):
     def _process_url_or_input(self):
         """Overriding base class to account for 'illust_id' cases"""
         if "illust_id" in self._url_or_id:
-            self._user_input = re.findall(r"&illust_id.*", self._url_or_id)[0].split("=")[-1]
+            self._user_input = re.findall(
+                 r"&illust_id.*",
+                self._url_or_id
+            )[0].split("=")[-1]
+
         elif "pixiv" in self._url_or_id:
             self._user_input = pure.split_backslash_last(self._url_or_id)
         else:
@@ -357,7 +362,7 @@ class IllustFollowModeLoop(Loop):
     def _go_to_mode(self):
         self.mode = IllustFollowMode()
 
-#- Loop classes ==========================================================
+# - Loop classes ==========================================================
 
 # - Mode classes
 class GalleryLikeMode(ABC):
@@ -550,10 +555,8 @@ class Image:
         q -- quit (with confirmation)
 
     """
-    # fmt: off
     def __init__(self, image_id, artist_user_id, current_page_num=1,
                  firstmode=False, **kwargs):
-    # fmt: on
         self._image_id = image_id
         self._artist_user_id = artist_user_id
         self._current_page_num = current_page_num
@@ -588,7 +591,6 @@ class Image:
 
         else:
             self._img_post_page_num += 1  # Be careful of 0 index
-            # TODO move go_next_image inside class so it updates downloaded_images
             self._downloaded_images = go_next_image(
                 self._page_urls,
                 self._img_post_page_num,
@@ -732,7 +734,6 @@ class AbstractGallery(ABC):
         artist_user_id = self._post_json['user']['id']
         image_id = self._post_json.id
 
-        # TODO move inside class
         display_image(
             self._post_json,
             artist_user_id,
@@ -830,6 +831,7 @@ class AbstractGallery(ABC):
             self.prompt()
 
     def prompt(self):
+        # TODO: possible to move all prompt functions/methods to another module?
         """
         Only contains logic for interpreting key presses, and do the correct action
         Sequence means a combination of more than one key.
@@ -1145,7 +1147,6 @@ class Users(ABC):
             return True
 
         pbar = tqdm(total=len(all_urls), smoothing=0)
-        # fmt: off
         async_download_core(
             preview_path,
             all_urls,
@@ -1154,7 +1155,6 @@ class Users(ABC):
             pbar=pbar
         )
         pbar.close()
-        # fmt: on
 
         # Move artist profile pics to their correct dir
         to_move = sorted(os.listdir(preview_path))[:splitpoint]
@@ -1312,7 +1312,6 @@ class FollowingUsers(Users):
 
 
 def user_prompt(user_class):
-    # TODO: put inside User ABC
     """
     Handles key presses for user views (following users and user search)
     """
@@ -1431,10 +1430,11 @@ def full_img_details(png=False, post_json=None, image_id=None):
 
 # - DOWNLOAD FUNCTIONS ==================================================
 # TODO (Doesn't actually call the API themselves, possible to move to another module?)
-# - Core download functions (for async)
+# - For batch downloading multiple images (all 5 functions related)
 @pure.spinner("")
 def async_download_spinner(download_path, urls, rename_images=False,
                            file_names=None, pbar=None):
+    """Batch download and rename, with spinner. For mode 2; multi-image posts"""
     async_download_core(
         download_path,
         urls,
@@ -1447,8 +1447,8 @@ def async_download_spinner(download_path, urls, rename_images=False,
 def async_download_core(download_path, urls, rename_images=False,
                         file_names=None, pbar=None):
     """
-    Core logic for async downloading. Rename files with given new name
-    if needed. Submit each url to the ThreadPoolExecutor.
+    Rename files with given new name if needed.
+    Submit each url to the ThreadPoolExecutor, so download and rename are concurrent
     """
     oldnames = list(map(pure.split_backslash_last, urls))
     if rename_images:
@@ -1469,11 +1469,12 @@ def async_download_core(download_path, urls, rename_images=False,
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
 def protected_download(url):
+    """Protect api download function with funcy.retry so it doesn't crash"""
     API.download(url)
 
 
 def downloadr(url, img_name, new_file_name=None, pbar=None):
-    """Actually downloads one pic given the single url, rename if needed."""
+    """Actually downloads one pic given one url, rename if needed."""
     protected_download(url)
 
     if pbar:
@@ -1486,16 +1487,10 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
         os.rename(img_name, new_file_name)
 
 
-# - Wrappers around the core functions for async download
 def download_page(current_page_illusts, download_path, pbar=None):
     """
     Download the illustrations on one page of given artist id (using threads),
-    rename them based on the post title
-
-    Parameters
-    ----------
-    current_page_illusts : JsonDict
-        JsonDict holding lots of info on all the posts in the current page
+    rename them based on the *post title*. Used for gallery modes (1 and 5)
     """
     urls = pure.medium_urls(current_page_illusts)
     titles = pure.post_titles_in_page(current_page_illusts)
@@ -1520,6 +1515,7 @@ def download_core(large_dir, url, filename, try_make_dir=True):
 def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
     """
     This downloads an image, checks if it's valid. If not, retry with png.
+    Used for downloading full-res, single only; on-user-demand
     """
     if png and 'url' in kwargs: # Called from recursion
         # IMPROVEMENT This is copied from full_img_details()...
@@ -1548,10 +1544,7 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
 
 
 # - Functions that are wrappers around download functions, making them impure
-class LastPageException(ValueError):
-    pass
-
-
+# - Both classes used only by the Image class, but detached to reduce its size
 def go_next_image(page_urls, img_post_page_num, number_of_pages,
                   downloaded_images, download_path):
     """
@@ -1626,6 +1619,9 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     os.system(f"kitty +kitten icat --silent {arg}")
 
 # - DOWNLOAD FUNCTIONS ==================================================
+
+class LastPageException(ValueError):
+    pass
 
 
 if __name__ == "__main__":
