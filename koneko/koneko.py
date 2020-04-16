@@ -3,25 +3,31 @@
 terminal!)
 
 Usage:
-  ./koneko.py       [<link>]
+  ./koneko.py       [<link> | <searchstr>]
   ./koneko.py [1|a] <link_or_id>
   ./koneko.py [2|i] <link_or_id>
   ./koneko.py (3|f) <link_or_id>
   ./koneko.py [4|s] <searchstr>
+  ./koneko.py [5|n]
   ./koneko.py -h
 
-Note that if you supply a link and want to go to mode 3,
-you must give the (3|f) argument, otherwise it would default to mode 1.
+Notes:
+*  If you supply a link and want to go to mode 3, you must give the (3|f) argument,
+   otherwise your link would default to mode 1.
+*  It is assumed you won't need to search for an artist named '5' or 'n' from the
+   command line, because it would go to mode 5.
 
 Optional arguments (for specifying a mode):
   1 a  Mode 1 (Artist gallery)
   2 i  Mode 2 (Image view)
   3 f  Mode 3 (Following artists)
   4 s  Mode 4 (Search for artists)
+  5 n  Mode 5 (Newest works from following artists ("illust follow"))
 
 Required arguments if a mode is specified:
-  <link>        pixiv url, auto detect mode. Can only detect either mode 1 or 2
-  <link_or_id>  either pixiv url or artist ID or image ID
+  <link>        Pixiv url, auto detect mode. Only works for modes 1, 2, and 4
+  <link_or_id>  Either pixiv url or artist ID or image ID
+  <searchstr>   String to search for artists
 
 Options:
   -h  Show this help
@@ -91,6 +97,11 @@ def main():
 
         elif "artworks" in url_or_str or "illust_id" in url_or_str:
             user_input, main_command = process_mode2(url_or_str)
+
+        # Assume you won't search for '5' or 'n'
+        elif url_or_str == "5" or url_or_str == "n":
+            main_command = "5"
+            user_input = None
 
         else:  # Mode 4, string to search for artists
             user_input = url_or_str
@@ -941,6 +952,7 @@ class ArtistGallery(AbstractGallery):
         n                  -- view the next page
         p                  -- view the previous page
         h                  -- show this help
+        b                  -- go back to previous mode (either 3, 4, 5, or main screen)
         q                  -- quit (with confirmation)
 
     Examples:
@@ -1002,6 +1014,7 @@ class IllustFollowGallery(AbstractGallery):
         n                  -- view the next page
         p                  -- view the previous page
         h                  -- show this help
+        b                  -- go back to main screen
         q                  -- quit (with confirmation)
 
     Examples:
@@ -1180,7 +1193,6 @@ class Users(ABC):
             ).render()
 
     def _prefetch_next_page(self):
-        breakpoint()
         oldnum = self._page_num
 
         if self._next_url:
