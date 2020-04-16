@@ -1,0 +1,138 @@
+@startuml
+
+title koneko
+
+
+abstract class Loop <<(A, red)>>{
+  +{abstract}start()
+}
+
+class ArtistModeLoop {
+    + mode
+    +start()
+}
+class IllustFollowModeLoop {
+    + mode
+    +start()
+}
+Loop <|-down- ArtistModeLoop: inherits
+Loop <|-down- IllustFollowModeLoop: inherits
+
+
+abstract class GalleryLikeMode <<(A, red)>>{
+    +start()
+}
+class ArtistGalleryMode {
+    + gallery
+}
+class IllustFollowMode {
+    + gallery
+}
+abstract class AbstractGallery <<(A, red)>>{
+    +next_page()
+    +preview_page()
+    +open_link_coords()
+    +open_link_num()
+    +view_image()
+    +{abstract}prompt()
+}
+
+class ArtistGallery <<(C, cyan)>>{
+    +download_image_coords()
+    +download_image_num()
+    +prompt()
+}
+class IllustFollowGallery <<(C, cyan)>>{
+    +prompt()
+}
+
+GalleryLikeMode <-down- ArtistGalleryMode: inherits
+ArtistModeLoop "1" *-down- ArtistGalleryMode: composes mode
+
+GalleryLikeMode <-down- IllustFollowMode: inherits
+IllustFollowModeLoop "1" *-down- IllustFollowMode: composes mode
+
+AbstractGallery <-down- IllustFollowGallery: inherits
+IllustFollowMode "1" *-down-- IllustFollowGallery: composes gallery
+
+AbstractGallery <-down- ArtistGallery: inherits
+ArtistGalleryMode "1" *-down-- ArtistGallery: composes gallery
+
+
+class ViewPostModeLoop {
+    + mode
+    +start()
+}
+object view_post_mode
+object image_prompt
+class Image <<(C, cyan)>>{
+    + download_image()
+    + open_image()
+    + next_image()
+    + previous_image()
+    + leave()
+}
+
+ViewPostModeLoop -right[hidden]-> SearchUsersModeLoop
+Loop <|-down- ViewPostModeLoop: inherits
+ViewPostModeLoop .. view_post_mode
+view_post_mode .. Image
+Image .. image_prompt
+
+
+class FollowingUsersModeLoop {
+    + following
+    +start()
+}
+class SearchUsersModeLoop {
+    + searching
+    +start()
+}
+FollowingUsersModeLoop -right[hidden]-> IllustFollowModeLoop
+SearchUsersModeLoop -right[hidden]-> IllustFollowModeLoop
+Loop <|-down- FollowingUsersModeLoop: inherits
+Loop <|-down- SearchUsersModeLoop: inherits
+
+class FollowingUsers <<(C, cyan)>>
+class SearchUsers <<(C, cyan)>>
+abstract class Users <<(A, red)>>{
+    +go_artist_mode()
+    +next_page()
+    +previous_page()
+    +start()
+}
+Users <-down- FollowingUsers: inherits
+Users <-down- SearchUsers: inherits
+FollowingUsersModeLoop "1" *-down- FollowingUsers: composes following
+SearchUsersModeLoop "1" *-down- SearchUsers: composes searching
+
+abstract class lscat.View <<(A, red)>>{
+    +{abstract}render()
+}
+class lscat.Card {
+    + render()
+}
+class lscat.Gallery {
+    + render()
+}
+
+lscat.View <-down- lscat.Card: inherits
+lscat.View <-left- lscat.Gallery: inherits
+
+Users "1" *.down. lscat.Card: composes view
+GalleryLikeMode "1" *.up lscat.Gallery: composes view
+AbstractGallery "1" *.up lscat.Gallery: composes view
+
+AbstractGallery --up[hidden]-> GalleryLikeMode
+IllustFollowMode -right[hidden]-> ArtistGalleryMode
+SearchUsers -right[hidden]-> IllustFollowMode
+
+lscat.Gallery --left[hidden]-> IllustFollowGallery
+GalleryLikeMode -down[hidden]-> IllustFollowGallery
+GalleryLikeMode -down[hidden]-> ArtistGallery
+
+Users -right[hidden]-> GalleryLikeMode
+lscat.Card -up[hidden]-> GalleryLikeMode
+
+@enduml
+

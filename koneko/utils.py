@@ -27,7 +27,7 @@ def show_artist_illusts(path, renderer="lscat", **kwargs):
 
     with pure.cd(path):
         if renderer == "lscat":
-            lscat.Gallery(path, **kwargs)
+            lscat.Gallery(path, **kwargs).render()
         elif renderer == "lscat old":
             from pathlib import Path
             os.system(f"{Path(lscat_path).parent}/legacy/lscat")
@@ -49,7 +49,8 @@ def begin_prompt(printmessage=True):
         "1. View artist illustrations",
         "2. Open pixiv post",
         "3. View following artists",
-        "4. Search for artists\n",
+        "4. Search for artists",
+        "5. View illustrations of all following artists\n",
         "?. Info",
         "m. Manual",
         "c. Clear koneko cache",

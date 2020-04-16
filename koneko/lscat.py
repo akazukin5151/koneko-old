@@ -58,34 +58,33 @@ class View(ABC):
     Hence, the need to plot each row of images in order
     """
     def __init__(self, path, number_of_columns, rowspaces, page_spaces, rows_in_page):
-        self.path = path
-        self.number_of_columns = number_of_columns
-        self.rowspaces = rowspaces
-        self.page_spaces = page_spaces
-        self.rows_in_page = rows_in_page
+        self._path = path
+        self._number_of_columns = number_of_columns
+        self._rowspaces = rowspaces
+        self._page_spaces = page_spaces
+        self._rows_in_page = rows_in_page
 
-        self.cols = range(number_of_columns)
+        self._cols = range(self._number_of_columns)
         total_width = 90
-        width = total_width // number_of_columns
+        width = total_width // self._number_of_columns
 
         file_list = filter_jpg(path)
-        calc = xcoord(number_of_columns=number_of_columns, width=width)
-        self.left_shifts = list(map(calc, self.cols))
+        calc = xcoord(number_of_columns=self._number_of_columns, width=width)
+        self._left_shifts = list(map(calc, self._cols))
 
         # partitions list of files into tuples with len == number_of_columns
         # so each row will contain 5 files, if number_of_columns == 5
         # [(file1, file2, ... , file5), (file6, ... , file10), ...]
-        each_row = cytoolz.partition_all(number_of_columns, file_list)
+        each_row = cytoolz.partition_all(self._number_of_columns, file_list)
 
         # each page has `rows_in_page` rows. every row is grouped with another.
         # [(row1, row2), (row3, row4), ...]
         # where row1 == (file1, file2, ...)
-        self.pages_list = list(cytoolz.partition(rows_in_page, each_row, pad=None))
+        self._pages_list = cytoolz.partition(self._rows_in_page, each_row, pad=None)
+        self._pages_list = list(self._pages_list)
 
-        assert len(self.pages_list[0]) <= len(self.rowspaces) == self.rows_in_page
-        assert len(self.pages_list) <= len(self.page_spaces)
-
-        self.render()
+        assert len(self._pages_list[0]) <= len(self._rowspaces) == self._rows_in_page
+        assert len(self._pages_list) <= len(self._page_spaces)
 
     @abstractmethod
     def render(self):
@@ -117,23 +116,17 @@ class Gallery(View):
         Horizontal position of the image
     """
 
-    def __init__(
-        self,
-        path,
-        number_of_columns=5,
-        rowspaces=(0, 9),
-        page_spaces=(26, 24, 24),
-        rows_in_page=2,
-    ):
-
+    def __init__(self, path, number_of_columns=5, rowspaces=(0, 9),
+                 page_spaces=(26, 24, 24), rows_in_page=2):
+        # Only to set default arguments here, no overriding
         super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
 
     @funcy.ignore(IndexError)
     def render(self):
         os.system("clear")
-        for (i, page) in enumerate(self.pages_list):
-            print("\n" * self.page_spaces[i])  # Scroll to new 'page'
-            display_page(page, self.rowspaces, self.cols, self.left_shifts, self.path)
+        for (i, page) in enumerate(self._pages_list):
+            print("\n" * self._page_spaces[i])  # Scroll to new 'page'
+            display_page(page, self._rowspaces, self._cols, self._left_shifts, self._path)
 
         print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")
 
@@ -157,51 +150,44 @@ class Card(View):
         len must be >= rows_in_page
     """
 
-    def __init__(
-        self,
-        path,
-        preview_paths,
-        messages,
-        preview_xcoords=[[40], [58], [75]],
-        number_of_columns=1,
-        rowspaces=(0,),
-        page_spaces=(20,) * 30,
-        rows_in_page=1,
-    ):
-
-        self.preview_paths = preview_paths
-        self.messages = messages
-        self.preview_xcoords = preview_xcoords
+    def __init__(self, path, preview_paths, messages,
+                 preview_xcoords=[[40], [58], [75]], number_of_columns=1,
+                 rowspaces=(0,), page_spaces=(20,) * 30, rows_in_page=1):
+        # Set defaults ^^^
+        self._preview_paths = preview_paths
+        self._messages = messages
+        self._preview_xcoords = preview_xcoords
+        self._preview_images = None # Defined in self.render()
         super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
 
     @funcy.ignore(IndexError)
     def render(self):
-        assert self.rows_in_page == 1
-        assert len(self.messages) >= self.rows_in_page
+        assert self._rows_in_page == 1
+        assert len(self._messages) >= self._rows_in_page
 
-        self.preview_images = list(
-            cytoolz.partition_all(3, sorted(os.listdir(self.preview_paths)))
+        self._preview_images = list(
+            cytoolz.partition_all(3, sorted(os.listdir(self._preview_paths)))
         )
 
         os.system("clear")
-        for (i, page) in enumerate(self.pages_list):
+        for (i, page) in enumerate(self._pages_list):
             # Print the message (artist name) first
             print("\n" * 2)
-            print(" " * 18, self.messages[i])
+            print(" " * 18, self._messages[i])
 
-            print("\n" * self.page_spaces[i])  # Scroll to new 'page'
-            display_page(page, self.rowspaces, self.cols, self.left_shifts, self.path)
+            print("\n" * self._page_spaces[i])  # Scroll to new 'page'
+            display_page(page, self._rowspaces, self._cols, self._left_shifts, self._path)
 
             # Display the three previews
             # fmt: off
-            for (j, coord) in enumerate(self.preview_xcoords):
+            for (j, coord) in enumerate(self._preview_xcoords):
                 try:
                     display_page(
-                        ((self.preview_images[i][j],),),
-                        self.rowspaces,
-                        self.cols,
+                        ((self._preview_images[i][j],),),
+                        self._rowspaces,
+                        self._cols,
                         coord,
-                        self.preview_paths
+                        self._preview_paths
                     )
                 except IndexError: # Less than three previews
                     pass

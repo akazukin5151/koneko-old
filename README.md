@@ -30,6 +30,7 @@ See the [manual](#manual) for more details
     * Browse through different images in a multi-image post.
 3. Browse the artists you are following, and view their illustrations (goes to 1)
 4. Search for an artist, and view their illustrations (goes to 1)
+5. Browse illustrations from all the artists you are following
 * Both gallery and image views can:
     * Download an image([PixivUtil](https://github.com/Nandaka/PixivUtil2/) would be more suitable for batch download) in full resolution
     * Open post in browser
@@ -43,7 +44,7 @@ I get 32 trackers on Pixiv. Plus, you have to disable ublock if you ever get log
 
 <a href="url"><img src="pics/pixiv_ublock.png" height="350"></a>
 
-The mobile app even directly tells you Google "and our 198 partners" "collect and use data"! See [prompt 1](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads1.png) and [prompt 2](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads2.png) (Github can't render the images correctly for some reason)
+The mobile app even directly tells you Google "and our 198 partners" "collect and use data"! See [prompt 1](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads1.png), [prompt 2](https://raw.githubusercontent.com/twenty5151/koneko/master/pics/ads2.png) (Github can't render the images correctly for some reason) and this [list](#trackers)
 
 * TUIs make you cool
 * TUIs *with embedded pictures* make you even cooler
@@ -102,7 +103,6 @@ For more details look at the [manual](#manual).
 
 ## Features
 
-* View new posts/illusts from all the artists you're following
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -110,8 +110,8 @@ For more details look at the [manual](#manual).
 
 ## Speed
 
-* Download artist profile pics and their previews in the same ThreadPoolExecutor context
 * If files already downloaded, show them immediately before logging in
+* Display each image as soon as they finish downloading (but due to lscat limitations, only one page at a time). Requires "integrating" (read: basically rewriting) lscat.py and threaded download functions
 
 # Manual
 
@@ -219,6 +219,20 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 \* lsix will appear faster because the images are much smaller. Once you scale them up, lsix will be the slowest.
 
+# Contributing
+* Fork it
+* Edit the files on your fork
+* Submit a pull request
+* If you want to, you can create an issue first. Ask any questions by opening a new issue.
+
+Flowchart of modes and their connections:
+
+![UML](http://plantuml.com:80/plantuml/png/XPFD2i8m48JlUOf0pXwqxKr4HHJ1My6BY0HTOt5jItuGtzuQsxIcKK-bkpFVJZVfL6akjRaX8KR1aIkWCwapfG-28u9y35rzVUC2HkvrMI0MzomN1suDAdAj5BWyNffwt18GJKK-Dywa7MfZ32bR09JfzJ570yGBGiU3NRU_bvcuwC6azlwLLyhw4pwdZYZRy7k-aW1v4EAw7SJxqM-_YTw4Y39XwVsTMO9etFxgGsc4b-GdqvHDfiZB55CcuKIyexBMgXuAyqtQpeY3WMjSSFS9PQ-psMO5WYQz-s7zhQ2x_tzIXBEx6qamLv1Bff2Vgj_X2G00)
+
+Simplified UML diagram of the classes:
+
+![UML](http://plantuml.com:80/plantuml/png/fLVVQzim47xNNo7wr6vrOA-ZX8R2ng23mTXUnWYghJfQ5Cb8ShFIzN-V9LdswOUpmDxYqtrtf---qv5RROWo_O4ZP9ZX5E-be7k9428FsYXI6rnpeZM-bxB3DpUNcskiQ7ErNhyWZD--1AzN5-Vo2hqYv04RPPWsdsL37TIw3m1y60p-vupmW4-Szzfya9pBuramNzAVgf57KINvtcCcTbGnenEtKXRWdDtx8-6SgkTxjgVMFQEWS15VoGXqe72BrjiMhrnmJChPZ9zZz58vWlussuwqT2Z96Jf5dnWzHZRPKR7bJEotjPIgqRbTz8TWT6Xs0F2vxvsIXwxGU53WtJMkducOAxITu98qFcPIGN88oW2fSlfEvOCrPlsCv0EQ1aIHIFdYtGL-imohXsHIK-qrkvWmxJt8Lvm4c3N79aapcHI0uzc9l33d0dRA6nIxc3fYAYCNJakKDO7b-KOjV1yq-aMU-U38Xrzq62a_5GDewvn6gzUTrqmGcZKLfOLZkGQfOZT7iSdDPMnoaobxdPWv9K_KopMxLgLOkpC_TgnfgFXPhV5NIbIz-wQfqi4fUVBI683yBFngbR8IVre7nmRod0oV4L-X7LucJBHHOLDJ7iDn-GKjt6c2QdTMW2wap0WhJHSgPJmF6NDTBc9n6nNImcLKuZAMOKvOSfxiZyabtHgjt18tQgxDGOhbNM8L2urp3yRmHJB0nM8tK3pmMMWdV0RJ-DFZCCkhr5SO8iezuMUDfVnnNHEpicDJ8d5UYugAXYeWQG-y8wgPbBpW4nxEWXk2wSSRp841UP4Vfu-cYeD3aVbcE59MDkGg2ZbnOj-1R9bvLD-bqMDKkXBEGsMmgkexC8r9BVdsokOtMpLG7lyUzq3_N8zbTW4mEcMCkQxz9oQwHsXWLdxA3r3WQIBHxQ0u-vVWBm00)
+
 
 ## `Dev` branch
 
@@ -236,3 +250,53 @@ Here's a random shell command to get (but not download) and display any pixiv im
 ```sh
 curl -e 'https://www.pixiv.net' "https://i.pximg.net/img-original/img/2019/12/21/20/13/12/78403815_p0.jpg" | kitty +kitten icat --align left --place 800x480@0x5
 ```
+
+## Trackers
+Nine trackers in the Android app, according to [exodus](https://reports.exodus-privacy.eu.org/en/reports/jp.pxv.android/latest/):
+
+* Amazon Advertisement
+* AMoAd
+* Google Ads
+* Google CrashLytics
+* Google DoubleClick
+* Google Firebase Analytics
+* Integral Ad Science
+* Moat
+* Twitter MoPub
+
+Advertisers from pixiv's [privacy policy](https://policies.pixiv.net/en.html#booth):
+
+* Qualaroo
+* DDAI（Date Driven Advertising Initiative）
+* YourAdChoices
+* Rubicon Project
+* i-Mobile Co., Ltd.
+* Akinasista Corporation
+* Axel Mark Inc.
+* AppLovin
+* Amazon Japan G.K.
+* AmoAd Inc.
+* AOL Platforms Japan K.K.
+* OpenX
+* Google Inc.
+* CRITEO K.K.
+* CyberAgent, Inc.
+* Geniee, Inc.
+* Supership Inc.
+* GMO AD Marketing Inc.
+* F@N Communications, Inc.
+* Facebook Inc.
+* Fluct, Inc.
+* Platform One Inc.
+* MicroAd Inc.
+* MoPub Inc.
+* Yahoo! Japan Corporation
+* United, Inc.
+* 株式会社Zucks
+* PubMatic, Inc.
+* Liftoff Mobile, Inc.
+* Mobfox US LLC
+* OneSignal
+* Smaato, Inc.
+* SMN株式会社
+* 株式会社アドインテ
