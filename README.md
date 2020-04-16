@@ -103,7 +103,6 @@ For more details look at the [manual](#manual).
 
 ## Features
 
-* View new posts/illusts from all the artists you're following
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -111,8 +110,8 @@ For more details look at the [manual](#manual).
 
 ## Speed
 
-* Download artist profile pics and their previews in the same ThreadPoolExecutor context
 * If files already downloaded, show them immediately before logging in
+* Display each image as soon as they finish downloading (but due to lscat limitations, only one page at a time). Requires "integrating" (read: basically rewriting) lscat.py and threaded download functions
 
 # Manual
 
@@ -225,6 +224,10 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 * Edit the files on your fork
 * Submit a pull request
 * If you want to, you can create an issue first. Ask any questions by opening a new issue.
+
+Flowchart of modes and their connections:
+
+![UML](http://plantuml.com:80/plantuml/png/XPFD2i8m48JlUOf0pXwqxKr4HHJ1My6BY0HTOt5jItuGtzuQsxIcKK-bkpFVJZVfL6akjRaX8KR1aIkWCwapfG-28u9y35rzVUC2HkvrMI0MzomN1suDAdAj5BWyNffwt18GJKK-Dywa7MfZ32bR09JfzJ570yGBGiU3NRU_bvcuwC6azlwLLyhw4pwdZYZRy7k-aW1v4EAw7SJxqM-_YTw4Y39XwVsTMO9etFxgGsc4b-GdqvHDfiZB55CcuKIyexBMgXuAyqtQpeY3WMjSSFS9PQ-psMO5WYQz-s7zhQ2x_tzIXBEx6qamLv1Bff2Vgj_X2G00)
 
 Simplified UML diagram of the classes:
 

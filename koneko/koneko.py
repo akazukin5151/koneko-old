@@ -32,6 +32,10 @@ Options:
 #     FEATURE: extra feature, low priority
 #     BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 
+# TODO: does ArtistGallery and IllustFollowGallery need to be seperate from
+# ArtistGalleryMode and IllustFollowMode?
+# TODO: Image has too many attributes (passing too many things)
+
 import os
 import re
 import sys
@@ -302,6 +306,7 @@ class SearchUsersModeLoop(Loop):
 
     def _go_to_mode(self):
         self.searching = SearchUsers(self._user_input)
+        self.searching.start()
         user_prompt(self.searching)
 
 
@@ -317,6 +322,7 @@ class FollowingUserModeLoop(Loop):
 
     def _go_to_mode(self):
         self.following = FollowingUsers(self._user_input)
+        self.following.start()
         user_prompt(self.following)
 
 class IllustFollowModeLoop(Loop):
@@ -402,16 +408,13 @@ class ArtistGalleryMode(GalleryLikeMode):
         self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
         self._illust_follow_info = None
 
-        if 'illust_follow_info' in kwargs:
-            self._illust_follow_info = kwargs['illust_follow_info']
-            # If things break, it's most likely because of this line
-            super().__init__(current_page_num, None)
-        elif kwargs:
+        if kwargs:
             self._current_page_num = current_page_num
             self._current_page = kwargs['current_page']
             self._all_pages_cache = kwargs['all_pages_cache']
 
             self.start()
+        super().__init__(current_page_num, None)
 
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
@@ -425,7 +428,7 @@ class ArtistGalleryMode(GalleryLikeMode):
             self._current_page_num,
             self._artist_user_id,
             self._all_pages_cache,
-            illust_follow_info=self._illust_follow_info
+            illust_follow_info=self._illust_follow_info,
         )
         self.gallery.prompt()
 
@@ -448,7 +451,7 @@ class IllustFollowMode(GalleryLikeMode):
                 self._current_page_illusts,
                 self._current_page,
                 self._current_page_num,
-                self._all_pages_cache
+                self._all_pages_cache,
         )
         self.gallery.prompt()
 
@@ -490,6 +493,7 @@ def view_post_mode(image_id):
     image = Image(
         image_id,
         artist_user_id,
+        firstmode=True,
         page_urls=page_urls,
         img_post_page_num=0,
         number_of_pages=number_of_pages,
@@ -526,14 +530,13 @@ class Image:
 
     """
     # fmt: off
-    def __init__(self, image_id, artist_user_id, current_page=None,
-                 current_page_num=1, **kwargs):
+    def __init__(self, image_id, artist_user_id, current_page_num=1,
+                 firstmode=False, **kwargs):
     # fmt: on
         self._image_id = image_id
         self._artist_user_id = artist_user_id
-        self._current_page = current_page
         self._current_page_num = current_page_num
-        self._all_pages_cache = None # Defined in self.leave()
+        self._firstmode = firstmode
 
         if kwargs:  # Posts with multiple pages
             self._page_urls = kwargs["page_urls"]
@@ -564,6 +567,7 @@ class Image:
 
         else:
             self._img_post_page_num += 1  # Be careful of 0 index
+            # TODO move go_next_image inside class so it updates downloaded_images
             self._downloaded_images = go_next_image(
                 self._page_urls,
                 self._img_post_page_num,
@@ -585,20 +589,14 @@ class Image:
             print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
     def leave(self):
-        if self._current_page_num > 1 or self._current_page:
-            self._all_pages_cache = self._kwargs["all_pages_cache"]
-            ArtistGalleryMode(
-                self._artist_user_id,
-                current_page_num=self._current_page_num,
-                current_page=self._current_page,
-                all_pages_cache=self._all_pages_cache,
-            )
-        else:
+        if self._firstmode:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
-            ArtistGalleryMode(self._artist_user_id)
+            ArtistGalleryMode(self._artist_user_id, self._current_page_num)
+        # Else: image prompt and class ends, goes back to gallery
 
-
+# TODO: 'a' to go to artist gallery mode (illust following mode -> image, then
+# wants to look at artist's gallery)
 # - Prompt functions with logic
 def image_prompt(image):
     """
@@ -691,10 +689,36 @@ class AbstractGallery(ABC):
         self._current_page_illusts = self._current_page["illusts"]
         self._post_json = self._current_page_illusts[selected_image_num]
 
-        self._display_image_core()
+        artist_user_id = self._post_json['user']['id']
+        image_id = self._post_json.id
+
+        # TODO move inside class
+        display_image(
+            self._post_json,
+            artist_user_id,
+            self._selected_image_num,
+            self._current_page_num
+        )
+
+        # blocking: no way to unblock prompt
+        number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
+
+        image = Image(
+            image_id,
+            artist_user_id,
+            current_page_num=self._current_page_num,
+            page_urls=page_urls,
+            img_post_page_num=0,
+            number_of_pages=number_of_pages,
+            downloaded_images=None,
+            download_path=f"{self._main_path}/{self._current_page_num}/large/",
+        )
+        image_prompt(image)
+        # Image prompt ends, user presses back
+        self._back()
 
     @abstractmethod
-    def _display_image_core(self):
+    def _back(self):
         raise NotImplementedError
 
     def next_page(self):
@@ -816,35 +840,11 @@ class ArtistGallery(AbstractGallery):
         post_json = self._current_page_illusts[number]
         download_image_verified(post_json=post_json)
 
-    def _display_image_core(self):
-        image_id = self._post_json.id
-
-        display_image(
-            self._post_json,
-            self._artist_user_id,
-            self._selected_image_num,
-            self._current_page_num
-        )
-
-        # blocking: no way to unblock prompt
-        number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
-
-        image = Image(
-            image_id,
-            self._artist_user_id,
-            current_page_num=self._current_page_num,
-            current_page=self._current_page,
-            page_urls=page_urls,
-            img_post_page_num=0,
-            number_of_pages=number_of_pages,
-            downloaded_images=None,
-            all_pages_cache=self._all_pages_cache,
-            download_path=f"{self._main_path}/{self._current_page_num}/large/",
-        )
-        image_prompt(image)
-
-    def leave(self):
-        IllustFollowMode(*self._kwargs['illust_follow_info'])
+    def _back(self):
+        # After user 'back's from image prompt, start mode again
+        ArtistGalleryMode(self._artist_user_id, self._current_page_num,
+                all_pages_cache=self._all_pages_cache,
+                current_page=self._current_page)
 
     def prompt(self):
         """
@@ -949,7 +949,7 @@ class ArtistGallery(AbstractGallery):
 
         # Display image (using either coords or image number), the show this prompt
         if gallery_command == "b":
-            self.leave()
+            pass # Stop gallery instance, return to previous state
         else:
             self.view_image(selected_image_num)
 
@@ -996,10 +996,9 @@ class IllustFollowGallery(AbstractGallery):
         else:
             return API.illust_follow()
 
-    def _display_image_core(self):
-        artist_user_id = self._post_json['user']['id']
-        ArtistGalleryMode(artist_user_id,
-                illust_follow_info=(self._current_page_num, self._all_pages_cache))
+    def _back(self):
+        # User 'back's out of artist gallery, start current mode again
+        IllustFollowMode(self._current_page_num, self._all_pages_cache)
 
     def prompt(self):
         """
@@ -1134,12 +1133,16 @@ class Users(ABC):
         move the profile pics to the correct dir (less files to move)
         """
         self._parse_user_infos()
+
         preview_path = f"{self._main_path}/{self._input}/{self._page_num}/previews/"
         all_urls = self._profile_pic_urls + self._image_urls
         all_names = self._names + list(map(pure.split_backslash_last, self._image_urls))
         splitpoint = len(self._profile_pic_urls)
 
-        # FIXME: downloads images even if it's already downloaded
+        if (os.path.isdir(self._download_path) and
+                len(os.listdir(self._download_path)) == splitpoint + 1):
+            return True
+
         pbar = tqdm(total=len(all_urls), smoothing=0)
         # fmt: off
         async_download_core(
@@ -1189,29 +1192,36 @@ class Users(ABC):
 
 
     def _show_page(self):
-        names = self._names_cache[self._page_num]
-        names_prefixed = map(pure.prefix_artist_name, names, range(len(names)))
-        names_prefixed = list(names_prefixed)
-
         try:
+            names = self._names_cache[self._page_num]
+        except KeyError:
+            print("This is the last page!")
+            self._page_num -= 1
+            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+
+        else:
+            names_prefixed = map(pure.prefix_artist_name, names, range(len(names)))
+            names_prefixed = list(names_prefixed)
+
             lscat.Card(
                 self._download_path,
                 f"{self._main_path}/{self._input}/{self._page_num}/previews/",
                 messages=names_prefixed,
             ).render()
-        except FileNotFoundError:
-            print("This is the last page!")
-            self._page_num -= 1
-            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
     def _prefetch_next_page(self):
-        self._page_num += 1
-        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+        breakpoint()
+        oldnum = self._page_num
 
         if self._next_url:
             self._offset = API.parse_qs(self._next_url)["offset"]
+            # For when next -> prev -> next
+            self._page_num = int(self._offset) // 30 + 1
+            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+
             self._parse_and_download()
-        self._page_num -= 1
+
+        self._page_num = oldnum
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
     def next_page(self):
@@ -1236,6 +1246,9 @@ class Users(ABC):
         except IndexError:
             print("Invalid number!")
         ArtistGalleryMode(artist_user_id)
+        # After backing from gallery
+        self._show_page()
+        user_prompt(self)
 
     @staticmethod
     def _user_id(json):
@@ -1295,7 +1308,6 @@ def user_prompt(user_class):
     """
     Handles key presses for user views (following users and user search)
     """
-    user_class.start()
     keyseqs = []
     seq_num = 0
     sequenceable_keys = "i"
