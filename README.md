@@ -103,7 +103,6 @@ For more details look at the [manual](#manual).
 
 ## Features
 
-* 'r' to reload: deleted saved images and redownload
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -166,8 +165,9 @@ Using image number, where {number} is the nth image in order (see examples)
 
     n                  -- view the next page
     p                  -- view the previous page
-    h                  -- show this help
+    r                  -- delete all cached images, re-download and reload view
     b                  -- go back to previous mode (either 3, 4, 5, or main screen)
+    h                  -- show this help
     q                  -- quit (with confirmation)
 
 Examples:
@@ -217,8 +217,9 @@ Using image number, where {number} is the nth image in order (see examples)
 
     n                  -- view the next page
     p                  -- view the previous page
-    h                  -- show this help
+    r                  -- delete all cached images, re-download and reload view
     b                  -- go back to main screen
+    h                  -- show this help
     q                  -- quit (with confirmation)
 
 Examples:

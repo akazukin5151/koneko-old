@@ -821,6 +821,14 @@ class AbstractGallery(ABC):
             )
             pbar.close
 
+    def reload(self):
+        ans = input("This will delete cached images and redownload them. Proceed?\n")
+        if ans == "y" or not ans:
+            os.system(f"rm -r {self._main_path}") # shutil.rmtree is better
+            self._back()
+        else:
+            self.prompt()
+
     def prompt(self):
         """
         Only contains logic for interpreting key presses, and do the correct action
@@ -916,6 +924,9 @@ class AbstractGallery(ABC):
                 elif gallery_command == "b":
                     break
 
+                elif gallery_command == "r":
+                    break
+
                 elif gallery_command.code == 343:  # Enter
                     pass
                 elif gallery_command == "h":
@@ -951,8 +962,9 @@ class ArtistGallery(AbstractGallery):
 
         n                  -- view the next page
         p                  -- view the previous page
-        h                  -- show this help
+        r                  -- delete all cached images, re-download and reload view
         b                  -- go back to previous mode (either 3, 4, 5, or main screen)
+        h                  -- show this help
         q                  -- quit (with confirmation)
 
     Examples:
@@ -989,6 +1001,8 @@ class ArtistGallery(AbstractGallery):
         # Display image (using either coords or image number), the show this prompt
         if gallery_command == "b":
             pass # Stop gallery instance, return to previous state
+        elif gallery_command == "r":
+            self.reload()
         elif keyseqs[0] == "i":
             self.view_image(selected_image_num)
         elif keyseqs[0].lower() == "a":
@@ -1013,8 +1027,9 @@ class IllustFollowGallery(AbstractGallery):
 
         n                  -- view the next page
         p                  -- view the previous page
-        h                  -- show this help
+        r                  -- delete all cached images, re-download and reload view
         b                  -- go back to main screen
+        h                  -- show this help
         q                  -- quit (with confirmation)
 
     Examples:
@@ -1071,6 +1086,8 @@ class IllustFollowGallery(AbstractGallery):
         if gallery_command == "b":
             print("Invalid command! Press h to show help")
             self.prompt() # Go back to while loop
+        elif gallery_command == "r":
+            self.reload()
         elif keyseqs[0] == "i":
             self.view_image(selected_image_num)
         elif keyseqs[0] == "a":
@@ -1084,6 +1101,7 @@ class Users(ABC):
     User view commands (No need to press enter):
         n -- view next page
         p -- view previous page
+        r -- delete all cached images, re-download and reload view
         h -- show this help
         q -- quit (with confirmation)
 
@@ -1232,6 +1250,14 @@ class Users(ABC):
         self._show_page()
         user_prompt(self)
 
+    def reload(self):
+        ans = input("This will delete cached images and redownload them. Proceed?\n")
+        if ans == "y" or not ans:
+            os.system(f"rm -r {self._main_path}") # shutil.rmtree is better
+            self.__init__(self._input)
+            self.start()
+        user_prompt(self)
+
     @staticmethod
     def _user_id(json):
         return json["user"]["id"]
@@ -1306,6 +1332,9 @@ def user_prompt(user_class):
             elif user_prompt_command == "p":
                 user_class.previous_page()
 
+            elif user_prompt_command == "r":
+                break
+
             # Wait for the rest of the sequence
             elif user_prompt_command in sequenceable_keys:
                 keyseqs.append(user_prompt_command)
@@ -1345,7 +1374,10 @@ def user_prompt(user_class):
         # End while
     # End cbreak()
 
-    user_class.go_artist_mode(selected_user_num)
+    if user_prompt_command == "r":
+        user_class.reload()
+    else:
+        user_class.go_artist_mode(selected_user_num)
 # - End interactive (frontend) functions
 
 
