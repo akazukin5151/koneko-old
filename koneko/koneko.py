@@ -437,6 +437,7 @@ class ArtistGalleryMode(GalleryLikeMode):
             illust_follow_info=self._illust_follow_info,
         )
         self.gallery.prompt()
+        # After backing
         main()
 
 
@@ -461,6 +462,8 @@ class IllustFollowMode(GalleryLikeMode):
             self._all_pages_cache,
         )
         self.gallery.prompt()
+        # After backing
+        main()
 
 # - Mode and loop functions (some interactive and some not)
 def view_post_mode(image_id):
