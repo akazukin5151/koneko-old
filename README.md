@@ -103,6 +103,7 @@ For more details look at the [manual](#manual).
 
 ## Features
 
+* 'r' to reload: deleted saved images and redownload
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -227,7 +228,7 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 Flowchart of modes and their connections:
 
-![UML](http://plantuml.com:80/plantuml/png/XPFD2i8m48JlUOf0pXwqxKr4HHJ1My6BY0HTOt5jItuGtzuQsxIcKK-bkpFVJZVfL6akjRaX8KR1aIkWCwapfG-28u9y35rzVUC2HkvrMI0MzomN1suDAdAj5BWyNffwt18GJKK-Dywa7MfZ32bR09JfzJ570yGBGiU3NRU_bvcuwC6azlwLLyhw4pwdZYZRy7k-aW1v4EAw7SJxqM-_YTw4Y39XwVsTMO9etFxgGsc4b-GdqvHDfiZB55CcuKIyexBMgXuAyqtQpeY3WMjSSFS9PQ-psMO5WYQz-s7zhQ2x_tzIXBEx6qamLv1Bff2Vgj_X2G00)
+![UML](http://plantuml.com:80/plantuml/png/dPFBgi8m48RtUOf0rbresvs8HmwAu4vm8o91nrWSMya5yUsjiKbhcgDmLg5p-URldyb4QIwrkI0XHi6UAw0_KXTAxmH717aV-FZYmWKC_UUiGgnkHIbst3QerATMmEN-vE9PIq0qDVdeElDsg9KneEmNuBewtwTeW0H2w2ZPTFDRMOYJJfhMhzN9sFt1-z0XPKj-A-SIe8n2VBQ3U1rXkW460rBAX8Nt7RC0uTYXyJ4n8X3oaMckZQGqa9HH9k50WdkodNKyfkMlKZyYYyfjQ57ZSygU5xCkAWHDUhjX-zk2hldVIX6ERY_ogAp_OL_xrlU6JA0yr4_e0G00)
 
 Simplified UML diagram of the classes:
 
