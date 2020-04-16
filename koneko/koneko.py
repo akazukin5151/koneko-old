@@ -302,6 +302,7 @@ class SearchUsersModeLoop(Loop):
 
     def _go_to_mode(self):
         self.searching = SearchUsers(self._user_input)
+        self.searching.start()
         user_prompt(self.searching)
 
 
@@ -317,6 +318,7 @@ class FollowingUserModeLoop(Loop):
 
     def _go_to_mode(self):
         self.following = FollowingUsers(self._user_input)
+        self.following.start()
         user_prompt(self.following)
 
 class IllustFollowModeLoop(Loop):
@@ -1227,6 +1229,9 @@ class Users(ABC):
         except IndexError:
             print("Invalid number!")
         ArtistGalleryMode(artist_user_id)
+        # After backing from gallery
+        self._show_page()
+        user_prompt(self)
 
     @staticmethod
     def _user_id(json):
@@ -1286,7 +1291,6 @@ def user_prompt(user_class):
     """
     Handles key presses for user views (following users and user search)
     """
-    user_class.start()
     keyseqs = []
     seq_num = 0
     sequenceable_keys = "i"
