@@ -228,7 +228,7 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 Flowchart of modes and their connections:
 
-![UML](http://plantuml.com:80/plantuml/png/SoWkIImgAStDuUBAJyfAJIvHS2mgoImkYKzFpCb9BQeqX0bxvYQcfnh1U6xvEJdvvPbvwV69OEN5nZ2PuDJ4ekGCcB09N7jEJYdGr3IOFbCkBZIB56nqTUrWrc2Q3v56TnoQRTWLOTYDOXMNGsfU2Z000000)
+![UML](http://plantuml.com:80/plantuml/png/XPFD2i8m48JlUOf0pXwqxKr4HHJ1My6BY0HTOt5jItuGtzuQsxIcKK-bkpFVJZVfL6akjRaX8KR1aIkWCwapfG-28u9y35rzVUC2HkvrMI0MzomN1suDAdAj5BWyNffwt18GJKK-Dywa7MfZ32bR09JfzJ570yGBGiU3NRU_bvcuwC6azlwLLyhw4pwdZYZRy7k-aW1v4EAw7SJxqM-_YTw4Y39XwVsTMO9etFxgGsc4b-GdqvHDfiZB55CcuKIyexBMgXuAyqtQpeY3WMjSSFS9PQ-psMO5WYQz-s7zhQ2x_tzIXBEx6qamLv1Bff2Vgj_X2G00)
 
 Simplified UML diagram of the classes:
 

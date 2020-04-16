@@ -32,6 +32,10 @@ Options:
 #     FEATURE: extra feature, low priority
 #     BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 
+# TODO: does ArtistGallery and IllustFollowGallery need to be seperate from
+# ArtistGalleryMode and IllustFollowMode?
+# TODO: Image has too many attributes (passing too many things)
+
 import os
 import re
 import sys
@@ -563,6 +567,7 @@ class Image:
 
         else:
             self._img_post_page_num += 1  # Be careful of 0 index
+            # TODO move go_next_image inside class so it updates downloaded_images
             self._downloaded_images = go_next_image(
                 self._page_urls,
                 self._img_post_page_num,
@@ -687,6 +692,7 @@ class AbstractGallery(ABC):
         artist_user_id = self._post_json['user']['id']
         image_id = self._post_json.id
 
+        # TODO move inside class
         display_image(
             self._post_json,
             artist_user_id,
