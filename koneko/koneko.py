@@ -487,6 +487,7 @@ def view_post_mode(image_id):
     image = Image(
         image_id,
         artist_user_id,
+        firstmode=True,
         page_urls=page_urls,
         img_post_page_num=0,
         number_of_pages=number_of_pages,
@@ -523,14 +524,13 @@ class Image:
 
     """
     # fmt: off
-    def __init__(self, image_id, artist_user_id, current_page=None,
-                 current_page_num=1, **kwargs):
+    def __init__(self, image_id, artist_user_id, current_page_num=1,
+                 firstmode=False, **kwargs):
     # fmt: on
         self._image_id = image_id
         self._artist_user_id = artist_user_id
-        self._current_page = current_page
         self._current_page_num = current_page_num
-        self._all_pages_cache = None # Defined in self.leave()
+        self._firstmode = firstmode
 
         if kwargs:  # Posts with multiple pages
             self._page_urls = kwargs["page_urls"]
@@ -582,13 +582,14 @@ class Image:
             print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
     def leave(self):
-        if self._current_page_num == 1:
+        if self._firstmode:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
-            ArtistGalleryMode(self._artist_user_id)
+            ArtistGalleryMode(self._artist_user_id, self._current_page_num)
         # Else: image prompt and class ends, goes back to gallery
 
-
+# TODO: 'a' to go to artist gallery mode (illust following mode -> image, then
+# wants to look at artist's gallery)
 # - Prompt functions with logic
 def image_prompt(image):
     """
@@ -681,10 +682,35 @@ class AbstractGallery(ABC):
         self._current_page_illusts = self._current_page["illusts"]
         self._post_json = self._current_page_illusts[selected_image_num]
 
-        self._display_image_core()
+        artist_user_id = self._post_json['user']['id']
+        image_id = self._post_json.id
+
+        display_image(
+            self._post_json,
+            artist_user_id,
+            self._selected_image_num,
+            self._current_page_num
+        )
+
+        # blocking: no way to unblock prompt
+        number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
+
+        image = Image(
+            image_id,
+            artist_user_id,
+            current_page_num=self._current_page_num,
+            page_urls=page_urls,
+            img_post_page_num=0,
+            number_of_pages=number_of_pages,
+            downloaded_images=None,
+            download_path=f"{self._main_path}/{self._current_page_num}/large/",
+        )
+        image_prompt(image)
+        # Image prompt ends, user presses back
+        self._back()
 
     @abstractmethod
-    def _display_image_core(self):
+    def _back(self):
         raise NotImplementedError
 
     def next_page(self):
@@ -806,32 +832,7 @@ class ArtistGallery(AbstractGallery):
         post_json = self._current_page_illusts[number]
         download_image_verified(post_json=post_json)
 
-    def _display_image_core(self):
-        image_id = self._post_json.id
-
-        display_image(
-            self._post_json,
-            self._artist_user_id,
-            self._selected_image_num,
-            self._current_page_num
-        )
-
-        # blocking: no way to unblock prompt
-        number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
-
-        image = Image(
-            image_id,
-            self._artist_user_id,
-            current_page_num=self._current_page_num,
-            current_page=self._current_page,
-            page_urls=page_urls,
-            img_post_page_num=0,
-            number_of_pages=number_of_pages,
-            downloaded_images=None,
-            all_pages_cache=self._all_pages_cache,
-            download_path=f"{self._main_path}/{self._current_page_num}/large/",
-        )
-        image_prompt(image)
+    def _back(self):
         # After user 'back's from image prompt, start mode again
         ArtistGalleryMode(self._artist_user_id, self._current_page_num,
                 all_pages_cache=self._all_pages_cache,
@@ -987,9 +988,7 @@ class IllustFollowGallery(AbstractGallery):
         else:
             return API.illust_follow()
 
-    def _display_image_core(self):
-        artist_user_id = self._post_json['user']['id']
-        ArtistGalleryMode(artist_user_id)
+    def _back(self):
         # User 'back's out of artist gallery, start current mode again
         IllustFollowMode(self._current_page_num, self._all_pages_cache)
 
