@@ -368,8 +368,12 @@ class GalleryLikeMode(ABC):
         """
         # If path exists, show immediately (without checking for contents!)
         if os.path.isdir(self._download_path): # Defined in child classes
-            utils.show_artist_illusts(self._download_path)
-            show = False
+            try:
+                utils.show_artist_illusts(self._download_path)
+            except IndexError: # Folder exists but no files
+                show = True
+            else:
+                show = False
         else:
             show = True
 
@@ -590,15 +594,13 @@ class Image:
             utils.display_image_vp(f"{download_path}{image_filename}")
             print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
-    def leave(self):
-        if self._firstmode:
+    def leave(self, force=False):
+        if self._firstmode or force:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
             ArtistGalleryMode(self._artist_user_id, self._current_page_num)
         # Else: image prompt and class ends, goes back to gallery
 
-# TODO: 'a' to go to artist gallery mode (illust following mode -> image, then
-# wants to look at artist's gallery)
 # - Prompt functions with logic
 def image_prompt(image):
     """
@@ -632,6 +634,11 @@ def image_prompt(image):
                 quit()
 
             elif image_prompt_command == "b":
+                force = False
+                break  # Leave cbreak()
+
+            elif image_prompt_command == "a":
+                force = True
                 break  # Leave cbreak()
 
             elif image_prompt_command == "":
@@ -645,7 +652,7 @@ def image_prompt(image):
     # End cbreak()
 
     # image_prompt_command == "b"
-    image.leave()
+    image.leave(force)
 
 class AbstractGallery(ABC):
     def __init__(self, current_page_illusts, current_page, current_page_num,
@@ -686,12 +693,27 @@ class AbstractGallery(ABC):
         os.system(f"xdg-open {link}")
         print(f"Opened {link}!\n")
 
+    def download_image_coords(self, first_num, second_num):
+        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
+        if not selected_image_num:
+            print("Invalid number!")
+        else:
+            self.download_image_num(selected_image_num)
+
+    def download_image_num(self, number):
+        # Update current_page_illusts, in case if you're in another page
+        self._current_page = self._all_pages_cache[str(self._current_page_num)]
+        self._current_page_illusts = self._current_page["illusts"]
+        post_json = self._current_page_illusts[number]
+        download_image_verified(post_json=post_json)
+
     def view_image(self, selected_image_num):
         self._selected_image_num = selected_image_num
         self._current_page = self._all_pages_cache[str(self._current_page_num)]
         self._current_page_illusts = self._current_page["illusts"]
         self._post_json = self._current_page_illusts[selected_image_num]
 
+        # IllustFollow doesn't have artist_user_id
         artist_user_id = self._post_json['user']['id']
         image_id = self._post_json.id
 
@@ -791,7 +813,7 @@ class AbstractGallery(ABC):
 
 class ArtistGallery(AbstractGallery):
     """
-    Gallery commands: (No need to press enter)
+    Artist Gallery commands: (No need to press enter)
         Using coordinates, where {digit1} is the row and {digit2} is the column
         {digit1}{digit2}   -- display the image on row digit1 and column digit2
         o{digit1}{digit2}  -- open pixiv image/post in browser
@@ -829,20 +851,6 @@ class ArtistGallery(AbstractGallery):
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self, **kwargs):
         return API.user_illusts(**kwargs)
-
-    def download_image_coords(self, first_num, second_num):
-        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
-        if not selected_image_num:
-            print("Invalid number!")
-        else:
-            self.download_image_num(selected_image_num)
-
-    def download_image_num(self, number):
-        # Update current_page_illusts, in case if you're in another page
-        self._current_page = self._all_pages_cache[str(self._current_page_num)]
-        self._current_page_illusts = self._current_page["illusts"]
-        post_json = self._current_page_illusts[number]
-        download_image_verified(post_json=post_json)
 
     def _back(self):
         # After user 'back's from image prompt, start mode again
@@ -960,14 +968,18 @@ class ArtistGallery(AbstractGallery):
 
 class IllustFollowGallery(AbstractGallery):
     """
-    Gallery commands: (No need to press enter)
+    Illust Follow Gallery commands: (No need to press enter)
         Using coordinates, where {digit1} is the row and {digit2} is the column
         {digit1}{digit2}   -- display the image on row digit1 and column digit2
         o{digit1}{digit2}  -- open pixiv image/post in browser
+        d{digit1}{digit2}  -- download image in large resolution
+        a{digit1}{digit2}  -- view illusts by the artist of the selected image
 
     Using image number, where {number} is the nth image in order (see examples)
         i{number}          -- display the image
         O{number}          -- open pixiv image/post in browser.
+        D{number}          -- download image in large resolution.
+        A{number}          -- view illusts by the artist of the selected image
 
         n                  -- view the next page
         p                  -- view the previous page
@@ -978,8 +990,10 @@ class IllustFollowGallery(AbstractGallery):
         i09   --->  Display the ninth image in image view (must have leading 0)
         i10   --->  Display the tenth image in image view
         O9    --->  Open the ninth image's post in browser
+        D9    --->  Download the ninth image, in large resolution
 
         25    --->  Display the image on column 2, row 5 (index starts at 1)
+        d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
         o25   --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
@@ -1000,6 +1014,22 @@ class IllustFollowGallery(AbstractGallery):
         else:
             return API.illust_follow()
 
+    def go_artist_gallery_coords(self, first_num, second_num):
+        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
+        self.go_artist_gallery_num(selected_image_num)
+
+    def go_artist_gallery_num(self, selected_image_num):
+        """Like self.view_image(), but goes to artist mode instead of image"""
+        self._selected_image_num = selected_image_num
+        self._current_page = self._all_pages_cache[str(self._current_page_num)]
+        self._current_page_illusts = self._current_page["illusts"]
+        self._post_json = self._current_page_illusts[selected_image_num]
+
+        artist_user_id = self._post_json['user']['id']
+        ArtistGalleryMode(artist_user_id)
+        # Gallery prompt ends, user presses back
+        self._back()
+
     def _back(self):
         # User 'back's out of artist gallery, start current mode again
         IllustFollowMode(self._current_page_num, self._all_pages_cache)
@@ -1012,7 +1042,7 @@ class IllustFollowGallery(AbstractGallery):
             If the sequence is valid, execute their corresponding actions
         Otherwise for keys that do not need a sequence, execute their actions normally
         """
-        sequenceable_keys = ("o", "i", "O")
+        sequenceable_keys = ("o", "d", "i", "O", "D", "a", "A")
         with TERM.cbreak():
             keyseqs = []
             seq_num = 0
@@ -1056,11 +1086,20 @@ class IllustFollowGallery(AbstractGallery):
                         if keyseqs[0] == "o":
                             self.open_link_coords(first_num, second_num)
 
+                        elif keyseqs[0] == "d":
+                            self.download_image_coords(first_num, second_num)
+                        elif keyseqs[0] == "a":
+                            break
+
                         # Open, download, or view image, given image number
                         selected_image_num = int(f"{first_num}{second_num}")
 
                         if keyseqs[0] == "O":
                             self.open_link_num(selected_image_num)
+                        elif keyseqs[0] == "D":
+                            self.download_image_num(selected_image_num)
+                        elif keyseqs[0] == "A":
+                            break
                         elif keyseqs[0] == "i":
                             break  # leave cbreak(), go to image prompt
 
@@ -1098,7 +1137,12 @@ class IllustFollowGallery(AbstractGallery):
         # End cbreak()
 
         # Display image (using either coords or image number), the show this prompt
-        self.view_image(selected_image_num)
+        if keyseqs[0] == "i":
+            self.view_image(selected_image_num)
+        elif keyseqs[0] == "a":
+            self.go_artist_gallery_coords(first_num, second_num)
+        elif keyseqs[0] == "A":
+            self.go_artist_gallery_num(selected_image_num)
 
 
 class Users(ABC):
