@@ -1,6 +1,6 @@
 import os
-import shutil
 import imghdr
+import shutil
 
 import pixcat
 

@@ -6,8 +6,8 @@ import os
 import fnmatch
 from abc import ABC, abstractmethod
 
-import cytoolz
 import funcy
+import cytoolz
 from pixcat import Image
 
 from pure import cd
