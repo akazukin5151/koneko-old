@@ -1,12 +1,16 @@
+"""Prompt functions that intercept keyboard input and call the right method"""
+
 import sys
 import time
 from blessed import Terminal
 
 import koneko
+import pure
 
 TERM = Terminal()
 
-def quit():
+def ask_quit():
+    """Ask for quit confirmation, no need to press enter"""
     with TERM.cbreak():
         while True:
             ans = TERM.inkey()
@@ -103,7 +107,7 @@ def gallery_like_prompt(gallery_like_class):
 
             elif gallery_command == "q":
                 print("Are you sure you want to exit?")
-                quit()
+                ask_quit()
                 # If exit cancelled
                 print("Enter a gallery command:")
 
@@ -125,7 +129,7 @@ def gallery_like_prompt(gallery_like_class):
         # End while
     # End cbreak()
     gallery_like_class.handle_prompt(keyseqs, gallery_command, selected_image_num,
-                       first_num, second_num)
+                                     first_num, second_num)
 
 def image_prompt(image):
     """
@@ -156,7 +160,7 @@ def image_prompt(image):
 
             elif image_prompt_command == "q":
                 print("Are you sure you want to exit?")
-                quit()
+                ask_quit()
 
             elif image_prompt_command == "b":
                 force = False
@@ -227,7 +231,7 @@ def user_prompt(user_class):
 
             elif user_prompt_command == "q":
                 print("Are you sure you want to exit?")
-                quit()
+                ask_quit()
 
             elif user_prompt_command == "":
                 pass
