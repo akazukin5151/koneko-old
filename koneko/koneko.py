@@ -46,6 +46,7 @@ import sys
 import time
 import queue
 import threading
+from pathlib import Path
 from abc import ABC, abstractmethod
 from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
@@ -65,8 +66,7 @@ def main():
     """Read config file, start login, process any cli arguments, go to main loop"""
     # Read config.ini file
     config_object = ConfigParser()
-    config_path = os.path.expanduser("~/.config/koneko/")
-    config_object.read(f"{config_path}config.ini")
+    config_object.read(Path("~/.config/koneko/config.ini").expanduser())
     credentials = config_object["Credentials"]
     # If your_id is stored in the config
     your_id = credentials.get("ID", None)
@@ -383,7 +383,7 @@ class GalleryLikeMode(ABC):
         Else, fetch current_page json and proceed download -> show -> prompt
         """
         # If path exists, show immediately (without checking for contents!)
-        if os.path.isdir(self._download_path): # Defined in child classes
+        if Path(self._download_path).is_dir(): # Defined in child classes
             try:
                 utils.show_artist_illusts(self._download_path)
             except IndexError: # Folder exists but no files
@@ -397,7 +397,6 @@ class GalleryLikeMode(ABC):
         self._show_gallery(show=show)
         self._instantiate()
 
-    @pure.spinner("Fetching user illustrations... ")
     @abstractmethod
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
@@ -409,7 +408,7 @@ class GalleryLikeMode(ABC):
         """
         self._current_page_illusts = self._current_page["illusts"]
 
-        if not os.path.isdir(self._download_path):
+        if not Path(self._download_path).is_dir():
             pbar = tqdm(total=len(self._current_page_illusts), smoothing=0)
             download_page(self._current_page_illusts, self._download_path, pbar=pbar)
             pbar.close()
@@ -440,6 +439,7 @@ class ArtistGalleryMode(GalleryLikeMode):
 
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
     def _pixivrequest(self):
         return API.user_illusts(self._artist_user_id)
 
@@ -467,6 +467,7 @@ class IllustFollowMode(GalleryLikeMode):
         super().__init__(current_page_num, all_pages_cache)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
     def _pixivrequest(self):
         return API.illust_follow(restrict='private')
 
@@ -815,7 +816,7 @@ class AbstractGallery(ABC):
         current_page_illusts = next_page["illusts"]
 
         download_path = f"{self._main_path}/{self._current_page_num+1}/"
-        if not os.path.isdir(download_path):
+        if not Path(download_path).is_dir():
             pbar = tqdm(total=len(current_page_illusts), smoothing=0)
             download_page(
                 current_page_illusts, download_path, pbar=pbar
@@ -989,6 +990,7 @@ class ArtistGallery(AbstractGallery):
                          all_pages_cache)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
     def _pixivrequest(self, **kwargs):
         return API.user_illusts(**kwargs)
 
@@ -1052,6 +1054,7 @@ class IllustFollowGallery(AbstractGallery):
                          all_pages_cache)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
     def _pixivrequest(self, **kwargs):
         """
         **kwargs can be **parse_page (for _prefetch_next_page), or
@@ -1139,10 +1142,12 @@ class Users(ABC):
 
         preview_path = f"{self._main_path}/{self._input}/{self._page_num}/previews/"
         all_urls = self._profile_pic_urls + self._image_urls
-        all_names = self._names + list(map(pure.split_backslash_last, self._image_urls))
+        preview_names_ext = map(pure.split_backslash_last, self._image_urls)
+        preview_names = [x.split('.')[0] for x in preview_names_ext]
+        all_names = self._names + preview_names
         splitpoint = len(self._profile_pic_urls)
 
-        if (os.path.isdir(self._download_path) and
+        if (Path(self._download_path).is_dir() and
                 len(os.listdir(self._download_path)) == splitpoint + 1):
             return True
 
@@ -1505,8 +1510,8 @@ def download_page(current_page_illusts, download_path, pbar=None):
 def download_core(large_dir, url, filename, try_make_dir=True):
     """Downloads one url, intended for single images only"""
     if try_make_dir:
-        os.makedirs(large_dir, exist_ok=True)
-    if not os.path.isfile(filename):
+        Path(large_dir).mkdir(exist_ok=True)
+    if not Path(filename).is_file():
         print("   Downloading illustration...", flush=True, end="\r")
         with pure.cd(large_dir):
             downloadr(url, filename, None)
@@ -1532,8 +1537,7 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
         filename = kwargs["filename"]
         filepath = kwargs["filepath"]
 
-    homepath = os.path.expanduser("~")
-    download_path = f"{homepath}/Downloads/"
+    download_path = Path("~/Downloads").expanduser()
     download_core(download_path, url, filename, try_make_dir=False)
 
     verified = utils.verify_full_download(filepath)
