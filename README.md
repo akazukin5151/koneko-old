@@ -284,7 +284,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 ```
 
 ## Unit tests
-Use `pytest testing.py`
+Use `pytest testing.py -v`. For type checking use mypy: `mypy koneko.py --ignore-missing-imports -v`
 
 
 Here's a random shell command to get (but not download) and display any pixiv image url:
