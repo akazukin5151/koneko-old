@@ -38,8 +38,6 @@ Options:
 #     FEATURE: extra feature, low priority
 #     BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 
-# TODO: Image has too many attributes (passing too many things)
-
 import os
 import re
 import sys
@@ -518,16 +516,15 @@ def view_post_mode(image_id):
         async_download_spinner(large_dir, page_urls[:2])
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
 
-    image = Image(
-        image_id,
-        artist_user_id,
-        firstmode=True,
-        page_urls=page_urls,
-        img_post_page_num=0,
-        number_of_pages=number_of_pages,
-        downloaded_images=downloaded_images,
-        download_path=large_dir,
-    )
+    multi_image_info = {
+        'page_urls': page_urls,
+        'img_post_page_num': 0,
+        'number_of_pages': number_of_pages,
+        'downloaded_images': downloaded_images,
+        'download_path': large_dir,
+    }
+
+    image = Image(image_id, artist_user_id, 1, True, multi_image_info)
     prompt.image_prompt(image)
     # Will only be used for multi-image posts, so it's safe to use large_dir
     # Without checking for number_of_pages
@@ -549,18 +546,18 @@ class Image:
 
     """
     def __init__(self, image_id, artist_user_id, current_page_num=1,
-                 firstmode=False, **kwargs):
+                 firstmode=False, multi_image_info=None):
         self._image_id = image_id
         self._artist_user_id = artist_user_id
         self._current_page_num = current_page_num
         self._firstmode = firstmode
 
-        if kwargs:  # Posts with multiple pages
-            self._page_urls = kwargs["page_urls"]
-            self._img_post_page_num = kwargs["img_post_page_num"]
-            self._number_of_pages = kwargs["number_of_pages"]
-            self._downloaded_images = kwargs["downloaded_images"]
-        self._kwargs = kwargs  # Make it accessible to the methods
+        if multi_image_info:  # Posts with multiple pages
+            self._page_urls = multi_image_info["page_urls"]
+            self._img_post_page_num = multi_image_info["img_post_page_num"]
+            self._number_of_pages = multi_image_info["number_of_pages"]
+            self._downloaded_images = multi_image_info["downloaded_images"]
+            self._download_path = multi_image_info['download_path']
 
     def open_image(self):
         link = f"https://www.pixiv.net/artworks/{self._image_id}"
@@ -589,7 +586,7 @@ class Image:
                 self._img_post_page_num,
                 self._number_of_pages,
                 self._downloaded_images,
-                download_path=self._kwargs["download_path"],
+                self._download_path,
             )
 
     def previous_image(self):
@@ -598,10 +595,9 @@ class Image:
         elif self._img_post_page_num == 0:
             print("This is the first image in the post!")
         else:
-            download_path = self._kwargs["download_path"]
             self._img_post_page_num -= 1
             image_filename = self._downloaded_images[self._img_post_page_num]
-            utils.display_image_vp(f"{download_path}{image_filename}")
+            utils.display_image_vp(f"{self._download_path}{image_filename}")
             print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
     def leave(self, force=False):
@@ -686,17 +682,18 @@ class AbstractGallery(ABC):
         number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
 
         # self._main_path defined in child classes
-        image = Image(
-            image_id,
-            artist_user_id,
-            current_page_num=self._current_page_num,
-            page_urls=page_urls,
-            img_post_page_num=0,
-            number_of_pages=number_of_pages,
-            downloaded_images=None,
-            download_path=f"{self._main_path}/{self._current_page_num}/large/",
-        )
+        multi_image_info = {
+            'page_urls': page_urls,
+            'img_post_page_num': 0,
+            'number_of_pages': number_of_pages,
+            'downloaded_images': None,
+            'download_path': f"{self._main_path}/{self._current_page_num}/large/",
+        }
+
+        image = Image(image_id, artist_user_id,
+                      self._current_page_num, False, multi_image_info)
         prompt.image_prompt(image)
+
         # Image prompt ends, user presses back
         self._back()
 
@@ -839,6 +836,9 @@ class ArtistGallery(AbstractGallery):
         elif keyseqs[0].lower() == "a":
             print("Invalid command! Press h to show help")
             prompt.gallery_like_prompt(self) # Go back to while loop
+        elif len(keyseqs) == 2:
+            selected_image_num = pure.find_number_map(first_num, second_num)
+            self.view_image(selected_image_num)
 
 
 class IllustFollowGallery(AbstractGallery):
@@ -926,6 +926,9 @@ class IllustFollowGallery(AbstractGallery):
             self.go_artist_gallery_coords(first_num, second_num)
         elif keyseqs[0] == "A":
             self.go_artist_gallery_num(selected_image_num)
+        elif len(keyseqs) == 2:
+            selected_image_num = pure.find_number_map(first_num, second_num)
+            self.view_image(selected_image_num)
 
 
 class Users(ABC):
@@ -1269,7 +1272,7 @@ def download_page(current_page_illusts, download_path, pbar=None):
 def download_core(large_dir, url, filename, try_make_dir=True):
     """Downloads one url, intended for single images only"""
     if try_make_dir:
-        Path(large_dir).mkdir(exist_ok=True)
+        os.makedirs(large_dir, exist_ok=True)
     if not Path(filename).is_file():
         print("   Downloading illustration...", flush=True, end="\r")
         with pure.cd(large_dir):
@@ -1363,8 +1366,12 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     else:
         search_string = f"{number_prefix}_"
 
-    # display the already-downloaded medium-res image first, then download and
-    # display the large-res
+    # display the already-downloaded medium-res image first,
+    # then download and display the large-res
+    # FIXME: path is not always correct
+    # artist_user_id and current_page_num only used for path
+    # .../searchstring
+    # .../large
     os.system("clear")
     arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
     os.system(f"kitty +kitten icat --silent {arg}")
