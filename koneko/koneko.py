@@ -3,25 +3,31 @@
 terminal!)
 
 Usage:
-  ./koneko.py       [<link>]
+  ./koneko.py       [<link> | <searchstr>]
   ./koneko.py [1|a] <link_or_id>
   ./koneko.py [2|i] <link_or_id>
   ./koneko.py (3|f) <link_or_id>
   ./koneko.py [4|s] <searchstr>
+  ./koneko.py [5|n]
   ./koneko.py -h
 
-Note that if you supply a link and want to go to mode 3,
-you must give the (3|f) argument, otherwise it would default to mode 1.
+Notes:
+*  If you supply a link and want to go to mode 3, you must give the (3|f) argument,
+   otherwise your link would default to mode 1.
+*  It is assumed you won't need to search for an artist named '5' or 'n' from the
+   command line, because it would go to mode 5.
 
 Optional arguments (for specifying a mode):
   1 a  Mode 1 (Artist gallery)
   2 i  Mode 2 (Image view)
   3 f  Mode 3 (Following artists)
   4 s  Mode 4 (Search for artists)
+  5 n  Mode 5 (Newest works from following artists ("illust follow"))
 
 Required arguments if a mode is specified:
-  <link>        pixiv url, auto detect mode. Can only detect either mode 1 or 2
-  <link_or_id>  either pixiv url or artist ID or image ID
+  <link>        Pixiv url, auto detect mode. Only works for modes 1, 2, and 4
+  <link_or_id>  Either pixiv url or artist ID or image ID
+  <searchstr>   String to search for artists
 
 Options:
   -h  Show this help
@@ -32,16 +38,13 @@ Options:
 #     FEATURE: extra feature, low priority
 #     BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 
-# TODO: does ArtistGallery and IllustFollowGallery need to be seperate from
-# ArtistGalleryMode and IllustFollowMode?
-# TODO: Image has too many attributes (passing too many things)
-
 import os
 import re
 import sys
 import time
 import queue
 import threading
+from pathlib import Path
 from abc import ABC, abstractmethod
 from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
@@ -50,18 +53,19 @@ import funcy
 from tqdm import tqdm
 from docopt import docopt
 from blessed import Terminal
-from pixivpy3 import AppPixivAPI, PixivError
+from pixivpy3 import PixivError, AppPixivAPI
 
 import pure
-import utils
 import lscat
+import utils
+import prompt
 
 
 def main():
+    """Read config file, start login, process any cli arguments, go to main loop"""
     # Read config.ini file
     config_object = ConfigParser()
-    config_path = os.path.expanduser("~/.config/koneko/")
-    config_object.read(f"{config_path}config.ini")
+    config_object.read(Path("~/.config/koneko/config.ini").expanduser())
     credentials = config_object["Credentials"]
     # If your_id is stored in the config
     your_id = credentials.get("ID", None)
@@ -92,6 +96,11 @@ def main():
         elif "artworks" in url_or_str or "illust_id" in url_or_str:
             user_input, main_command = process_mode2(url_or_str)
 
+        # Assume you won't search for '5' or 'n'
+        elif url_or_str == "5" or url_or_str == "n":
+            main_command = "5"
+            user_input = None
+
         else:  # Mode 4, string to search for artists
             user_input = url_or_str
             main_command = "4"
@@ -110,7 +119,6 @@ def main():
 
     elif user_input := args['<searchstr>']:
         main_command = "4"
-
 
     try:
         main_loop(prompted, main_command, user_input, your_id)
@@ -163,7 +171,6 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         elif main_command == "2":
             ViewPostModeLoop(prompted, user_input).start()
 
-        # fmt: off
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
@@ -179,7 +186,6 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         elif main_command == "5":
             IllustFollowModeLoop().start()
 
-        # fmt: on
         elif main_command == "?":
             utils.info_screen_loop()
 
@@ -192,7 +198,7 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         elif main_command == "q":
             answer = input("Are you sure you want to exit? [y/N]:\n")
             if answer == "y" or not answer:
-                break
+                sys.exit(0)
             else:
                 printmessage = False
                 continue
@@ -211,6 +217,11 @@ class Loop(ABC):
     validate input (can be overridden)
     wait for api thread to finish logging in
     activates the selected mode (needs to be overridden)
+
+    Note: this violates the Liskov substitution principle, because
+    subclasses can 'remove' methods (by overriding them to `pass`)
+    This isn't a big concern because I just want to reduce code duplication,
+    thematically group functions into the Loop ABC, & those methods are private anyway
     """
     def __init__(self, prompted, user_input):
         self._prompted = prompted
@@ -278,14 +289,18 @@ class ViewPostModeLoop(Loop):
     def _process_url_or_input(self):
         """Overriding base class to account for 'illust_id' cases"""
         if "illust_id" in self._url_or_id:
-            self._user_input = re.findall(r"&illust_id.*", self._url_or_id)[0].split("=")[-1]
+            self._user_input = re.findall(
+                 r"&illust_id.*",
+                self._url_or_id
+            )[0].split("=")[-1]
+
         elif "pixiv" in self._url_or_id:
             self._user_input = pure.split_backslash_last(self._url_or_id)
         else:
             self._user_input = self._url_or_id
 
     def _go_to_mode(self):
-        self.mode = view_post_mode(self._user_input)
+        view_post_mode(self._user_input)
 
 
 class SearchUsersModeLoop(Loop):
@@ -307,7 +322,7 @@ class SearchUsersModeLoop(Loop):
     def _go_to_mode(self):
         self.searching = SearchUsers(self._user_input)
         self.searching.start()
-        user_prompt(self.searching)
+        prompt.user_prompt(self.searching)
 
 
 class FollowingUserModeLoop(Loop):
@@ -323,11 +338,13 @@ class FollowingUserModeLoop(Loop):
     def _go_to_mode(self):
         self.following = FollowingUsers(self._user_input)
         self.following.start()
-        user_prompt(self.following)
+        prompt.user_prompt(self.following)
 
 class IllustFollowModeLoop(Loop):
     """
     Immediately goes to IllustFollow()
+    Doesn't actually need to inherit from Loop ABC because it's so different
+    But make UML diagrams look better
     """
     def __init__(self): pass
 
@@ -344,7 +361,7 @@ class IllustFollowModeLoop(Loop):
     def _go_to_mode(self):
         self.mode = IllustFollowMode()
 
-#- Loop classes ==========================================================
+# - Loop classes ==========================================================
 
 # - Mode classes
 class GalleryLikeMode(ABC):
@@ -365,9 +382,13 @@ class GalleryLikeMode(ABC):
         Else, fetch current_page json and proceed download -> show -> prompt
         """
         # If path exists, show immediately (without checking for contents!)
-        if os.path.isdir(self._download_path):
-            utils.show_artist_illusts(self._download_path)
-            show = False
+        if Path(self._download_path).is_dir(): # Defined in child classes
+            try:
+                utils.show_artist_illusts(self._download_path)
+            except IndexError: # Folder exists but no files
+                show = True
+            else:
+                show = False
         else:
             show = True
 
@@ -375,7 +396,6 @@ class GalleryLikeMode(ABC):
         self._show_gallery(show=show)
         self._instantiate()
 
-    @pure.spinner("Fetching user illustrations... ")
     @abstractmethod
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
@@ -387,7 +407,7 @@ class GalleryLikeMode(ABC):
         """
         self._current_page_illusts = self._current_page["illusts"]
 
-        if not os.path.isdir(self._download_path):
+        if not Path(self._download_path).is_dir():
             pbar = tqdm(total=len(self._current_page_illusts), smoothing=0)
             download_page(self._current_page_illusts, self._download_path, pbar=pbar)
             pbar.close()
@@ -418,6 +438,7 @@ class ArtistGalleryMode(GalleryLikeMode):
 
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
     def _pixivrequest(self):
         return API.user_illusts(self._artist_user_id)
 
@@ -430,7 +451,9 @@ class ArtistGalleryMode(GalleryLikeMode):
             self._all_pages_cache,
             illust_follow_info=self._illust_follow_info,
         )
-        self.gallery.prompt()
+        prompt.gallery_like_prompt(self.gallery)
+        # After backing
+        main()
 
 
 class IllustFollowMode(GalleryLikeMode):
@@ -443,17 +466,20 @@ class IllustFollowMode(GalleryLikeMode):
         super().__init__(current_page_num, all_pages_cache)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
     def _pixivrequest(self):
         return API.illust_follow(restrict='private')
 
     def _instantiate(self):
         self.gallery = IllustFollowGallery(
-                self._current_page_illusts,
-                self._current_page,
-                self._current_page_num,
-                self._all_pages_cache,
+            self._current_page_illusts,
+            self._current_page,
+            self._current_page_num,
+            self._all_pages_cache,
         )
-        self.gallery.prompt()
+        prompt.gallery_like_prompt(self.gallery)
+        # After backing
+        main()
 
 # - Mode and loop functions (some interactive and some not)
 def view_post_mode(image_id):
@@ -490,32 +516,22 @@ def view_post_mode(image_id):
         async_download_spinner(large_dir, page_urls[:2])
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
 
-    image = Image(
-        image_id,
-        artist_user_id,
-        firstmode=True,
-        page_urls=page_urls,
-        img_post_page_num=0,
-        number_of_pages=number_of_pages,
-        downloaded_images=downloaded_images,
-        download_path=large_dir,
-    )
-    image_prompt(image)
+    multi_image_info = {
+        'page_urls': page_urls,
+        'img_post_page_num': 0,
+        'number_of_pages': number_of_pages,
+        'downloaded_images': downloaded_images,
+        'download_path': large_dir,
+    }
+
+    image = Image(image_id, artist_user_id, 1, True, multi_image_info)
+    prompt.image_prompt(image)
     # Will only be used for multi-image posts, so it's safe to use large_dir
     # Without checking for number_of_pages
 # - Mode and loop functions (some interactive and some not)
 
+
 # - Interactive functions (frontend)
-def quit():
-    with TERM.cbreak():
-        while True:
-            ans = TERM.inkey()
-            if ans == "y" or ans == "q" or ans.code == 343:  # Enter
-                sys.exit(0)
-            elif ans:
-                break
-
-
 class Image:
     """
     Image view commands (No need to press enter):
@@ -529,21 +545,19 @@ class Image:
         q -- quit (with confirmation)
 
     """
-    # fmt: off
     def __init__(self, image_id, artist_user_id, current_page_num=1,
-                 firstmode=False, **kwargs):
-    # fmt: on
+                 firstmode=False, multi_image_info=None):
         self._image_id = image_id
         self._artist_user_id = artist_user_id
         self._current_page_num = current_page_num
         self._firstmode = firstmode
 
-        if kwargs:  # Posts with multiple pages
-            self._page_urls = kwargs["page_urls"]
-            self._img_post_page_num = kwargs["img_post_page_num"]
-            self._number_of_pages = kwargs["number_of_pages"]
-            self._downloaded_images = kwargs["downloaded_images"]
-        self._kwargs = kwargs  # Make it accessible to the methods
+        if multi_image_info:  # Posts with multiple pages
+            self._page_urls = multi_image_info["page_urls"]
+            self._img_post_page_num = multi_image_info["img_post_page_num"]
+            self._number_of_pages = multi_image_info["number_of_pages"]
+            self._downloaded_images = multi_image_info["downloaded_images"]
+            self._download_path = multi_image_info['download_path']
 
     def open_image(self):
         link = f"https://www.pixiv.net/artworks/{self._image_id}"
@@ -567,13 +581,12 @@ class Image:
 
         else:
             self._img_post_page_num += 1  # Be careful of 0 index
-            # TODO move go_next_image inside class so it updates downloaded_images
             self._downloaded_images = go_next_image(
                 self._page_urls,
                 self._img_post_page_num,
                 self._number_of_pages,
                 self._downloaded_images,
-                download_path=self._kwargs["download_path"],
+                self._download_path,
             )
 
     def previous_image(self):
@@ -582,67 +595,18 @@ class Image:
         elif self._img_post_page_num == 0:
             print("This is the first image in the post!")
         else:
-            download_path = self._kwargs["download_path"]
             self._img_post_page_num -= 1
             image_filename = self._downloaded_images[self._img_post_page_num]
-            utils.display_image_vp(f"{download_path}{image_filename}")
+            utils.display_image_vp(f"{self._download_path}{image_filename}")
             print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
-    def leave(self):
-        if self._firstmode:
+    def leave(self, force=False):
+        if self._firstmode or force:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
             ArtistGalleryMode(self._artist_user_id, self._current_page_num)
         # Else: image prompt and class ends, goes back to gallery
 
-# TODO: 'a' to go to artist gallery mode (illust following mode -> image, then
-# wants to look at artist's gallery)
-# - Prompt functions with logic
-def image_prompt(image):
-    """
-    if-else statements to intercept key presses and do the correct action
-    current_page and current_page_num is for gallery view -> next page(s) ->
-    image prompt -> back
-    kwargs are to store info for posts with multiple pages/images
-    """
-    case = {
-        "o": image.open_image,
-        "d": image.download_image,
-        "n": image.next_image,
-        "p": image.previous_image,
-    }
-
-    with TERM.cbreak():
-        while True:
-            print("Enter an image view command:")
-            image_prompt_command = TERM.inkey()
-
-            # Simplify if-else chain with case-switch
-            func = case.get(image_prompt_command, None)
-            if func:
-                func()
-
-            elif image_prompt_command == "h":
-                print(image.__doc__)
-
-            elif image_prompt_command == "q":
-                print("Are you sure you want to exit?")
-                quit()
-
-            elif image_prompt_command == "b":
-                break  # Leave cbreak()
-            elif image_prompt_command == "":
-                pass
-
-            elif image_prompt_command:
-                print("Invalid command! Press h to show help")
-
-            # End if
-        # End while
-    # End cbreak()
-
-    # image_prompt_command == "b"
-    image.leave()
 
 class AbstractGallery(ABC):
     def __init__(self, current_page_illusts, current_page, current_page_num,
@@ -651,6 +615,7 @@ class AbstractGallery(ABC):
         self._current_page = current_page
         self._current_page_num = current_page_num
         self._all_pages_cache = all_pages_cache
+        self._post_json = None # Defined in self.view_image
 
         pure.print_multiple_imgs(self._current_page_illusts)
         print(f"Page {self._current_page_num}")
@@ -683,16 +648,30 @@ class AbstractGallery(ABC):
         os.system(f"xdg-open {link}")
         print(f"Opened {link}!\n")
 
+    def download_image_coords(self, first_num, second_num):
+        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
+        if not selected_image_num:
+            print("Invalid number!")
+        else:
+            self.download_image_num(selected_image_num)
+
+    def download_image_num(self, number):
+        # Update current_page_illusts, in case if you're in another page
+        self._current_page = self._all_pages_cache[str(self._current_page_num)]
+        self._current_page_illusts = self._current_page["illusts"]
+        post_json = self._current_page_illusts[number]
+        download_image_verified(post_json=post_json)
+
     def view_image(self, selected_image_num):
         self._selected_image_num = selected_image_num
         self._current_page = self._all_pages_cache[str(self._current_page_num)]
         self._current_page_illusts = self._current_page["illusts"]
         self._post_json = self._current_page_illusts[selected_image_num]
 
+        # IllustFollow doesn't have artist_user_id
         artist_user_id = self._post_json['user']['id']
         image_id = self._post_json.id
 
-        # TODO move inside class
         display_image(
             self._post_json,
             artist_user_id,
@@ -703,17 +682,19 @@ class AbstractGallery(ABC):
         # blocking: no way to unblock prompt
         number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
 
-        image = Image(
-            image_id,
-            artist_user_id,
-            current_page_num=self._current_page_num,
-            page_urls=page_urls,
-            img_post_page_num=0,
-            number_of_pages=number_of_pages,
-            downloaded_images=None,
-            download_path=f"{self._main_path}/{self._current_page_num}/large/",
-        )
-        image_prompt(image)
+        # self._main_path defined in child classes
+        multi_image_info = {
+            'page_urls': page_urls,
+            'img_post_page_num': 0,
+            'number_of_pages': number_of_pages,
+            'downloaded_images': None,
+            'download_path': f"{self._main_path}/{self._current_page_num}/large/",
+        }
+
+        image = Image(image_id, artist_user_id,
+                      self._current_page_num, False, multi_image_info)
+        prompt.image_prompt(image)
+
         # Image prompt ends, user presses back
         self._back()
 
@@ -773,21 +754,30 @@ class AbstractGallery(ABC):
         current_page_illusts = next_page["illusts"]
 
         download_path = f"{self._main_path}/{self._current_page_num+1}/"
-        if not os.path.isdir(download_path):
+        if not Path(download_path).is_dir():
             pbar = tqdm(total=len(current_page_illusts), smoothing=0)
             download_page(
                 current_page_illusts, download_path, pbar=pbar
             )
             pbar.close
 
+    def reload(self):
+        ans = input("This will delete cached images and redownload them. Proceed?\n")
+        if ans == "y" or not ans:
+            os.system(f"rm -r {self._main_path}") # shutil.rmtree is better
+            self._back()
+        else:
+            prompt.gallery_like_prompt(self)
+
     @abstractmethod
-    def prompt(self):
+    def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
+                      first_num, second_num):
         raise NotImplementedError
 
 
 class ArtistGallery(AbstractGallery):
     """
-    Gallery commands: (No need to press enter)
+    Artist Gallery commands: (No need to press enter)
         Using coordinates, where {digit1} is the row and {digit2} is the column
         {digit1}{digit2}   -- display the image on row digit1 and column digit2
         o{digit1}{digit2}  -- open pixiv image/post in browser
@@ -800,6 +790,8 @@ class ArtistGallery(AbstractGallery):
 
         n                  -- view the next page
         p                  -- view the previous page
+        r                  -- delete all cached images, re-download and reload view
+        b                  -- go back to previous mode (either 3, 4, 5, or main screen)
         h                  -- show this help
         q                  -- quit (with confirmation)
 
@@ -823,150 +815,52 @@ class ArtistGallery(AbstractGallery):
                          all_pages_cache)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
     def _pixivrequest(self, **kwargs):
         return API.user_illusts(**kwargs)
-
-    def download_image_coords(self, first_num, second_num):
-        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
-        if not selected_image_num:
-            print("Invalid number!")
-        else:
-            self.download_image_num(selected_image_num)
-
-    def download_image_num(self, number):
-        # Update current_page_illusts, in case if you're in another page
-        self._current_page = self._all_pages_cache[str(self._current_page_num)]
-        self._current_page_illusts = self._current_page["illusts"]
-        post_json = self._current_page_illusts[number]
-        download_image_verified(post_json=post_json)
 
     def _back(self):
         # After user 'back's from image prompt, start mode again
         ArtistGalleryMode(self._artist_user_id, self._current_page_num,
-                all_pages_cache=self._all_pages_cache,
-                current_page=self._current_page)
+                          all_pages_cache=self._all_pages_cache,
+                          current_page=self._current_page)
 
-    def prompt(self):
-        """
-        Only contains logic for interpreting key presses, and do the correct action
-        Sequence means a combination of more than one key.
-        When a sequenceable key is pressed, wait for the next keys in the sequence
-            If the sequence is valid, execute their corresponding actions
-        Otherwise for keys that do not need a sequence, execute their actions normally
-        """
-        sequenceable_keys = ("o", "d", "i", "O", "D")
-        with TERM.cbreak():
-            keyseqs = []
-            seq_num = 0
-            print("Enter a gallery command:")
-            while True:
-                gallery_command = TERM.inkey()
-
-                # Wait for the rest of the sequence
-                if gallery_command in sequenceable_keys:
-                    keyseqs.append(gallery_command)
-                    print(keyseqs)
-                    seq_num += 1
-
-                elif gallery_command.code == 361:  # Escape
-                    keyseqs = []
-                    seq_num = 0
-                    print(keyseqs)
-
-                # Digits continue the sequence
-                elif gallery_command.isdigit():
-                    keyseqs.append(gallery_command)
-                    print(keyseqs)
-
-                    # End of the sequence...
-                    # Two digit sequence -- view image given coords
-                    if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
-
-                        first_num = int(keyseqs[0])
-                        second_num = int(keyseqs[1])
-                        selected_image_num = pure.find_number_map(first_num, second_num)
-
-                        break  # leave cbreak(), go to image prompt
-
-                    # One letter two digit sequence
-                    elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
-
-                        first_num = keyseqs[1]
-                        second_num = keyseqs[2]
-
-                        # Open or download given coords
-                        if keyseqs[0] == "o":
-                            self.open_link_coords(first_num, second_num)
-
-                        elif keyseqs[0] == "d":
-                            self.download_image_coords(first_num, second_num)
-
-                        # Open, download, or view image, given image number
-                        selected_image_num = int(f"{first_num}{second_num}")
-
-                        if keyseqs[0] == "O":
-                            self.open_link_num(selected_image_num)
-                        elif keyseqs[0] == "D":
-                            self.download_image_num(selected_image_num)
-                        elif keyseqs[0] == "i":
-                            break  # leave cbreak(), go to image prompt
-
-                        # Reset sequence info after running everything
-                        keyseqs = []
-                        seq_num = 0
-
-                    # Not the end of the sequence yet, continue while block
-                    else:
-                        seq_num += 1
-
-                # No sequence, execute their functions immediately
-                elif gallery_command == "n":
-                    self.next_page()
-
-                elif gallery_command == "p":
-                    self.previous_page()
-
-                elif gallery_command == "b":
-                    break # leave cbreak()
-
-                elif gallery_command == "q":
-                    print("Are you sure you want to exit?")
-                    quit()
-                    # If exit cancelled
-                    print("Enter a gallery command:")
-
-                elif gallery_command.code == 343:  # Enter
-                    pass
-                elif gallery_command == "h":
-                    print(self.__doc__)
-                elif gallery_command:
-                    print("Invalid command! Press h to show help")
-                    keyseqs = []
-                    seq_num = 0
-                # End if
-            # End while
-        # End cbreak()
-
+    def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
+                      first_num, second_num):
         # Display image (using either coords or image number), the show this prompt
         if gallery_command == "b":
             pass # Stop gallery instance, return to previous state
-        else:
+        elif gallery_command == "r":
+            self.reload()
+        elif keyseqs[0] == "i":
+            self.view_image(selected_image_num)
+        elif keyseqs[0].lower() == "a":
+            print("Invalid command! Press h to show help")
+            prompt.gallery_like_prompt(self) # Go back to while loop
+        elif len(keyseqs) == 2:
+            selected_image_num = pure.find_number_map(first_num, second_num)
             self.view_image(selected_image_num)
 
 
 class IllustFollowGallery(AbstractGallery):
     """
-    Gallery commands: (No need to press enter)
+    Illust Follow Gallery commands: (No need to press enter)
         Using coordinates, where {digit1} is the row and {digit2} is the column
         {digit1}{digit2}   -- display the image on row digit1 and column digit2
         o{digit1}{digit2}  -- open pixiv image/post in browser
+        d{digit1}{digit2}  -- download image in large resolution
+        a{digit1}{digit2}  -- view illusts by the artist of the selected image
 
     Using image number, where {number} is the nth image in order (see examples)
         i{number}          -- display the image
         O{number}          -- open pixiv image/post in browser.
+        D{number}          -- download image in large resolution.
+        A{number}          -- view illusts by the artist of the selected image
 
         n                  -- view the next page
         p                  -- view the previous page
+        r                  -- delete all cached images, re-download and reload view
+        b                  -- go back to main screen
         h                  -- show this help
         q                  -- quit (with confirmation)
 
@@ -974,8 +868,10 @@ class IllustFollowGallery(AbstractGallery):
         i09   --->  Display the ninth image in image view (must have leading 0)
         i10   --->  Display the tenth image in image view
         O9    --->  Open the ninth image's post in browser
+        D9    --->  Download the ninth image, in large resolution
 
         25    --->  Display the image on column 2, row 5 (index starts at 1)
+        d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
         o25   --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
@@ -986,6 +882,7 @@ class IllustFollowGallery(AbstractGallery):
                          all_pages_cache)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
     def _pixivrequest(self, **kwargs):
         """
         **kwargs can be **parse_page (for _prefetch_next_page), or
@@ -996,105 +893,43 @@ class IllustFollowGallery(AbstractGallery):
         else:
             return API.illust_follow()
 
+    def go_artist_gallery_coords(self, first_num, second_num):
+        selected_image_num = pure.find_number_map(int(first_num), int(second_num))
+        self.go_artist_gallery_num(selected_image_num)
+
+    def go_artist_gallery_num(self, selected_image_num):
+        """Like self.view_image(), but goes to artist mode instead of image"""
+        self._selected_image_num = selected_image_num
+        self._current_page = self._all_pages_cache[str(self._current_page_num)]
+        self._current_page_illusts = self._current_page["illusts"]
+        self._post_json = self._current_page_illusts[selected_image_num]
+
+        artist_user_id = self._post_json['user']['id']
+        ArtistGalleryMode(artist_user_id)
+        # Gallery prompt ends, user presses back
+        self._back()
+
     def _back(self):
         # User 'back's out of artist gallery, start current mode again
         IllustFollowMode(self._current_page_num, self._all_pages_cache)
 
-    def prompt(self):
-        """
-        Only contains logic for interpreting key presses, and do the correct action
-        Sequence means a combination of more than one key.
-        When a sequenceable key is pressed, wait for the next keys in the sequence
-            If the sequence is valid, execute their corresponding actions
-        Otherwise for keys that do not need a sequence, execute their actions normally
-        """
-        sequenceable_keys = ("o", "i", "O")
-        with TERM.cbreak():
-            keyseqs = []
-            seq_num = 0
-            print("Enter a gallery command:")
-            while True:
-                gallery_command = TERM.inkey()
-
-                # Wait for the rest of the sequence
-                if gallery_command in sequenceable_keys:
-                    keyseqs.append(gallery_command)
-                    print(keyseqs)
-                    seq_num += 1
-
-                elif gallery_command.code == 361:  # Escape
-                    keyseqs = []
-                    seq_num = 0
-                    print(keyseqs)
-
-                # Digits continue the sequence
-                elif gallery_command.isdigit():
-                    keyseqs.append(gallery_command)
-                    print(keyseqs)
-
-                    # End of the sequence...
-                    # Two digit sequence -- view image given coords
-                    if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
-
-                        first_num = int(keyseqs[0])
-                        second_num = int(keyseqs[1])
-                        selected_image_num = pure.find_number_map(first_num, second_num)
-
-                        break  # leave cbreak(), go to image prompt
-
-                    # One letter two digit sequence
-                    elif seq_num == 2 and keyseqs[1].isdigit() and keyseqs[2].isdigit():
-
-                        first_num = keyseqs[1]
-                        second_num = keyseqs[2]
-
-                        # Open or download given coords
-                        if keyseqs[0] == "o":
-                            self.open_link_coords(first_num, second_num)
-
-                        # Open, download, or view image, given image number
-                        selected_image_num = int(f"{first_num}{second_num}")
-
-                        if keyseqs[0] == "O":
-                            self.open_link_num(selected_image_num)
-                        elif keyseqs[0] == "i":
-                            break  # leave cbreak(), go to image prompt
-
-                        # Reset sequence info after running everything
-                        keyseqs = []
-                        seq_num = 0
-
-                    # Not the end of the sequence yet, continue while block
-                    else:
-                        seq_num += 1
-
-                # No sequence, execute their functions immediately
-                elif gallery_command == "n":
-                    self.next_page()
-
-                elif gallery_command == "p":
-                    self.previous_page()
-
-                elif gallery_command == "q":
-                    print("Are you sure you want to exit?")
-                    quit()
-                    # If exit cancelled
-                    print("Enter a gallery command:")
-
-                elif gallery_command.code == 343:  # Enter
-                    pass
-                elif gallery_command == "h":
-                    print(self.__doc__)
-                elif gallery_command:
-                    print("Invalid command! Press h to show help")
-                    keyseqs = []
-                    seq_num = 0
-                # End if
-            # End while
-        # End cbreak()
-
-        # Display image (using either coords or image number), the show this prompt
-        self.view_image(selected_image_num)
+    def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
+                      first_num, second_num):
+        # "b" must be handled first, because keyseqs might be empty
+        if gallery_command == "b":
+            print("Invalid command! Press h to show help")
+            prompt.gallery_like_prompt(self) # Go back to while loop
+        elif gallery_command == "r":
+            self.reload()
+        elif keyseqs[0] == "i":
+            self.view_image(selected_image_num)
+        elif keyseqs[0] == "a":
+            self.go_artist_gallery_coords(first_num, second_num)
+        elif keyseqs[0] == "A":
+            self.go_artist_gallery_num(selected_image_num)
+        elif len(keyseqs) == 2:
+            selected_image_num = pure.find_number_map(first_num, second_num)
+            self.view_image(selected_image_num)
 
 
 class Users(ABC):
@@ -1102,6 +937,7 @@ class Users(ABC):
     User view commands (No need to press enter):
         n -- view next page
         p -- view previous page
+        r -- delete all cached images, re-download and reload view
         h -- show this help
         q -- quit (with confirmation)
 
@@ -1112,6 +948,7 @@ class Users(ABC):
         self._input = user_or_id
         self._offset = 0
         self._page_num = 1
+        # self._main_path defined in child classes
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._names_cache = {}
         self._ids_cache = {}
@@ -1136,15 +973,16 @@ class Users(ABC):
 
         preview_path = f"{self._main_path}/{self._input}/{self._page_num}/previews/"
         all_urls = self._profile_pic_urls + self._image_urls
-        all_names = self._names + list(map(pure.split_backslash_last, self._image_urls))
+        preview_names_ext = map(pure.split_backslash_last, self._image_urls)
+        preview_names = [x.split('.')[0] for x in preview_names_ext]
+        all_names = self._names + preview_names
         splitpoint = len(self._profile_pic_urls)
 
-        if (os.path.isdir(self._download_path) and
+        if (Path(self._download_path).is_dir() and
                 len(os.listdir(self._download_path)) == splitpoint + 1):
             return True
 
         pbar = tqdm(total=len(all_urls), smoothing=0)
-        # fmt: off
         async_download_core(
             preview_path,
             all_urls,
@@ -1153,7 +991,6 @@ class Users(ABC):
             pbar=pbar
         )
         pbar.close()
-        # fmt: on
 
         # Move artist profile pics to their correct dir
         to_move = sorted(os.listdir(preview_path))[:splitpoint]
@@ -1210,7 +1047,6 @@ class Users(ABC):
             ).render()
 
     def _prefetch_next_page(self):
-        breakpoint()
         oldnum = self._page_num
 
         if self._next_url:
@@ -1248,7 +1084,15 @@ class Users(ABC):
         ArtistGalleryMode(artist_user_id)
         # After backing from gallery
         self._show_page()
-        user_prompt(self)
+        prompt.user_prompt(self)
+
+    def reload(self):
+        ans = input("This will delete cached images and redownload them. Proceed?\n")
+        if ans == "y" or not ans:
+            os.system(f"rm -r {self._main_path}") # shutil.rmtree is better
+            self.__init__(self._input)
+            self.start()
+        prompt.user_prompt(self)
 
     @staticmethod
     def _user_id(json):
@@ -1302,68 +1146,6 @@ class FollowingUsers(Users):
             self._input, restrict=self._publicity, offset=self._offset
         )
 
-
-def user_prompt(user_class):
-    # TODO: put inside User ABC
-    """
-    Handles key presses for user views (following users and user search)
-    """
-    keyseqs = []
-    seq_num = 0
-    sequenceable_keys = "i"
-    with TERM.cbreak():
-        while True:
-            print("Enter a user view command:")
-            user_prompt_command = TERM.inkey()
-
-            if user_prompt_command == "n":
-                user_class.next_page()
-                # Prevents catching "n" and messing up the cache
-                time.sleep(0.5)
-
-            elif user_prompt_command == "p":
-                user_class.previous_page()
-
-            # Wait for the rest of the sequence
-            elif user_prompt_command in sequenceable_keys:
-                keyseqs.append(user_prompt_command)
-                print(keyseqs)
-                seq_num += 1
-
-            elif user_prompt_command.isdigit():
-                keyseqs.append(user_prompt_command)
-                print(keyseqs)
-
-                # End of the sequence...
-                # Two digit sequence -- view artist given number
-                if seq_num == 1 and keyseqs[0].isdigit() and keyseqs[1].isdigit():
-
-                    first_num = keyseqs[0]
-                    second_num = keyseqs[1]
-                    selected_user_num = int(f"{first_num}{second_num}")
-                    break  # leave cbreak(), go to gallery
-
-                # Not the end of the sequence yet, continue while block
-                else:
-                    seq_num += 1
-
-            elif user_prompt_command == "q":
-                print("Are you sure you want to exit?")
-                quit()
-
-            elif user_prompt_command == "":
-                pass
-            elif user_prompt_command == "h":
-                print(Users.__doc__)
-            elif user_prompt_command:
-                print("Invalid command! Press h to show help")
-                keyseqs = []
-                seq_num = 0
-            # End if
-        # End while
-    # End cbreak()
-
-    user_class.go_artist_mode(selected_user_num)
 # - End interactive (frontend) functions
 
 
@@ -1416,11 +1198,11 @@ def full_img_details(png=False, post_json=None, image_id=None):
 
 
 # - DOWNLOAD FUNCTIONS ==================================================
-# TODO (Doesn't actually call the API themselves, possible to move to another module?)
-# - Core download functions (for async)
+# - For batch downloading multiple images (all 5 functions related)
 @pure.spinner("")
 def async_download_spinner(download_path, urls, rename_images=False,
                            file_names=None, pbar=None):
+    """Batch download and rename, with spinner. For mode 2; multi-image posts"""
     async_download_core(
         download_path,
         urls,
@@ -1433,8 +1215,8 @@ def async_download_spinner(download_path, urls, rename_images=False,
 def async_download_core(download_path, urls, rename_images=False,
                         file_names=None, pbar=None):
     """
-    Core logic for async downloading. Rename files with given new name
-    if needed. Submit each url to the ThreadPoolExecutor.
+    Rename files with given new name if needed.
+    Submit each url to the ThreadPoolExecutor, so download and rename are concurrent
     """
     oldnames = list(map(pure.split_backslash_last, urls))
     if rename_images:
@@ -1455,11 +1237,12 @@ def async_download_core(download_path, urls, rename_images=False,
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
 def protected_download(url):
+    """Protect api download function with funcy.retry so it doesn't crash"""
     API.download(url)
 
 
 def downloadr(url, img_name, new_file_name=None, pbar=None):
-    """Actually downloads one pic given the single url, rename if needed."""
+    """Actually downloads one pic given one url, rename if needed."""
     protected_download(url)
 
     if pbar:
@@ -1472,16 +1255,10 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
         os.rename(img_name, new_file_name)
 
 
-# - Wrappers around the core functions for async download
 def download_page(current_page_illusts, download_path, pbar=None):
     """
     Download the illustrations on one page of given artist id (using threads),
-    rename them based on the post title
-
-    Parameters
-    ----------
-    current_page_illusts : JsonDict
-        JsonDict holding lots of info on all the posts in the current page
+    rename them based on the *post title*. Used for gallery modes (1 and 5)
     """
     urls = pure.medium_urls(current_page_illusts)
     titles = pure.post_titles_in_page(current_page_illusts)
@@ -1497,7 +1274,7 @@ def download_core(large_dir, url, filename, try_make_dir=True):
     """Downloads one url, intended for single images only"""
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
-    if not os.path.isfile(filename):
+    if not Path(filename).is_file():
         print("   Downloading illustration...", flush=True, end="\r")
         with pure.cd(large_dir):
             downloadr(url, filename, None)
@@ -1506,6 +1283,7 @@ def download_core(large_dir, url, filename, try_make_dir=True):
 def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
     """
     This downloads an image, checks if it's valid. If not, retry with png.
+    Used for downloading full-res, single only; on-user-demand
     """
     if png and 'url' in kwargs: # Called from recursion
         # IMPROVEMENT This is copied from full_img_details()...
@@ -1522,8 +1300,7 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
         filename = kwargs["filename"]
         filepath = kwargs["filepath"]
 
-    homepath = os.path.expanduser("~")
-    download_path = f"{homepath}/Downloads/"
+    download_path = Path("~/Downloads").expanduser()
     download_core(download_path, url, filename, try_make_dir=False)
 
     verified = utils.verify_full_download(filepath)
@@ -1534,10 +1311,7 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
 
 
 # - Functions that are wrappers around download functions, making them impure
-class LastPageException(ValueError):
-    pass
-
-
+# - Both classes used only by the Image class, but detached to reduce its size
 def go_next_image(page_urls, img_post_page_num, number_of_pages,
                   downloaded_images, download_path):
     """
@@ -1593,12 +1367,15 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     else:
         search_string = f"{number_prefix}_"
 
-    # display the already-downloaded medium-res image first, then download and
-    # display the large-res
+    # display the already-downloaded medium-res image first,
+    # then download and display the large-res
+    # FIXME: path is not always correct
+    # artist_user_id and current_page_num only used for path
+    # .../searchstring
+    # .../large
     os.system("clear")
-    os.system(
-        f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
-    )
+    arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
+    os.system(f"kitty +kitten icat --silent {arg}")
 
     url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
@@ -1609,16 +1386,16 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     # received
 
     os.system("clear")
-    os.system(
-        f"kitty +kitten icat --silent {KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
-    )
+    arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
+    os.system(f"kitty +kitten icat --silent {arg}")
 
 # - DOWNLOAD FUNCTIONS ==================================================
 
+class LastPageException(ValueError):
+    pass
+
 
 if __name__ == "__main__":
-    global TERM
     TERM = Terminal()
-    global KONEKODIR
     KONEKODIR = "/tmp/koneko"
     main()

@@ -3,8 +3,8 @@ Collection of functions that are pure and side effect free
     (Excluding print)
 """
 
-import re
 import os
+import re
 import itertools
 import threading
 from contextlib import contextmanager
@@ -133,9 +133,8 @@ def page_urls_in_post(post_json, size="medium"):
     if number_of_pages > 1:
         print(f"Page 1/{number_of_pages}")
         list_of_pages = post_json["meta_pages"]
-        page_urls = []
-        for i in range(number_of_pages):
-            page_urls.append(url_given_size(list_of_pages[i], size))
+        page_urls = [url_given_size(list_of_pages[i], size)
+                     for i in range(number_of_pages)]
     else:
         page_urls = [url_given_size(post_json, size)]
 
