@@ -1,4 +1,4 @@
-# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+# koneko [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.txt)
 
 Browse pixiv in the terminal using kitty's icat to display images (in the terminal!)
 
@@ -120,32 +120,39 @@ Browse pixiv in the terminal using kitty's icat to display images (in the
 terminal!)
 
 Usage:
-  ./koneko.py       [<link>]
+  ./koneko.py       [<link> | <searchstr>]
   ./koneko.py [1|a] <link_or_id>
   ./koneko.py [2|i] <link_or_id>
   ./koneko.py (3|f) <link_or_id>
   ./koneko.py [4|s] <searchstr>
+  ./koneko.py [5|n]
   ./koneko.py -h
 
-Note that if you supply a link and want to go to mode 3,
-you must give the (3|f) argument, otherwise it would default to mode 1.
+Notes:
+*  If you supply a link and want to go to mode 3, you must give the (3|f) argument,
+   otherwise your link would default to mode 1.
+*  It is assumed you won't need to search for an artist named '5' or 'n' from the
+   command line, because it would go to mode 5.
 
 Optional arguments (for specifying a mode):
   1 a  Mode 1 (Artist gallery)
   2 i  Mode 2 (Image view)
   3 f  Mode 3 (Following artists)
   4 s  Mode 4 (Search for artists)
+  5 n  Mode 5 (Newest works from following artists ("illust follow"))
 
 Required arguments if a mode is specified:
-  <link>        pixiv url, auto detect mode. Can only detect either mode 1 or 2
-  <link_or_id>  either pixiv url or artist ID or image ID
+  <link>        Pixiv url, auto detect mode. Only works for modes 1, 2, and 4
+  <link_or_id>  Either pixiv url or artist ID or image ID
+  <searchstr>   String to search for artists
 
 Options:
   -h  Show this help
+
 ```
 
 ```
-Gallery commands: (No need to press enter)
+Artist Gallery commands: (No need to press enter)
     Using coordinates, where {digit1} is the row and {digit2} is the column
     {digit1}{digit2}   -- display the image on row digit1 and column digit2
     o{digit1}{digit2}  -- open pixiv image/post in browser
@@ -158,6 +165,8 @@ Using image number, where {number} is the nth image in order (see examples)
 
     n                  -- view the next page
     p                  -- view the previous page
+    r                  -- delete all cached images, re-download and reload view
+    b                  -- go back to previous mode (either 3, 4, 5, or main screen)
     h                  -- show this help
     q                  -- quit (with confirmation)
 
@@ -190,6 +199,38 @@ User view commands (No need to press enter):
     p -- view previous page
     h -- show this help
     q -- quit (with confirmation)
+```
+
+```
+Illust Follow Gallery commands: (No need to press enter)
+    Using coordinates, where {digit1} is the row and {digit2} is the column
+    {digit1}{digit2}   -- display the image on row digit1 and column digit2
+    o{digit1}{digit2}  -- open pixiv image/post in browser
+    d{digit1}{digit2}  -- download image in large resolution
+    a{digit1}{digit2}  -- view illusts by the artist of the selected image
+
+Using image number, where {number} is the nth image in order (see examples)
+    i{number}          -- display the image
+    O{number}          -- open pixiv image/post in browser.
+    D{number}          -- download image in large resolution.
+    A{number}          -- view illusts by the artist of the selected image
+
+    n                  -- view the next page
+    p                  -- view the previous page
+    r                  -- delete all cached images, re-download and reload view
+    b                  -- go back to main screen
+    h                  -- show this help
+    q                  -- quit (with confirmation)
+
+Examples:
+    i09   --->  Display the ninth image in image view (must have leading 0)
+    i10   --->  Display the tenth image in image view
+    O9    --->  Open the ninth image's post in browser
+    D9    --->  Download the ninth image, in large resolution
+
+    25    --->  Display the image on column 2, row 5 (index starts at 1)
+    d25   --->  Open the image on column 2, row 5 (index starts at 1) in browser
+    o25   --->  Download the image on column 2, row 5 (index starts at 1)
 ```
 
 ## Image rendering with lscat
@@ -227,11 +268,11 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 Flowchart of modes and their connections:
 
-![UML](http://plantuml.com:80/plantuml/png/XPFD2i8m48JlUOf0pXwqxKr4HHJ1My6BY0HTOt5jItuGtzuQsxIcKK-bkpFVJZVfL6akjRaX8KR1aIkWCwapfG-28u9y35rzVUC2HkvrMI0MzomN1suDAdAj5BWyNffwt18GJKK-Dywa7MfZ32bR09JfzJ570yGBGiU3NRU_bvcuwC6azlwLLyhw4pwdZYZRy7k-aW1v4EAw7SJxqM-_YTw4Y39XwVsTMO9etFxgGsc4b-GdqvHDfiZB55CcuKIyexBMgXuAyqtQpeY3WMjSSFS9PQ-psMO5WYQz-s7zhQ2x_tzIXBEx6qamLv1Bff2Vgj_X2G00)
+![UML](http://plantuml.com:80/plantuml/png/dPDD2y8m38Rl_HM5dZtejfk8YYY2Dy6BY1IDTHWtwGVYltVMhfkrAdWgIzuyUPUcGwMvrEQCX1W5Eww0ZgJEbTuAZWZorlNn-PaBwFdFQObONlD2RBajK8bFBO7BtR6Efmq1qLJaGrsPDKsjZIvb4u3BydGRem4I6A7zphgTtyXS77Ldu6f_oYkb-uNNhZtA5lnQp2H04ONuR0lnFCAq0mOD4ig4XR-Fp094pGud7pCZ0YDVcURYB2M1fPGo2NiIN9IjhE8nBv-alaKQjUjeqS5db3qkPfMN29gyBOUjRmJjuV-I8XpyOcHHN_znwuqBXqE6KEohHtG7)
 
 Simplified UML diagram of the classes:
 
-![UML](http://plantuml.com:80/plantuml/png/fLVVQzim47xNNo7wr6vrOA-ZX8R2ng23mTXUnWYghJfQ5Cb8ShFIzN-V9LdswOUpmDxYqtrtf---qv5RROWo_O4ZP9ZX5E-be7k9428FsYXI6rnpeZM-bxB3DpUNcskiQ7ErNhyWZD--1AzN5-Vo2hqYv04RPPWsdsL37TIw3m1y60p-vupmW4-Szzfya9pBuramNzAVgf57KINvtcCcTbGnenEtKXRWdDtx8-6SgkTxjgVMFQEWS15VoGXqe72BrjiMhrnmJChPZ9zZz58vWlussuwqT2Z96Jf5dnWzHZRPKR7bJEotjPIgqRbTz8TWT6Xs0F2vxvsIXwxGU53WtJMkducOAxITu98qFcPIGN88oW2fSlfEvOCrPlsCv0EQ1aIHIFdYtGL-imohXsHIK-qrkvWmxJt8Lvm4c3N79aapcHI0uzc9l33d0dRA6nIxc3fYAYCNJakKDO7b-KOjV1yq-aMU-U38Xrzq62a_5GDewvn6gzUTrqmGcZKLfOLZkGQfOZT7iSdDPMnoaobxdPWv9K_KopMxLgLOkpC_TgnfgFXPhV5NIbIz-wQfqi4fUVBI683yBFngbR8IVre7nmRod0oV4L-X7LucJBHHOLDJ7iDn-GKjt6c2QdTMW2wap0WhJHSgPJmF6NDTBc9n6nNImcLKuZAMOKvOSfxiZyabtHgjt18tQgxDGOhbNM8L2urp3yRmHJB0nM8tK3pmMMWdV0RJ-DFZCCkhr5SO8iezuMUDfVnnNHEpicDJ8d5UYugAXYeWQG-y8wgPbBpW4nxEWXk2wSSRp841UP4Vfu-cYeD3aVbcE59MDkGg2ZbnOj-1R9bvLD-bqMDKkXBEGsMmgkexC8r9BVdsokOtMpLG7lyUzq3_N8zbTW4mEcMCkQxz9oQwHsXWLdxA3r3WQIBHxQ0u-vVWBm00)
+![UML](http://plantuml.com:80/plantuml/png/fLTBQzmm4BxhLuYSaZOsz5h2aX1eAQHGAEsb5AFOogwxMij8ShOXpN-lhOSz6idfGc_nQBvvVFFQN6l3b1aEWX3J6i7fNdPyBmaXx5uRnMf3Qy6qfdTIzlJgwlpcaYhUN6mspuJIjyz1wyNQERyWBuGum8qohJQVPSCjT58V0VGm2joV2y81FWanQFD12Y6F9y5SI7-AHXwx0lbxJzjknrLhD5BBUG7AITuVcH1SFTsrUpwf9nHa4d6HUA05XIosJhQQSaOHXNFZFxtrN3WT_ssgdctv698Lz8e_jlmOoMJFkqgqtRwgfLIDJkNTS0Z2YJaXMLErXz44Gg170BDEhJH859yqmzVIF3lMDO9NlPA7FjD48DdRIre_iMx9DeMcrBw6tygAMIULvnobbxw335FdyluN7uiLTDqB8KaNHKqBMWMq8XgWitTdzCqwh1uTISsrcvHLXxZZWB_i_46lAHOvJPep0_Hlh_Y5FbUmizym9wkk8wOISk6CHbuHBFKN5vWMgjtkp8zTspIy-rbiy9p6_cXfrKlS9hcUNL7rNVvz7B4lyiGrwtlJxO8HL5abBtNJwwtx4Pf4sQ6XyT27SQ1sUyGYkurYaTr7Sj18B3Xxv6xuaxGIVhzofkhTDysL3afeqMCReFY9-RB4hCIVau9bWpXEni-8hr0ELxgssqQ1pKLv2C_vkv79QOPg-vQ1-l8D8sgEPYMCXCJSn9DS5ASXO_xpGQpUvOnRU9P1Vcaq5eModce4IG7syLEsU77VfnL2x-XCpohuE2_dPEghqFlvapsDIBzwFPSMyCwol0CEOpMG2j1PwHnu1R3zUJSktPrh8MWYyZtZbnR7R0fTCrDEKvkZTFaPeNZNS0KcoW5lcMhcGLhH2UiseqQWUv_1OXYG5-a9_c2As3ZiPrSCIqevcImZapCdqnfARhb33Jss7gFmHJmDbS2AOkZ1gA5OqkETNa9yQQDH_ETc2VGlyKpChW32jSMCsQhz9oRA8nGm2H_p0phmTIB9zTXnzl-mlm00)
 
 
 ## `Dev` branch
@@ -243,7 +284,7 @@ git clone -b dev https://github.com/twenty5151/koneko.git
 ```
 
 ## Unit tests
-Use `pytest testing.py`
+Use `pytest testing.py -v`. For type checking use mypy: `mypy koneko.py --ignore-missing-imports -v`
 
 
 Here's a random shell command to get (but not download) and display any pixiv image url:
