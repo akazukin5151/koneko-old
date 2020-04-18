@@ -91,10 +91,10 @@ def main():
     if url_or_str := args['<link>']:
         # Link given, no mode specified
         if "users" in url_or_str:
-            user_input, main_command = process_mode1(url_or_str)
+            user_input, main_command = pure.process_user_url(url_or_str)
 
         elif "artworks" in url_or_str or "illust_id" in url_or_str:
-            user_input, main_command = process_mode2(url_or_str)
+            user_input, main_command = pure.process_artwork_url(url_or_str)
 
         # Assume you won't search for '5' or 'n'
         elif url_or_str == "5" or url_or_str == "n":
@@ -108,13 +108,13 @@ def main():
     elif url_or_id := args['<link_or_id>']:
         # Mode specified, argument can be link or id
         if args['1'] or args['a']:
-            user_input, main_command = process_mode1(url_or_id)
+            user_input, main_command = pure.process_user_url(url_or_id)
 
         elif args['2'] or args['i']:
-            user_input, main_command = process_mode2(url_or_id)
+            user_input, main_command = pure.process_artwork_url(url_or_id)
 
         elif args['3'] or args['f']:
-            user_input, main_command = process_mode1(url_or_id)
+            user_input, main_command = pure.process_user_url(url_or_id)
             main_command = "3"
 
     elif user_input := args['<searchstr>']:
@@ -129,24 +129,6 @@ def main():
             sys.exit(0)
         else:
             main()
-
-def process_mode1(url_or_id):
-    if "users" in url_or_id:
-        if "\\" in url_or_id:
-            user_input = pure.split_backslash_last(url_or_id).split("\\")[-1][1:]
-        else:
-            user_input = pure.split_backslash_last(url_or_id)
-    else:
-        user_input = url_or_id
-    return user_input, "1"
-
-def process_mode2(url_or_id):
-    if "artworks" in url_or_id:
-        user_input = pure.split_backslash_last(url_or_id).split("\\")[0]
-    elif "illust_id" in url_or_id:
-        user_input = re.findall(r"&illust_id.*", url_or_id)[0].split("=")[-1]
-    return user_input, "2"
-
 
 def main_loop(prompted, main_command, user_input, your_id=None):
     """

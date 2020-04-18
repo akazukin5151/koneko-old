@@ -156,7 +156,6 @@ def change_url_to_full(post_json=None, png=False, url=None):
         url = url.replace("jpg", "png")
     return url
 
-# No longer used
 @funcy.decorator
 def catch_ctrl_c(call):
     """
@@ -168,3 +167,20 @@ def catch_ctrl_c(call):
         os.system("clear")
     else:
         return result
+
+def process_user_url(url_or_id):
+    if "users" in url_or_id:
+        if "\\" in url_or_id:
+            user_input = pure.split_backslash_last(url_or_id).split("\\")[-1][1:]
+        else:
+            user_input = pure.split_backslash_last(url_or_id)
+    else:
+        user_input = url_or_id
+    return user_input, "1"
+
+def process_artwork_url(url_or_id):
+    if "artworks" in url_or_id:
+        user_input = pure.split_backslash_last(url_or_id).split("\\")[0]
+    elif "illust_id" in url_or_id:
+        user_input = re.findall(r"&illust_id.*", url_or_id)[0].split("=")[-1]
+    return user_input, "2"
