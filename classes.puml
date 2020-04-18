@@ -33,18 +33,22 @@ abstract class AbstractGallery <<(A, red)>>{
     +preview_page()
     +open_link_coords()
     +open_link_num()
+    +download_image_coords()
+    +download_image_num()
     +view_image()
-    +{abstract}prompt()
+    +reload()
+    +{abstract}handle_prompt()
 }
 
 class ArtistGallery <<(C, cyan)>>{
-    +download_image_coords()
-    +download_image_num()
-    +prompt()
+    +handle_prompt()
 }
 class IllustFollowGallery <<(C, cyan)>>{
-    +prompt()
+    +go_artist_gallery_coords()
+    +go_artist_gallery_num()
+    +handle_prompt()
 }
+object gallery_prompt
 
 GalleryLikeMode <-down- ArtistGalleryMode: inherits
 ArtistModeLoop "1" *-down- ArtistGalleryMode: composes mode
@@ -58,6 +62,9 @@ IllustFollowMode "1" *-down-- IllustFollowGallery: composes gallery
 AbstractGallery <-down- ArtistGallery: inherits
 ArtistGalleryMode "1" *-down-- ArtistGallery: composes gallery
 
+gallery_prompt -right[hidden]-> AbstractGallery
+ArtistGallery .right. gallery_prompt
+IllustFollowGallery .right. gallery_prompt
 
 class ViewPostModeLoop {
     + mode
@@ -88,10 +95,16 @@ class SearchUsersModeLoop {
     + searching
     +start()
 }
+object user_prompt
+
 FollowingUsersModeLoop -right[hidden]-> IllustFollowModeLoop
 SearchUsersModeLoop -right[hidden]-> IllustFollowModeLoop
 Loop <|-down- FollowingUsersModeLoop: inherits
 Loop <|-down- SearchUsersModeLoop: inherits
+
+user_prompt -right[hidden]-> Users
+FollowingUsers .. user_prompt
+SearchUsers .. user_prompt
 
 class FollowingUsers <<(C, cyan)>>
 class SearchUsers <<(C, cyan)>>
@@ -99,6 +112,7 @@ abstract class Users <<(A, red)>>{
     +go_artist_mode()
     +next_page()
     +previous_page()
+    +reload()
     +start()
 }
 Users <-down- FollowingUsers: inherits
@@ -135,4 +149,5 @@ Users -right[hidden]-> GalleryLikeMode
 lscat.Card -up[hidden]-> GalleryLikeMode
 
 @enduml
+
 
