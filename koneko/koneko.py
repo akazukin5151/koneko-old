@@ -41,18 +41,15 @@ Options:
 import os
 import re
 import sys
-import time
 import queue
 import threading
 from pathlib import Path
 from abc import ABC, abstractmethod
-from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
 import funcy
 from tqdm import tqdm
 from docopt import docopt
-from blessed import Terminal
 from pixivpy3 import PixivError, AppPixivAPI
 
 import pure
@@ -63,12 +60,8 @@ import prompt
 
 def main():
     """Read config file, start login, process any cli arguments, go to main loop"""
-    # Read config.ini file
-    config_object = ConfigParser()
-    config_object.read(Path("~/.config/koneko/config.ini").expanduser())
-    credentials = config_object["Credentials"]
-    # If your_id is stored in the config
-    your_id = credentials.get("ID", None)
+    os.system("clear")
+    credentials, your_id = utils.config()
 
     # It'll never be changed after logging in
     global API, API_QUEUE, API_THREAD
@@ -78,7 +71,6 @@ def main():
 
     # During this part, the API can still be logging in but we can proceed
     args = docopt(__doc__)
-    os.system("clear")
     if len(sys.argv) > 1:
         print("Logging in...")
         prompted = False
@@ -1370,6 +1362,5 @@ class LastPageException(ValueError):
 
 
 if __name__ == "__main__":
-    TERM = Terminal()
     KONEKODIR = "/tmp/koneko"
     main()
