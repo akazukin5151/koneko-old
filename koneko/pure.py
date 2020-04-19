@@ -171,16 +171,16 @@ def catch_ctrl_c(call):
 def process_user_url(url_or_id):
     if "users" in url_or_id:
         if "\\" in url_or_id:
-            user_input = pure.split_backslash_last(url_or_id).split("\\")[-1][1:]
+            user_input = split_backslash_last(url_or_id).split("\\")[-1][1:]
         else:
-            user_input = pure.split_backslash_last(url_or_id)
+            user_input = split_backslash_last(url_or_id)
     else:
         user_input = url_or_id
     return user_input, "1"
 
 def process_artwork_url(url_or_id):
     if "artworks" in url_or_id:
-        user_input = pure.split_backslash_last(url_or_id).split("\\")[0]
+        user_input = split_backslash_last(url_or_id).split("\\")[0]
     elif "illust_id" in url_or_id:
         user_input = re.findall(r"&illust_id.*", url_or_id)[0].split("=")[-1]
     return user_input, "2"
