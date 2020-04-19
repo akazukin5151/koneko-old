@@ -56,38 +56,28 @@ The mobile app even directly tells you Google "and our 198 partners" "collect an
 
 # Usage
 0. Install [kitty](https://github.com/kovidgoyal/kitty)
-1. `mkdir ~/.config/koneko/ && touch ~/.config/koneko/config.ini`
-2. `vim ~/.config/koneko/config.ini` and fill it out with your pixiv username and password like this:
-
-```ini
-[Credentials]
-Username = XXX
-Password = XXX
-# Your pixiv ID is optional. If you fill it in, you don't have to paste it every time you go to mode 3
-ID = XXX
-```
-
-3. Run:
+1. Run:
 ```sh
-# Use latest master branch
-git clone https://github.com/twenty5151/koneko.git
-
-# Or use this for the latest 'stable' release
+# Use latest stable release (recommended)
 # Update the tag for the latest released version
 git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git`
+
+# Use latest master branch
+git clone https://github.com/twenty5151/koneko.git
 
 cd koneko && pip install -r requirements.txt --upgrade
 cd koneko
 ./koneko.py
 ```
 
-4. There are four modes of operation:
-    1. Show artist illustrations: equivalent to going to the artist page
-    2. View post: equivalent to going directly to a post (think getting a 'sauce' link)
-    3. View artists you are following. (Or any other user ID)
-    4. Search for artist/user.
+2. There are five modes of operation:
+    1. View artist illustrations ([ex](https://www.pixiv.net/bookmark.php?type=user))
+    2. View a post ([ex](https://www.pixiv.net/en/artworks/78823485))
+    3. View artists that you have followed (or any other user ID) ([ex](https://www.pixiv.net/bookmark.php?type=user))
+    4. Search for artist/user ([ex](https://www.pixiv.net/search_user.php?nick=raika9&s_mode=s_usr))
+    5. View newest illustrations from artists you're following ([ex](https://www.pixiv.net/bookmark_new_illust.php))
 
-Enter digits 1-4 to proceed. Then, paste in a valid pixiv ID or url. See below for url examples.
+Enter digits 1-5 to proceed. If prompted, paste in an appropriate pixiv ID or url. See below for url examples.
 
 Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. Example:
 
@@ -103,6 +93,7 @@ For more details look at the [manual](#manual).
 
 ## Features
 
+* Image view should use lscat.py to render so alternate renderers can be used
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -148,7 +139,6 @@ Required arguments if a mode is specified:
 
 Options:
   -h  Show this help
-
 ```
 
 ```
@@ -266,6 +256,14 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 * Submit a pull request
 * If you want to, you can create an issue first. Ask any questions by opening a new issue.
 
+## Priorities
+(As in, what I think I need help on and what you might want to focus on, not what will only be accepted. All PRs will be considered, regardless if it's important or not)
+
+1. Speed: if it's slower than going to pixiv then half of its purpose is gone
+    * The bottleneck is network IO and downloading images from pixiv
+2. Reliable rendering: There's no point in browsing a media-heavy site on a text-only terminal
+    * While it's working perfectly for my use case, it should work well for other reasonable cases (different terminal sizes, number+name for the gallery)
+
 Flowchart of modes and their connections:
 
 ![UML](http://plantuml.com:80/plantuml/png/dPDD2y8m38Rl_HM5dZtejfk8YYY2Dy6BY1IDTHWtwGVYltVMhfkrAdWgIzuyUPUcGwMvrEQCX1W5Eww0ZgJEbTuAZWZorlNn-PaBwFdFQObONlD2RBajK8bFBO7BtR6Efmq1qLJaGrsPDKsjZIvb4u3BydGRem4I6A7zphgTtyXS77Ldu6f_oYkb-uNNhZtA5lnQp2H04ONuR0lnFCAq0mOD4ig4XR-Fp094pGud7pCZ0YDVcURYB2M1fPGo2NiIN9IjhE8nBv-alaKQjUjeqS5db3qkPfMN29gyBOUjRmJjuV-I8XpyOcHHN_znwuqBXqE6KEohHtG7)
@@ -277,7 +275,7 @@ Simplified UML diagram of the classes:
 
 ## `Dev` branch
 
-Use the `dev` branch for latest features/fixes that will be merged to `master` soon:
+Use the `dev` branch for latest features, fixes, and unstability:
 
 ```sh
 git clone -b dev https://github.com/twenty5151/koneko.git

@@ -6,6 +6,7 @@ from blessed import Terminal
 
 import koneko
 import pure
+import colors
 
 TERM = Terminal()
 
@@ -117,10 +118,14 @@ def gallery_like_prompt(gallery_like_class):
             elif gallery_command == "r":
                 break
 
+            elif gallery_command == "m":
+                print(gallery_like_class.__doc__)
+
+            elif gallery_command == "h":
+                gallery_like_class.help()
+
             elif gallery_command.code == 343:  # Enter
                 pass
-            elif gallery_command == "h":
-                print(gallery_like_class.__doc__)
             elif gallery_command:
                 print("Invalid command! Press h to show help")
                 keyseqs = []
@@ -155,8 +160,11 @@ def image_prompt(image):
             if func:
                 func()
 
-            elif image_prompt_command == "h":
+            elif image_prompt_command == "m":
                 print(image.__doc__)
+
+            elif image_prompt_command == "h":
+                print(f"{colors.b}ack; {colors.n}ext image; {colors.p}revious image; {colors.d}ownload image;\n{colors.o}pen image in browser;{colors.q}uit (with confirmation); view {colors.m}anual\n")
 
             elif image_prompt_command == "q":
                 print("Are you sure you want to exit?")
@@ -233,10 +241,14 @@ def user_prompt(user_class):
                 print("Are you sure you want to exit?")
                 ask_quit()
 
+            elif user_prompt_command == "m":
+                print(koneko.Users.__doc__)
+
+            elif user_prompt_command == "h":
+                print(f"{colors.n}ext image; {colors.p}revious image; {colors.r}eload and re-download all; {colors.q}uit (with confirmation);\nview {colors.m}anual\n")
+
             elif user_prompt_command == "":
                 pass
-            elif user_prompt_command == "h":
-                print(koneko.Users.__doc__)
             elif user_prompt_command:
                 print("Invalid command! Press h to show help")
                 keyseqs = []
