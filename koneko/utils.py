@@ -77,13 +77,16 @@ def artist_user_id_prompt():
 def show_man_loop():
     os.system("clear")
     print(koneko.__doc__)
+    print(" " * 3, "=" * 30)
+    print(koneko.ArtistGallery.__doc__)
+    print(" " * 3, "=" * 30)
     print(koneko.Image.__doc__)
     print(" " * 3, "=" * 30)
-    print(koneko.Gallery.__doc__)
-    print(" " * 3, "=" * 30)
     print(koneko.Users.__doc__)
+    print(" " * 3, "=" * 30)
+    print(koneko.IllustFollowGallery.__doc__)
     while True:
-        help_command = input("\n\nPress any key to return: ")
+        help_command = input("\n\nEnter any key to return: ")
         if help_command or help_command == "":
             os.system("clear")
             break
