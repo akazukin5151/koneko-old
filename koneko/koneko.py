@@ -747,6 +747,11 @@ class AbstractGallery(ABC):
                       first_num, second_num):
         raise NotImplementedError
 
+    @staticmethod
+    @abstractmethod
+    def help():
+        raise NotImplementedError
+
 
 class ArtistGallery(AbstractGallery):
     """
@@ -813,6 +818,10 @@ class ArtistGallery(AbstractGallery):
         elif len(keyseqs) == 2:
             selected_image_num = pure.find_number_map(first_num, second_num)
             self.view_image(selected_image_num)
+
+    @staticmethod
+    def help():
+        print("{y}{x} view image at (x,y); [i][n] view nth image; [d|D]{y}{x} download image;\n[o|D]{y}{x} open image in browser; [n]ext image; [p]revious image;\n[r]eload and re-download all; [q]uit (with confirmation); view [m]anual; [b]ack\n")
 
 
 class IllustFollowGallery(AbstractGallery):
@@ -903,6 +912,10 @@ class IllustFollowGallery(AbstractGallery):
         elif len(keyseqs) == 2:
             selected_image_num = pure.find_number_map(first_num, second_num)
             self.view_image(selected_image_num)
+
+    @staticmethod
+    def help():
+        print("{y}{x} view image at (x,y); [i][n] view nth image; [d|D]{y}{x} download image;\n[o|D]{y}{x} open image in browser; view [a]rtist gallery; [n]ext image; [p]revious image;\n[r]eload and re-download all; [q]uit (with confirmation); view [m]anual\n")
 
 
 class Users(ABC):
