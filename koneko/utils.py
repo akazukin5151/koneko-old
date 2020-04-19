@@ -1,6 +1,9 @@
 import os
 import imghdr
 import shutil
+from pathlib import Path
+from getpass import getpass
+from configparser import ConfigParser
 
 import pixcat
 
@@ -133,3 +136,36 @@ def info_screen_loop():
         if help_command or help_command == "":
             os.system("clear")
             break
+
+
+def config():
+    config_object = ConfigParser()
+    if Path("~/.config/koneko/config.ini").expanduser().exists():
+        config_object.read(Path("~/.config/koneko/config.ini").expanduser())
+        credentials = config_object["Credentials"]
+        # If your_id is stored in the config
+        your_id = credentials.get("ID", None)
+
+    else:
+        username = input("Please enter your username:\n")
+        print("\nPlease enter your password:")
+        password = getpass()
+        config_object["Credentials"] = {'Username': username, 'Password': password}
+
+        print("\nDo you want to save your pixiv ID? It will be more convenient")
+        print("to view artists you are following")
+        ans = input()
+        if ans == "y" or not ans:
+            your_id = input("Please enter your pixiv ID:\n")
+            config_object["Credentials"].update({'ID': your_id})
+        else:
+            your_id = None
+
+        with open(Path("~/.config/koneko/config.ini").expanduser(), 'w') as c:
+            config_object.write(c)
+
+        credentials = config_object["Credentials"]
+
+        os.system("clear")
+
+    return credentials, your_id

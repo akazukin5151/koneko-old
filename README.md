@@ -56,32 +56,21 @@ The mobile app even directly tells you Google "and our 198 partners" "collect an
 
 # Usage
 0. Install [kitty](https://github.com/kovidgoyal/kitty)
-1. `mkdir ~/.config/koneko/ && touch ~/.config/koneko/config.ini`
-2. `vim ~/.config/koneko/config.ini` and fill it out with your pixiv username and password like this:
-
-```ini
-[Credentials]
-Username = XXX
-Password = XXX
-# Your pixiv ID is optional. If you fill it in, you don't have to paste it every time you go to mode 3
-ID = XXX
-```
-
-3. Run:
+1. Run:
 ```sh
-# Use latest master branch
-git clone https://github.com/twenty5151/koneko.git
-
-# Or use this for the latest 'stable' release
+# Use latest stable release (recommended)
 # Update the tag for the latest released version
 git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git`
+
+# Use latest master branch
+git clone https://github.com/twenty5151/koneko.git
 
 cd koneko && pip install -r requirements.txt --upgrade
 cd koneko
 ./koneko.py
 ```
 
-4. There are five modes of operation:
+2. There are five modes of operation:
     1. View artist illustrations ([ex](https://www.pixiv.net/bookmark.php?type=user))
     2. View a post ([ex](https://www.pixiv.net/en/artworks/78823485))
     3. View artists that you have followed (or any other user ID) ([ex](https://www.pixiv.net/bookmark.php?type=user))
@@ -104,7 +93,7 @@ For more details look at the [manual](#manual).
 
 ## Features
 
-* Ask for login details and store it (so you don't have to make the config file yourself)
+* Smaller mini-help to see all available commands (like nano), instead of dumping the entire manual
 * Image view should use lscat.py to render so alternate renderers can be used
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
@@ -151,7 +140,6 @@ Required arguments if a mode is specified:
 
 Options:
   -h  Show this help
-
 ```
 
 ```
