@@ -1343,17 +1343,10 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     artist_user_id : int
     current_page_num : int
     """
-    if number_prefix < 10:
-        search_string = f"0{number_prefix}_"
-    else:
-        search_string = f"{number_prefix}_"
+    search_string = f"{str(number_prefix).rjust(3, '0')}_"
 
     # display the already-downloaded medium-res image first,
     # then download and display the large-res
-    # FIXME: path is not always correct
-    # artist_user_id and current_page_num only used for path
-    # .../searchstring
-    # .../large
     os.system("clear")
     arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
     os.system(f"kitty +kitten icat --silent {arg}")
