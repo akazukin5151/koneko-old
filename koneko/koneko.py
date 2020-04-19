@@ -41,34 +41,29 @@ Options:
 import os
 import re
 import sys
-import time
 import queue
 import threading
 from pathlib import Path
 from abc import ABC, abstractmethod
-from configparser import ConfigParser
 from concurrent.futures import ThreadPoolExecutor
 
 import funcy
 from tqdm import tqdm
+from colorama import Fore
 from docopt import docopt
-from blessed import Terminal
 from pixivpy3 import PixivError, AppPixivAPI
 
 import pure
 import lscat
 import utils
 import prompt
+import colors
 
 
 def main():
     """Read config file, start login, process any cli arguments, go to main loop"""
-    # Read config.ini file
-    config_object = ConfigParser()
-    config_object.read(Path("~/.config/koneko/config.ini").expanduser())
-    credentials = config_object["Credentials"]
-    # If your_id is stored in the config
-    your_id = credentials.get("ID", None)
+    os.system("clear")
+    credentials, your_id = utils.config()
 
     # It'll never be changed after logging in
     global API, API_QUEUE, API_THREAD
@@ -78,7 +73,6 @@ def main():
 
     # During this part, the API can still be logging in but we can proceed
     args = docopt(__doc__)
-    os.system("clear")
     if len(sys.argv) > 1:
         print("Logging in...")
         prompted = False
@@ -91,10 +85,10 @@ def main():
     if url_or_str := args['<link>']:
         # Link given, no mode specified
         if "users" in url_or_str:
-            user_input, main_command = process_mode1(url_or_str)
+            user_input, main_command = pure.process_user_url(url_or_str)
 
         elif "artworks" in url_or_str or "illust_id" in url_or_str:
-            user_input, main_command = process_mode2(url_or_str)
+            user_input, main_command = pure.process_artwork_url(url_or_str)
 
         # Assume you won't search for '5' or 'n'
         elif url_or_str == "5" or url_or_str == "n":
@@ -108,13 +102,13 @@ def main():
     elif url_or_id := args['<link_or_id>']:
         # Mode specified, argument can be link or id
         if args['1'] or args['a']:
-            user_input, main_command = process_mode1(url_or_id)
+            user_input, main_command = pure.process_user_url(url_or_id)
 
         elif args['2'] or args['i']:
-            user_input, main_command = process_mode2(url_or_id)
+            user_input, main_command = pure.process_artwork_url(url_or_id)
 
         elif args['3'] or args['f']:
-            user_input, main_command = process_mode1(url_or_id)
+            user_input, main_command = pure.process_user_url(url_or_id)
             main_command = "3"
 
     elif user_input := args['<searchstr>']:
@@ -129,24 +123,6 @@ def main():
             sys.exit(0)
         else:
             main()
-
-def process_mode1(url_or_id):
-    if "users" in url_or_id:
-        if "\\" in url_or_id:
-            user_input = pure.split_backslash_last(url_or_id).split("\\")[-1][1:]
-        else:
-            user_input = pure.split_backslash_last(url_or_id)
-    else:
-        user_input = url_or_id
-    return user_input, "1"
-
-def process_mode2(url_or_id):
-    if "artworks" in url_or_id:
-        user_input = pure.split_backslash_last(url_or_id).split("\\")[0]
-    elif "illust_id" in url_or_id:
-        user_input = re.findall(r"&illust_id.*", url_or_id)[0].split("=")[-1]
-    return user_input, "2"
-
 
 def main_loop(prompted, main_command, user_input, your_id=None):
     """
@@ -774,6 +750,11 @@ class AbstractGallery(ABC):
                       first_num, second_num):
         raise NotImplementedError
 
+    @staticmethod
+    @abstractmethod
+    def help():
+        raise NotImplementedError
+
 
 class ArtistGallery(AbstractGallery):
     """
@@ -840,6 +821,10 @@ class ArtistGallery(AbstractGallery):
         elif len(keyseqs) == 2:
             selected_image_num = pure.find_number_map(first_num, second_num)
             self.view_image(selected_image_num)
+
+    @staticmethod
+    def help():
+        print(f"{colors.coords} view image at (x,y); {colors.i} view nth image; {colors.d} download image;\n{colors.o} open image in browser; {colors.n}ext image; {colors.p}revious image;\n{colors.r}eload and re-download all; {colors.q}uit (with confirmation); view {colors.m}anual; {colors.b}ack\n")
 
 
 class IllustFollowGallery(AbstractGallery):
@@ -930,6 +915,10 @@ class IllustFollowGallery(AbstractGallery):
         elif len(keyseqs) == 2:
             selected_image_num = pure.find_number_map(first_num, second_num)
             self.view_image(selected_image_num)
+
+    @staticmethod
+    def help():
+        print(f"{colors.coords} view image at (x,y); {colors.i} view nth image; {colors.d} download image;\n{colors.o} open image in browser; view {colors.a}rtist gallery; {colors.n}ext image; {colors.p}revious image;\n{colors.r}eload and re-download all; {colors.q}uit (with confirmation); view {colors.m}anual\n")
 
 
 class Users(ABC):
@@ -1362,17 +1351,10 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     artist_user_id : int
     current_page_num : int
     """
-    if number_prefix < 10:
-        search_string = f"0{number_prefix}_"
-    else:
-        search_string = f"{number_prefix}_"
+    search_string = f"{str(number_prefix).rjust(3, '0')}_"
 
     # display the already-downloaded medium-res image first,
     # then download and display the large-res
-    # FIXME: path is not always correct
-    # artist_user_id and current_page_num only used for path
-    # .../searchstring
-    # .../large
     os.system("clear")
     arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
     os.system(f"kitty +kitten icat --silent {arg}")
@@ -1396,6 +1378,5 @@ class LastPageException(ValueError):
 
 
 if __name__ == "__main__":
-    TERM = Terminal()
     KONEKODIR = "/tmp/koneko"
     main()
