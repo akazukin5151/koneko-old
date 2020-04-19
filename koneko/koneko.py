@@ -49,7 +49,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 import funcy
 from tqdm import tqdm
-from colorama import Fore
 from docopt import docopt
 from pixivpy3 import PixivError, AppPixivAPI
 
@@ -204,8 +203,10 @@ class Loop(ABC):
         self._user_input = user_input
         # Defined by classes that inherit this in _prompt_url_id()
         self._url_or_id = None
+        self.mode: Any
 
     def start(self):
+        """Ask for further info if not provided; wait for log in then proceed"""
         while True:
             if self._prompted and not self._user_input:
                 self._prompt_url_id()
@@ -266,7 +267,7 @@ class ViewPostModeLoop(Loop):
         """Overriding base class to account for 'illust_id' cases"""
         if "illust_id" in self._url_or_id:
             self._user_input = re.findall(
-                 r"&illust_id.*",
+                r"&illust_id.*",
                 self._url_or_id
             )[0].split("=")[-1]
 
@@ -276,7 +277,7 @@ class ViewPostModeLoop(Loop):
             self._user_input = self._url_or_id
 
     def _go_to_mode(self):
-        view_post_mode(self._user_input)
+        self.mode = view_post_mode(self._user_input)
 
 
 class SearchUsersModeLoop(Loop):
@@ -296,9 +297,9 @@ class SearchUsersModeLoop(Loop):
         pass
 
     def _go_to_mode(self):
-        self.searching = SearchUsers(self._user_input)
-        self.searching.start()
-        prompt.user_prompt(self.searching)
+        self.mode = SearchUsers(self._user_input)
+        self.mode.start()
+        prompt.user_prompt(self.mode)
 
 
 class FollowingUserModeLoop(Loop):
@@ -312,15 +313,15 @@ class FollowingUserModeLoop(Loop):
         self._url_or_id = input("Enter your pixiv ID or url: ")
 
     def _go_to_mode(self):
-        self.following = FollowingUsers(self._user_input)
-        self.following.start()
-        prompt.user_prompt(self.following)
+        self.mode = FollowingUsers(self._user_input)
+        self.mode.start()
+        prompt.user_prompt(self.mode)
 
 class IllustFollowModeLoop(Loop):
     """
     Immediately goes to IllustFollow()
     Doesn't actually need to inherit from Loop ABC because it's so different
-    But make UML diagrams look better
+    TODO: just use a normal function
     """
     def __init__(self): pass
 
@@ -348,6 +349,9 @@ class GalleryLikeMode(ABC):
         # Defined in self._show_gallery()
         self._current_page_illusts = None
         self._all_pages_cache = all_pages_cache
+        # Defined in child classes
+        self._download_path: str
+        self.gallery: GalleryLikeMode
 
         self.start()
 
@@ -358,7 +362,7 @@ class GalleryLikeMode(ABC):
         Else, fetch current_page json and proceed download -> show -> prompt
         """
         # If path exists, show immediately (without checking for contents!)
-        if Path(self._download_path).is_dir(): # Defined in child classes
+        if Path(self._download_path).is_dir():
             try:
                 utils.show_artist_illusts(self._download_path)
             except IndexError: # Folder exists but no files
@@ -591,7 +595,11 @@ class AbstractGallery(ABC):
         self._current_page = current_page
         self._current_page_num = current_page_num
         self._all_pages_cache = all_pages_cache
-        self._post_json = None # Defined in self.view_image
+        # Defined in self.view_image
+        self._post_json: Any
+        self._selected_image_num: int
+        # Defined in child classes
+        self._main_path: str
 
         pure.print_multiple_imgs(self._current_page_illusts)
         print(f"Page {self._current_page_num}")
@@ -666,8 +674,8 @@ class AbstractGallery(ABC):
             'download_path': f"{self._main_path}/{self._current_page_num}/large/",
         }
 
-        image = Image(image_id, artist_user_id,
-                      self._current_page_num, False, multi_image_info)
+        image = Image(image_id, artist_user_id, self._current_page_num,
+                      False, multi_image_info)
         prompt.image_prompt(image)
 
         # Image prompt ends, user presses back
@@ -936,7 +944,6 @@ class Users(ABC):
         self._input = user_or_id
         self._offset = 0
         self._page_num = 1
-        # self._main_path defined in child classes
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._names_cache = {}
         self._ids_cache = {}
@@ -945,6 +952,8 @@ class Users(ABC):
         self._ids = None
         self._names = None
         self._profile_pic_urls = None
+        # Defined in child classes
+        self._main_path: str
 
     def start(self):
         # TODO: if dir exists, show page first then parse
@@ -1093,11 +1102,6 @@ class Users(ABC):
     @staticmethod
     def _user_profile_pic(json):
         return json["user"]["profile_image_urls"]["medium"]
-
-    @staticmethod
-    def _image_urls(illusts_json):
-        """page[i]['illusts'][j]['image_urls']['medium']"""
-        return illusts_json['image_urls']['medium']
 
 
 class SearchUsers(Users):
@@ -1377,5 +1381,6 @@ class LastPageException(ValueError):
 
 
 if __name__ == "__main__":
+    global API, API_QUEUE, API_THREAD
     KONEKODIR = "/tmp/koneko"
     main()

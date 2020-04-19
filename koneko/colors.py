@@ -7,12 +7,12 @@ def _letter(letter):
     return "".join([Fore.RED, "[", Fore.MAGENTA, letter, Fore.RED, "]", Fore.RESET])
 
 def _letter_with_coords(letter):
-        return "".join([Fore.RED, "[", Fore.MAGENTA, letter, Fore.RED, "][",
-                            Fore.BLUE, "n", Fore.RED, "]", Fore.RESET])
+    return "".join([Fore.RED, "[", Fore.MAGENTA, letter, Fore.RED, "][",
+                    Fore.BLUE, "n", Fore.RED, "]", Fore.RESET])
 
 def _two_letter_with_coords(letter):
-        return "".join([Fore.RED, "[", Fore.MAGENTA, letter.lower(), Fore.RESET, "|",
-                       Fore.MAGENTA, letter.upper(), Fore.RED, "]", coords, Fore.RESET])
+    return "".join([Fore.RED, "[", Fore.MAGENTA, letter.lower(), Fore.RESET, "|",
+                    Fore.MAGENTA, letter.upper(), Fore.RED, "]", coords, Fore.RESET])
 
 
 _letters = ["a", "n", "p", "r", "q", "m", "b"]
