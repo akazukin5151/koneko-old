@@ -6,6 +6,7 @@ from blessed import Terminal
 
 import koneko
 import pure
+import colors
 
 TERM = Terminal()
 
@@ -163,7 +164,7 @@ def image_prompt(image):
                 print(image.__doc__)
 
             elif image_prompt_command == "h":
-                print("[b]ack; [n]ext image; [p]revious image; [d]ownload image; [o]pen image in browser;\n[q]uit (with confirmation); view [m]anual\n")
+                print(f"{colors.b}ack; {colors.n}ext image; {colors.p}revious image; {colors.d}ownload image;\n{colors.o}pen image in browser;{colors.q}uit (with confirmation); view {colors.m}anual\n")
 
             elif image_prompt_command == "q":
                 print("Are you sure you want to exit?")
@@ -244,7 +245,7 @@ def user_prompt(user_class):
                 print(koneko.Users.__doc__)
 
             elif user_prompt_command == "h":
-                print("[n]ext image; [p]revious image; [r]eload and re-download all; [q]uit (with confirmation);\nview [m]anual\n")
+                print(f"{colors.n}ext image; {colors.p}revious image; {colors.r}eload and re-download all; {colors.q}uit (with confirmation);\nview {colors.m}anual\n")
 
             elif user_prompt_command == "":
                 pass

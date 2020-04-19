@@ -49,6 +49,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import funcy
 from tqdm import tqdm
+from colorama import Fore
 from docopt import docopt
 from pixivpy3 import PixivError, AppPixivAPI
 
@@ -56,6 +57,7 @@ import pure
 import lscat
 import utils
 import prompt
+import colors
 
 
 def main():
@@ -821,7 +823,7 @@ class ArtistGallery(AbstractGallery):
 
     @staticmethod
     def help():
-        print("{y}{x} view image at (x,y); [i][n] view nth image; [d|D]{y}{x} download image;\n[o|D]{y}{x} open image in browser; [n]ext image; [p]revious image;\n[r]eload and re-download all; [q]uit (with confirmation); view [m]anual; [b]ack\n")
+        print(f"{colors.coords} view image at (x,y); {colors.i} view nth image; {colors.d} download image;\n{colors.o} open image in browser; {colors.n}ext image; {colors.p}revious image;\n{colors.r}eload and re-download all; {colors.q}uit (with confirmation); view {colors.m}anual; {colors.b}ack\n")
 
 
 class IllustFollowGallery(AbstractGallery):
@@ -915,7 +917,7 @@ class IllustFollowGallery(AbstractGallery):
 
     @staticmethod
     def help():
-        print("{y}{x} view image at (x,y); [i][n] view nth image; [d|D]{y}{x} download image;\n[o|D]{y}{x} open image in browser; view [a]rtist gallery; [n]ext image; [p]revious image;\n[r]eload and re-download all; [q]uit (with confirmation); view [m]anual\n")
+        print(f"{colors.coords} view image at (x,y); {colors.i} view nth image; {colors.d} download image;\n{colors.o} open image in browser; view {colors.a}rtist gallery; {colors.n}ext image; {colors.p}revious image;\n{colors.r}eload and re-download all; {colors.q}uit (with confirmation); view {colors.m}anual\n")
 
 
 class Users(ABC):
