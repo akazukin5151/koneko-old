@@ -986,6 +986,9 @@ class Users(ABC):
 
     @abstractmethod
     def __init__(self, user_or_id):
+        # Defined in child classes
+        self._main_path: str
+
         self._input = user_or_id
         self._offset = 0
         self._page_num = 1
@@ -997,8 +1000,7 @@ class Users(ABC):
         self._ids: 'List[str]'
         self._names: 'List[str]'
         self._profile_pic_urls: 'List[str]'
-        # Defined in child classes
-        self._main_path: str
+        self._image_urls = 'List[str]'
 
     def start(self):
         # TODO: if dir exists, show page first then parse
@@ -1389,6 +1391,5 @@ class LastPageException(ValueError):
 
 
 if __name__ == "__main__":
-    global API, API_QUEUE, API_THREAD
     KONEKODIR = "/tmp/koneko"
     main()
