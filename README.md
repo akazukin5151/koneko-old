@@ -56,11 +56,11 @@ The mobile app even directly tells you Google "and our 198 partners" "collect an
 
 # Usage
 0. Install [kitty](https://github.com/kovidgoyal/kitty)
-1. Run:
+1. Run (or if you use [conda](#conda)...):
 ```sh
 # Use latest stable release (recommended)
 # Update the tag for the latest released version
-git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git`
+git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git
 
 # Use latest master branch
 git clone https://github.com/twenty5151/koneko.git
@@ -93,7 +93,8 @@ For more details look at the [manual](#manual).
 
 ## Features
 
-* Image view should use lscat.py to render so alternate renderers can be used
+* Fetch json and compare with cache. If no new images, proceed. If there are new images, automatically reload.
+* Image and User views should use lscat.py to render so alternate renderers can be used
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -101,7 +102,6 @@ For more details look at the [manual](#manual).
 
 ## Speed
 
-* If files already downloaded, show them immediately before logging in
 * Display each image as soon as they finish downloading (but due to lscat limitations, only one page at a time). Requires "integrating" (read: basically rewriting) lscat.py and threaded download functions
 
 # Manual
@@ -232,6 +232,7 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 * Revert to the old lscat shell script.
 
     1. In `show_artist_illusts()` (`utils.py`), change `renderer="lscat"` to `renderer="lscat old"`.
+    2. Note that Image and User views (mode 2, 3, 4) still use lscat. The responsible code are annotated with a `# LSCAT` comment.
 
 * Revert to the original lsix script. This would be more reliable than 1., because it has all the checks for terminal sizes. However, you cannot use kitty; xterm works.
 
@@ -272,6 +273,20 @@ Simplified UML diagram of the classes:
 
 ![UML](http://plantuml.com:80/plantuml/png/fLTBQzmm4BxhLuYSaZOsz5h2aX1eAQHGAEsb5AFOogwxMij8ShOXpN-lhOSz6idfGc_nQBvvVFFQN6l3b1aEWX3J6i7fNdPyBmaXx5uRnMf3Qy6qfdTIzlJgwlpcaYhUN6mspuJIjyz1wyNQERyWBuGum8qohJQVPSCjT58V0VGm2joV2y81FWanQFD12Y6F9y5SI7-AHXwx0lbxJzjknrLhD5BBUG7AITuVcH1SFTsrUpwf9nHa4d6HUA05XIosJhQQSaOHXNFZFxtrN3WT_ssgdctv698Lz8e_jlmOoMJFkqgqtRwgfLIDJkNTS0Z2YJaXMLErXz44Gg170BDEhJH859yqmzVIF3lMDO9NlPA7FjD48DdRIre_iMx9DeMcrBw6tygAMIULvnobbxw335FdyluN7uiLTDqB8KaNHKqBMWMq8XgWitTdzCqwh1uTISsrcvHLXxZZWB_i_46lAHOvJPep0_Hlh_Y5FbUmizym9wkk8wOISk6CHbuHBFKN5vWMgjtkp8zTspIy-rbiy9p6_cXfrKlS9hcUNL7rNVvz7B4lyiGrwtlJxO8HL5abBtNJwwtx4Pf4sQ6XyT27SQ1sUyGYkurYaTr7Sj18B3Xxv6xuaxGIVhzofkhTDysL3afeqMCReFY9-RB4hCIVau9bWpXEni-8hr0ELxgssqQ1pKLv2C_vkv79QOPg-vQ1-l8D8sgEPYMCXCJSn9DS5ASXO_xpGQpUvOnRU9P1Vcaq5eModce4IG7syLEsU77VfnL2x-XCpohuE2_dPEghqFlvapsDIBzwFPSMyCwol0CEOpMG2j1PwHnu1R3zUJSktPrh8MWYyZtZbnR7R0fTCrDEKvkZTFaPeNZNS0KcoW5lcMhcGLhH2UiseqQWUv_1OXYG5-a9_c2As3ZiPrSCIqevcImZapCdqnfARhb33Jss7gFmHJmDbS2AOkZ1gA5OqkETNa9yQQDH_ETc2VGlyKpChW32jSMCsQhz9oRA8nGm2H_p0phmTIB9zTXnzl-mlm00)
 
+## Conda environment
+
+```sh
+git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git
+conda create -n koneko
+conda activate koneko
+conda env list                  # make sure you're in the correct environment...
+conda install -n koneko pip     # and make sure pip is installed...
+which pip                       # and pip is in your conda directory
+cd koneko
+pip install -r requirements.txt --upgrade --force
+cd koneko
+./koneko.py
+```
 
 ## `Dev` branch
 

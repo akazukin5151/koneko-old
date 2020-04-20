@@ -41,6 +41,7 @@ Options:
 import os
 import re
 import sys
+import time
 import queue
 import threading
 from pathlib import Path
@@ -49,7 +50,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 import funcy
 from tqdm import tqdm
-from colorama import Fore
 from docopt import docopt
 from pixivpy3 import PixivError, AppPixivAPI
 
@@ -203,9 +203,11 @@ class Loop(ABC):
         self._prompted = prompted
         self._user_input = user_input
         # Defined by classes that inherit this in _prompt_url_id()
-        self._url_or_id = None
+        self._url_or_id: str
+        self.mode: Any
 
     def start(self):
+        """Ask for further info if not provided; wait for log in then proceed"""
         while True:
             if self._prompted and not self._user_input:
                 self._prompt_url_id()
@@ -235,7 +237,9 @@ class Loop(ABC):
         try:
             int(self._user_input)
         except ValueError:
-            print("Invalid image ID!")
+            print("Invalid image ID! Returning to main...")
+            time.sleep(2)
+            main()
 
     @abstractmethod
     def _go_to_mode(self):
@@ -252,6 +256,8 @@ class ArtistModeLoop(Loop):
 
     def _go_to_mode(self):
         self.mode = ArtistGalleryMode(self._user_input)
+        # This is the entry mode, user goes back but there is nothing to catch it
+        main()
 
 
 class ViewPostModeLoop(Loop):
@@ -266,7 +272,7 @@ class ViewPostModeLoop(Loop):
         """Overriding base class to account for 'illust_id' cases"""
         if "illust_id" in self._url_or_id:
             self._user_input = re.findall(
-                 r"&illust_id.*",
+                r"&illust_id.*",
                 self._url_or_id
             )[0].split("=")[-1]
 
@@ -276,7 +282,7 @@ class ViewPostModeLoop(Loop):
             self._user_input = self._url_or_id
 
     def _go_to_mode(self):
-        view_post_mode(self._user_input)
+        self.mode = view_post_mode(self._user_input)
 
 
 class SearchUsersModeLoop(Loop):
@@ -296,9 +302,9 @@ class SearchUsersModeLoop(Loop):
         pass
 
     def _go_to_mode(self):
-        self.searching = SearchUsers(self._user_input)
-        self.searching.start()
-        prompt.user_prompt(self.searching)
+        self.mode = SearchUsers(self._user_input)
+        self.mode.start()
+        prompt.user_prompt(self.mode)
 
 
 class FollowingUserModeLoop(Loop):
@@ -312,15 +318,15 @@ class FollowingUserModeLoop(Loop):
         self._url_or_id = input("Enter your pixiv ID or url: ")
 
     def _go_to_mode(self):
-        self.following = FollowingUsers(self._user_input)
-        self.following.start()
-        prompt.user_prompt(self.following)
+        self.mode = FollowingUsers(self._user_input)
+        self.mode.start()
+        prompt.user_prompt(self.mode)
 
 class IllustFollowModeLoop(Loop):
     """
     Immediately goes to IllustFollow()
     Doesn't actually need to inherit from Loop ABC because it's so different
-    But make UML diagrams look better
+    TODO: just use a normal function
     """
     def __init__(self): pass
 
@@ -344,10 +350,13 @@ class GalleryLikeMode(ABC):
     def __init__(self, current_page_num=1, all_pages_cache=None):
         self._current_page_num = current_page_num
         # Defined in self.start()
-        self._current_page = None
+        self._current_page: 'JsonDict'
         # Defined in self._show_gallery()
-        self._current_page_illusts = None
+        self._current_page_illusts: 'JsonDictPage'
         self._all_pages_cache = all_pages_cache
+        # Defined in child classes
+        self._download_path: str
+        self.gallery: GalleryLikeMode
 
         self.start()
 
@@ -358,7 +367,7 @@ class GalleryLikeMode(ABC):
         Else, fetch current_page json and proceed download -> show -> prompt
         """
         # If path exists, show immediately (without checking for contents!)
-        if Path(self._download_path).is_dir(): # Defined in child classes
+        if Path(self._download_path).is_dir():
             try:
                 utils.show_artist_illusts(self._download_path)
             except IndexError: # Folder exists but no files
@@ -402,7 +411,6 @@ class ArtistGalleryMode(GalleryLikeMode):
     def __init__(self, artist_user_id, current_page_num=1, **kwargs):
         self._artist_user_id = artist_user_id
         self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
-        self._illust_follow_info = None
 
         if kwargs:
             self._current_page_num = current_page_num
@@ -424,12 +432,11 @@ class ArtistGalleryMode(GalleryLikeMode):
             self._current_page,
             self._current_page_num,
             self._artist_user_id,
-            self._all_pages_cache,
-            illust_follow_info=self._illust_follow_info,
+            self._all_pages_cache
         )
         prompt.gallery_like_prompt(self.gallery)
-        # After backing
-        main()
+        # After backing, exit mode. The class that instantiated this mode
+        # should catch the back.
 
 
 class IllustFollowMode(GalleryLikeMode):
@@ -516,7 +523,8 @@ class Image:
         p -- view previous image in post (same as above)
         d -- download this image
         o -- open pixiv post in browser
-        h -- show this help
+        h -- show keybindings
+        m -- show this manual
 
         q -- quit (with confirmation)
 
@@ -530,6 +538,7 @@ class Image:
 
         if multi_image_info:  # Posts with multiple pages
             self._page_urls = multi_image_info["page_urls"]
+            # Starts from 0
             self._img_post_page_num = multi_image_info["img_post_page_num"]
             self._number_of_pages = multi_image_info["number_of_pages"]
             self._downloaded_images = multi_image_info["downloaded_images"]
@@ -557,13 +566,42 @@ class Image:
 
         else:
             self._img_post_page_num += 1  # Be careful of 0 index
-            self._downloaded_images = go_next_image(
-                self._page_urls,
-                self._img_post_page_num,
-                self._number_of_pages,
-                self._downloaded_images,
-                self._download_path,
+            self._go_next_image()
+
+    def _go_next_image(self):
+        """
+        Downloads next image if not downloaded, open it, download the next image
+        in the background
+        """
+        # IDEAL: image prompt should not be blocked while downloading
+        # But I think delaying the prompt is better than waiting for an image
+        # to download when you load it
+
+        # First time from gallery; download next image
+        if self._img_post_page_num == 1:
+            url = self._page_urls[self._img_post_page_num]
+            self._downloaded_images = map(pure.split_backslash_last,
+                                          self._page_urls[:2])
+            self._downloaded_images = list(self._downloaded_images)
+            async_download_spinner(self._download_path, [url])
+
+        utils.display_image_vp("".join([
+            self._download_path,
+            self._downloaded_images[self._img_post_page_num]
+        ]))
+
+        # Downloads the next image
+        try:
+            next_img_url = self._page_urls[self._img_post_page_num + 1]
+        except IndexError:
+            pass  # Last page
+        else:  # No error
+            self._downloaded_images.append(
+                pure.split_backslash_last(next_img_url)
             )
+            async_download_spinner(self._download_path, [next_img_url])
+
+        print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
     def previous_image(self):
         if not self._page_urls:
@@ -591,7 +629,11 @@ class AbstractGallery(ABC):
         self._current_page = current_page
         self._current_page_num = current_page_num
         self._all_pages_cache = all_pages_cache
-        self._post_json = None # Defined in self.view_image
+        # Defined in self.view_image
+        self._post_json: 'PostJson'
+        self._selected_image_num: int
+        # Defined in child classes
+        self._main_path: str
 
         pure.print_multiple_imgs(self._current_page_illusts)
         print(f"Page {self._current_page_num}")
@@ -667,8 +709,8 @@ class AbstractGallery(ABC):
             'download_path': f"{self._main_path}/{self._current_page_num}/large/",
         }
 
-        image = Image(image_id, artist_user_id,
-                      self._current_page_num, False, multi_image_info)
+        image = Image(image_id, artist_user_id, self._current_page_num,
+                      False, multi_image_info)
         prompt.image_prompt(image)
 
         # Image prompt ends, user presses back
@@ -743,6 +785,7 @@ class AbstractGallery(ABC):
             os.system(f"rm -r {self._main_path}") # shutil.rmtree is better
             self._back()
         else:
+            # After reloading, back will return to the same mode again
             prompt.gallery_like_prompt(self)
 
     @abstractmethod
@@ -773,7 +816,8 @@ class ArtistGallery(AbstractGallery):
         p                  -- view the previous page
         r                  -- delete all cached images, re-download and reload view
         b                  -- go back to previous mode (either 3, 4, 5, or main screen)
-        h                  -- show this help
+        h                  -- show keybindings
+        m                  -- show this manual
         q                  -- quit (with confirmation)
 
     Examples:
@@ -824,7 +868,10 @@ class ArtistGallery(AbstractGallery):
 
     @staticmethod
     def help():
-        print(f"{colors.coords} view image at (x,y); {colors.i} view nth image; {colors.d} download image;\n{colors.o} open image in browser; {colors.n}ext image; {colors.p}revious image;\n{colors.r}eload and re-download all; {colors.q}uit (with confirmation); view {colors.m}anual; {colors.b}ack\n")
+        print("".join(
+            colors.base1 + colors.base2
+            + ["view ", colors.m, "anual; ",
+               colors.b, "ack\n"]))
 
 
 class IllustFollowGallery(AbstractGallery):
@@ -846,7 +893,8 @@ class IllustFollowGallery(AbstractGallery):
         p                  -- view the previous page
         r                  -- delete all cached images, re-download and reload view
         b                  -- go back to main screen
-        h                  -- show this help
+        h                  -- show keybindings
+        m                  -- show this manual
         q                  -- quit (with confirmation)
 
     Examples:
@@ -918,7 +966,11 @@ class IllustFollowGallery(AbstractGallery):
 
     @staticmethod
     def help():
-        print(f"{colors.coords} view image at (x,y); {colors.i} view nth image; {colors.d} download image;\n{colors.o} open image in browser; view {colors.a}rtist gallery; {colors.n}ext image; {colors.p}revious image;\n{colors.r}eload and re-download all; {colors.q}uit (with confirmation); view {colors.m}anual\n")
+        print("".join(
+            colors.base1
+            + [colors.a, "rtist gallery; "]
+            + colors.base2
+            + ["view ", colors.m, "anual\n"]))
 
 
 class Users(ABC):
@@ -927,25 +979,29 @@ class Users(ABC):
         n -- view next page
         p -- view previous page
         r -- delete all cached images, re-download and reload view
-        h -- show this help
+        h -- show keybindings
+        m -- show this manual
         q -- quit (with confirmation)
 
     """
 
     @abstractmethod
     def __init__(self, user_or_id):
+        # Defined in child classes
+        self._main_path: str
+
         self._input = user_or_id
         self._offset = 0
         self._page_num = 1
-        # self._main_path defined in child classes
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._names_cache = {}
         self._ids_cache = {}
         # Defined in _parse_user_infos():
-        self._next_url = None
-        self._ids = None
-        self._names = None
-        self._profile_pic_urls = None
+        self._next_url: 'Dict[str, str]'
+        self._ids: 'List[str]'
+        self._names: 'List[str]'
+        self._profile_pic_urls: 'List[str]'
+        self._image_urls = 'List[str]'
 
     def start(self):
         # TODO: if dir exists, show page first then parse
@@ -1029,6 +1085,7 @@ class Users(ABC):
             names_prefixed = map(pure.prefix_artist_name, names, range(len(names)))
             names_prefixed = list(names_prefixed)
 
+            # LSCAT
             lscat.Card(
                 self._download_path,
                 f"{self._main_path}/{self._input}/{self._page_num}/previews/",
@@ -1094,11 +1151,6 @@ class Users(ABC):
     @staticmethod
     def _user_profile_pic(json):
         return json["user"]["profile_image_urls"]["medium"]
-
-    @staticmethod
-    def _image_urls(illusts_json):
-        """page[i]['illusts'][j]['image_urls']['medium']"""
-        return illusts_json['image_urls']['medium']
 
 
 class SearchUsers(Users):
@@ -1300,43 +1352,7 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
 
 
 # - Functions that are wrappers around download functions, making them impure
-# - Both classes used only by the Image class, but detached to reduce its size
-def go_next_image(page_urls, img_post_page_num, number_of_pages,
-                  downloaded_images, download_path):
-    """
-    Intended to be from image_prompt, for posts with multiple images.
-    Downloads next image it not downloaded, open it, download the next image
-    in the background
-
-    Parameters
-    img_post_page_num : int
-        **Starts from 0**. Page number of the multi-image post.
-    """
-    # IDEAL: image prompt should not be blocked while downloading
-    # But I think delaying the prompt is better than waiting for an image
-    # to download when you load it
-
-    # First time from gallery; download next image
-    if img_post_page_num == 1:
-        url = page_urls[img_post_page_num]
-        downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
-        async_download_spinner(download_path, [url])
-
-    utils.display_image_vp(f"{download_path}{downloaded_images[img_post_page_num]}")
-
-    # Downloads the next image
-    try:
-        next_img_url = page_urls[img_post_page_num + 1]
-    except IndexError:
-        pass  # Last page
-    else:  # No error
-        downloaded_images.append(pure.split_backslash_last(next_img_url))
-        async_download_spinner(download_path, [next_img_url])
-    print(f"Page {img_post_page_num+1}/{number_of_pages}")
-
-    return downloaded_images
-
-
+# - Used only by the Image class, but detached to reduce its size
 def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     Opens image given by the number (medium-res), downloads large-res and
@@ -1353,8 +1369,7 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     search_string = f"{str(number_prefix).rjust(3, '0')}_"
 
-    # display the already-downloaded medium-res image first,
-    # then download and display the large-res
+    # LSCAT
     os.system("clear")
     arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
     os.system(f"kitty +kitten icat --silent {arg}")
@@ -1367,11 +1382,10 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     # BLOCKING: imput is blocking, will not display large image until input
     # received
 
+    # LSCAT
     os.system("clear")
     arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
     os.system(f"kitty +kitten icat --silent {arg}")
-
-# - DOWNLOAD FUNCTIONS ==================================================
 
 class LastPageException(ValueError):
     pass
