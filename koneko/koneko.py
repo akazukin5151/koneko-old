@@ -253,6 +253,8 @@ class ArtistModeLoop(Loop):
 
     def _go_to_mode(self):
         self.mode = ArtistGalleryMode(self._user_input)
+        # This is the entry mode, user goes back but there is nothing to catch it
+        main()
 
 
 class ViewPostModeLoop(Loop):
@@ -430,9 +432,8 @@ class ArtistGalleryMode(GalleryLikeMode):
             self._all_pages_cache
         )
         prompt.gallery_like_prompt(self.gallery)
-        # After backing
-        # FIXME: if from mode 3/4/5, do nothing. If standalone, back to main()
-        main()
+        # After backing, exit mode. The class that instantiated this mode
+        # should catch the back.
 
 
 class IllustFollowMode(GalleryLikeMode):
@@ -749,6 +750,7 @@ class AbstractGallery(ABC):
             os.system(f"rm -r {self._main_path}") # shutil.rmtree is better
             self._back()
         else:
+            # After reloading, back will return to the same mode again
             prompt.gallery_like_prompt(self)
 
     @abstractmethod
