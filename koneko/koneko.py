@@ -202,7 +202,7 @@ class Loop(ABC):
         self._prompted = prompted
         self._user_input = user_input
         # Defined by classes that inherit this in _prompt_url_id()
-        self._url_or_id = None
+        self._url_or_id: str
         self.mode: Any
 
     def start(self):
@@ -345,9 +345,9 @@ class GalleryLikeMode(ABC):
     def __init__(self, current_page_num=1, all_pages_cache=None):
         self._current_page_num = current_page_num
         # Defined in self.start()
-        self._current_page = None
+        self._current_page: 'JsonDict'
         # Defined in self._show_gallery()
-        self._current_page_illusts = None
+        self._current_page_illusts: 'JsonDictPage'
         self._all_pages_cache = all_pages_cache
         # Defined in child classes
         self._download_path: str
@@ -406,7 +406,6 @@ class ArtistGalleryMode(GalleryLikeMode):
     def __init__(self, artist_user_id, current_page_num=1, **kwargs):
         self._artist_user_id = artist_user_id
         self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
-        self._illust_follow_info = None
 
         if kwargs:
             self._current_page_num = current_page_num
@@ -428,11 +427,11 @@ class ArtistGalleryMode(GalleryLikeMode):
             self._current_page,
             self._current_page_num,
             self._artist_user_id,
-            self._all_pages_cache,
-            illust_follow_info=self._illust_follow_info,
+            self._all_pages_cache
         )
         prompt.gallery_like_prompt(self.gallery)
         # After backing
+        # FIXME: if from mode 3/4/5, do nothing. If standalone, back to main()
         main()
 
 
@@ -596,7 +595,7 @@ class AbstractGallery(ABC):
         self._current_page_num = current_page_num
         self._all_pages_cache = all_pages_cache
         # Defined in self.view_image
-        self._post_json: Any
+        self._post_json: 'PostJson'
         self._selected_image_num: int
         # Defined in child classes
         self._main_path: str
@@ -948,10 +947,10 @@ class Users(ABC):
         self._names_cache = {}
         self._ids_cache = {}
         # Defined in _parse_user_infos():
-        self._next_url = None
-        self._ids = None
-        self._names = None
-        self._profile_pic_urls = None
+        self._next_url: 'Dict[str, str]'
+        self._ids: 'List[str]'
+        self._names: 'List[str]'
+        self._profile_pic_urls: 'List[str]'
         # Defined in child classes
         self._main_path: str
 
