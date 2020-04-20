@@ -93,6 +93,7 @@ For more details look at the [manual](#manual).
 
 ## Features
 
+* Fetch json and compare with cache. If no new images, proceed. If there are new images, automatically reload.
 * Image view should use lscat.py to render so alternate renderers can be used
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
@@ -101,7 +102,6 @@ For more details look at the [manual](#manual).
 
 ## Speed
 
-* If files already downloaded, show them immediately before logging in
 * Display each image as soon as they finish downloading (but due to lscat limitations, only one page at a time). Requires "integrating" (read: basically rewriting) lscat.py and threaded download functions
 
 # Manual
