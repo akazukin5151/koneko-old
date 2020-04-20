@@ -164,7 +164,15 @@ def image_prompt(image):
                 print(image.__doc__)
 
             elif image_prompt_command == "h":
-                print(f"{colors.b}ack; {colors.n}ext image; {colors.p}revious image; {colors.d}ownload image;\n{colors.o}pen image in browser;{colors.q}uit (with confirmation); view {colors.m}anual\n")
+                print("".join([
+                    colors.b, "ack; ",
+                    colors.n, "ext image; ",
+                    colors.p, "revious image; ",
+                    colors.d_, "ownload image;",
+                    colors.o_, "pen image in browser;\n",
+                    colors.q, "uit (with confirmation); ",
+                    "view ", colors.m, "anual\n"
+                ]))
 
             elif image_prompt_command == "q":
                 print("Are you sure you want to exit?")
@@ -245,7 +253,13 @@ def user_prompt(user_class):
                 print(koneko.Users.__doc__)
 
             elif user_prompt_command == "h":
-                print(f"{colors.n}ext image; {colors.p}revious image; {colors.r}eload and re-download all; {colors.q}uit (with confirmation);\nview {colors.m}anual\n")
+                print("".join([
+                    colors.n, "ext image; ",
+                    colors.p, "revious image; ",
+                    colors.r, "eload and re-download all; ",
+                    colors.q, "uit (with confirmation);\n",
+                    "view ", colors.m, "anual\n"
+                ]))
 
             elif user_prompt_command == "":
                 pass
