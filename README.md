@@ -94,7 +94,7 @@ For more details look at the [manual](#manual).
 ## Features
 
 * Fetch json and compare with cache. If no new images, proceed. If there are new images, automatically reload.
-* Image view should use lscat.py to render so alternate renderers can be used
+* Image and User views should use lscat.py to render so alternate renderers can be used
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Option to use pillow or wand to edit numbers on pics
@@ -232,6 +232,7 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 * Revert to the old lscat shell script.
 
     1. In `show_artist_illusts()` (`utils.py`), change `renderer="lscat"` to `renderer="lscat old"`.
+    2. Note that Image and User views (mode 2, 3, 4) still use lscat. The responsible code are annotated with a `# LSCAT` comment.
 
 * Revert to the original lsix script. This would be more reliable than 1., because it has all the checks for terminal sizes. However, you cannot use kitty; xterm works.
 

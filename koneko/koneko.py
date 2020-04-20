@@ -41,6 +41,7 @@ Options:
 import os
 import re
 import sys
+import time
 import queue
 import threading
 from pathlib import Path
@@ -236,7 +237,9 @@ class Loop(ABC):
         try:
             int(self._user_input)
         except ValueError:
-            print("Invalid image ID!")
+            print("Invalid image ID! Returning to main...")
+            time.sleep(2)
+            main()
 
     @abstractmethod
     def _go_to_mode(self):
@@ -520,7 +523,8 @@ class Image:
         p -- view previous image in post (same as above)
         d -- download this image
         o -- open pixiv post in browser
-        h -- show this help
+        h -- show keybindings
+        m -- show this manual
 
         q -- quit (with confirmation)
 
@@ -534,6 +538,7 @@ class Image:
 
         if multi_image_info:  # Posts with multiple pages
             self._page_urls = multi_image_info["page_urls"]
+            # Starts from 0
             self._img_post_page_num = multi_image_info["img_post_page_num"]
             self._number_of_pages = multi_image_info["number_of_pages"]
             self._downloaded_images = multi_image_info["downloaded_images"]
@@ -561,13 +566,42 @@ class Image:
 
         else:
             self._img_post_page_num += 1  # Be careful of 0 index
-            self._downloaded_images = go_next_image(
-                self._page_urls,
-                self._img_post_page_num,
-                self._number_of_pages,
-                self._downloaded_images,
-                self._download_path,
+            self._go_next_image()
+
+    def _go_next_image(self):
+        """
+        Downloads next image if not downloaded, open it, download the next image
+        in the background
+        """
+        # IDEAL: image prompt should not be blocked while downloading
+        # But I think delaying the prompt is better than waiting for an image
+        # to download when you load it
+
+        # First time from gallery; download next image
+        if self._img_post_page_num == 1:
+            url = self._page_urls[self._img_post_page_num]
+            self._downloaded_images = map(pure.split_backslash_last,
+                                          self._page_urls[:2])
+            self._downloaded_images = list(self._downloaded_images)
+            async_download_spinner(self._download_path, [url])
+
+        utils.display_image_vp("".join([
+            self._download_path,
+            self._downloaded_images[self._img_post_page_num]
+        ]))
+
+        # Downloads the next image
+        try:
+            next_img_url = self._page_urls[self._img_post_page_num + 1]
+        except IndexError:
+            pass  # Last page
+        else:  # No error
+            self._downloaded_images.append(
+                pure.split_backslash_last(next_img_url)
             )
+            async_download_spinner(self._download_path, [next_img_url])
+
+        print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
     def previous_image(self):
         if not self._page_urls:
@@ -781,7 +815,8 @@ class ArtistGallery(AbstractGallery):
         p                  -- view the previous page
         r                  -- delete all cached images, re-download and reload view
         b                  -- go back to previous mode (either 3, 4, 5, or main screen)
-        h                  -- show this help
+        h                  -- show keybindings
+        m                  -- show this manual
         q                  -- quit (with confirmation)
 
     Examples:
@@ -832,7 +867,10 @@ class ArtistGallery(AbstractGallery):
 
     @staticmethod
     def help():
-        print(f"{colors.coords} view image at (x,y); {colors.i} view nth image; {colors.d} download image;\n{colors.o} open image in browser; {colors.n}ext image; {colors.p}revious image;\n{colors.r}eload and re-download all; {colors.q}uit (with confirmation); view {colors.m}anual; {colors.b}ack\n")
+        print("".join(
+            colors.base1 + colors.base2
+            + ["view ", colors.m, "anual; ",
+               colors.b, "ack\n"]))
 
 
 class IllustFollowGallery(AbstractGallery):
@@ -854,7 +892,8 @@ class IllustFollowGallery(AbstractGallery):
         p                  -- view the previous page
         r                  -- delete all cached images, re-download and reload view
         b                  -- go back to main screen
-        h                  -- show this help
+        h                  -- show keybindings
+        m                  -- show this manual
         q                  -- quit (with confirmation)
 
     Examples:
@@ -926,7 +965,11 @@ class IllustFollowGallery(AbstractGallery):
 
     @staticmethod
     def help():
-        print(f"{colors.coords} view image at (x,y); {colors.i} view nth image; {colors.d} download image;\n{colors.o} open image in browser; view {colors.a}rtist gallery; {colors.n}ext image; {colors.p}revious image;\n{colors.r}eload and re-download all; {colors.q}uit (with confirmation); view {colors.m}anual\n")
+        print("".join(
+            colors.base1
+            + [colors.a, "rtist gallery; "]
+            + colors.base2
+            + ["view ", colors.m, "anual\n"]))
 
 
 class Users(ABC):
@@ -935,7 +978,8 @@ class Users(ABC):
         n -- view next page
         p -- view previous page
         r -- delete all cached images, re-download and reload view
-        h -- show this help
+        h -- show keybindings
+        m -- show this manual
         q -- quit (with confirmation)
 
     """
@@ -1038,6 +1082,7 @@ class Users(ABC):
             names_prefixed = map(pure.prefix_artist_name, names, range(len(names)))
             names_prefixed = list(names_prefixed)
 
+            # LSCAT
             lscat.Card(
                 self._download_path,
                 f"{self._main_path}/{self._input}/{self._page_num}/previews/",
@@ -1304,43 +1349,7 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
 
 
 # - Functions that are wrappers around download functions, making them impure
-# - Both classes used only by the Image class, but detached to reduce its size
-def go_next_image(page_urls, img_post_page_num, number_of_pages,
-                  downloaded_images, download_path):
-    """
-    Intended to be from image_prompt, for posts with multiple images.
-    Downloads next image it not downloaded, open it, download the next image
-    in the background
-
-    Parameters
-    img_post_page_num : int
-        **Starts from 0**. Page number of the multi-image post.
-    """
-    # IDEAL: image prompt should not be blocked while downloading
-    # But I think delaying the prompt is better than waiting for an image
-    # to download when you load it
-
-    # First time from gallery; download next image
-    if img_post_page_num == 1:
-        url = page_urls[img_post_page_num]
-        downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
-        async_download_spinner(download_path, [url])
-
-    utils.display_image_vp(f"{download_path}{downloaded_images[img_post_page_num]}")
-
-    # Downloads the next image
-    try:
-        next_img_url = page_urls[img_post_page_num + 1]
-    except IndexError:
-        pass  # Last page
-    else:  # No error
-        downloaded_images.append(pure.split_backslash_last(next_img_url))
-        async_download_spinner(download_path, [next_img_url])
-    print(f"Page {img_post_page_num+1}/{number_of_pages}")
-
-    return downloaded_images
-
-
+# - Used only by the Image class, but detached to reduce its size
 def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     Opens image given by the number (medium-res), downloads large-res and
@@ -1357,8 +1366,7 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     search_string = f"{str(number_prefix).rjust(3, '0')}_"
 
-    # display the already-downloaded medium-res image first,
-    # then download and display the large-res
+    # LSCAT
     os.system("clear")
     arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/{search_string}*"
     os.system(f"kitty +kitten icat --silent {arg}")
@@ -1371,11 +1379,10 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     # BLOCKING: imput is blocking, will not display large image until input
     # received
 
+    # LSCAT
     os.system("clear")
     arg = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/{filename}"
     os.system(f"kitty +kitten icat --silent {arg}")
-
-# - DOWNLOAD FUNCTIONS ==================================================
 
 class LastPageException(ValueError):
     pass

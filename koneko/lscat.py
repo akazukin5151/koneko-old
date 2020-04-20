@@ -126,7 +126,8 @@ class Gallery(View):
         os.system("clear")
         for (i, page) in enumerate(self._pages_list):
             print("\n" * self._page_spaces[i])  # Scroll to new 'page'
-            display_page(page, self._rowspaces, self._cols, self._left_shifts, self._path)
+            display_page(page, self._rowspaces, self._cols, self._left_shifts,
+                         self._path)
 
         print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")
 
@@ -157,8 +158,9 @@ class Card(View):
         self._preview_paths = preview_paths
         self._messages = messages
         self._preview_xcoords = preview_xcoords
-        self._preview_images = None # Defined in self.render()
-        super().__init__(path, number_of_columns, rowspaces, page_spaces, rows_in_page)
+        self._preview_images: 'List[List[str]]'
+        super().__init__(path, number_of_columns, rowspaces, page_spaces,
+                         rows_in_page)
 
     @funcy.ignore(IndexError)
     def render(self):
@@ -174,25 +176,16 @@ class Card(View):
             # Print the message (artist name) first
             print("\n" * 2)
             print(" " * 18, self._messages[i])
-
             print("\n" * self._page_spaces[i])  # Scroll to new 'page'
-            display_page(page, self._rowspaces, self._cols, self._left_shifts, self._path)
+
+            # Display artist profile pic
+            display_page(page, self._rowspaces, self._cols, self._left_shifts,
+                         self._path)
 
             # Display the three previews
-            # fmt: off
             for (j, coord) in enumerate(self._preview_xcoords):
-                try:
-                    display_page(
-                        ((self._preview_images[i][j],),),
-                        self._rowspaces,
-                        self._cols,
-                        coord,
-                        self._preview_paths
-                    )
-                except IndexError: # Less than three previews
-                    pass
-            # fmt: on
-
+                display_page(((self._preview_images[i][j],),), self._rowspaces,
+                             self._cols, coord, self._preview_paths)
 
 if __name__ == "__main__":
     Gallery("/tmp/koneko/2232374/1/")
