@@ -298,8 +298,10 @@ class SearchUsersModeLoop(Loop):
         self._user_input = self._url_or_id
 
     def _validate_input(self):
-        """Overriding base class: search string doesn't need to be int"""
-        pass
+        """Overriding base class: search string doesn't need to be int
+        Technically it doesn't violate LSP because all inputs are valid
+        """
+        return True
 
     def _go_to_mode(self):
         self.mode = SearchUsers(self._user_input)
@@ -322,14 +324,10 @@ class FollowingUserModeLoop(Loop):
         self.mode.start()
         prompt.user_prompt(self.mode)
 
-class IllustFollowModeLoop(Loop):
+class IllustFollowModeLoop:
     """
     Immediately goes to IllustFollow()
-    Doesn't actually need to inherit from Loop ABC because it's so different
-    TODO: just use a normal function
     """
-    def __init__(self): pass
-
     def start(self):
         while True:
             API_THREAD.join()  # Wait for API to finish
@@ -337,8 +335,6 @@ class IllustFollowModeLoop(Loop):
             API = API_QUEUE.get()  # Assign API to PixivAPI object
 
             self._go_to_mode()
-
-    def _prompt_url_id(self): pass
 
     def _go_to_mode(self):
         self.mode = IllustFollowMode()
