@@ -133,6 +133,7 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         For view_post_mode, it is image_id : int
         For following users mode, it is your_id : int
         For search users mode, it is search_string : str
+        For illust following mode, it's not required
     """
     # SPEED: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
@@ -193,11 +194,6 @@ class Loop(ABC):
     validate input (can be overridden)
     wait for api thread to finish logging in
     activates the selected mode (needs to be overridden)
-
-    Note: this violates the Liskov substitution principle, because
-    subclasses can 'remove' methods (by overriding them to `pass`)
-    This isn't a big concern because I just want to reduce code duplication,
-    thematically group functions into the Loop ABC, & those methods are private anyway
     """
     def __init__(self, prompted, user_input):
         self._prompted = prompted
@@ -243,6 +239,7 @@ class Loop(ABC):
 
     @abstractmethod
     def _go_to_mode(self):
+        """Define self.mode here"""
         raise NotImplementedError
 
 
@@ -313,7 +310,7 @@ class FollowingUserModeLoop(Loop):
     """
     Ask for pixiv ID or url and process it, wait for API to finish logging in
     before proceeding
-    If user agrees to use the your_id saved in configu, prompt_url_id() will be
+    If user agrees to use the your_id saved in config, prompt_url_id() will be
     skipped
     """
     def _prompt_url_id(self):
@@ -325,9 +322,7 @@ class FollowingUserModeLoop(Loop):
         prompt.user_prompt(self.mode)
 
 class IllustFollowModeLoop:
-    """
-    Immediately goes to IllustFollow()
-    """
+    """Immediately goes to IllustFollow()"""
     def start(self):
         while True:
             API_THREAD.join()  # Wait for API to finish
@@ -362,7 +357,6 @@ class GalleryLikeMode(ABC):
         for contents!)
         Else, fetch current_page json and proceed download -> show -> prompt
         """
-        # If path exists, show immediately (without checking for contents!)
         if Path(self._download_path).is_dir():
             try:
                 utils.show_artist_illusts(self._download_path)
@@ -401,6 +395,7 @@ class GalleryLikeMode(ABC):
 
     @abstractmethod
     def _instantiate(self):
+        """Instantiate the correct Gallery class"""
         raise NotImplementedError
 
 class ArtistGalleryMode(GalleryLikeMode):
@@ -436,10 +431,6 @@ class ArtistGalleryMode(GalleryLikeMode):
 
 
 class IllustFollowMode(GalleryLikeMode):
-    """
-    artist_user_id is useless. Only determines where the pics will be saved
-    It's set to a string for now, will remove later
-    """
     def __init__(self, current_page_num=1, all_pages_cache=None):
         self._download_path = f"{KONEKODIR}/illustfollow/{current_page_num}/"
         super().__init__(current_page_num, all_pages_cache)
@@ -1152,9 +1143,6 @@ class SearchUsers(Users):
     """
     Inherits from Users class, define self._input as the search string (user)
     Parent directory for downloads should go to search/
-    Note that pixivpy3 does not have search_user() yet (not released yet);
-    you need to install the master branch (which should be done if you used
-    the requirements.txt)
     """
     def __init__(self, user):
         self._main_path = f"{KONEKODIR}/search"
@@ -1355,10 +1343,9 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
 
     Parameters
     ----------
-    post_json : JsonDict
-        description
     number_prefix : int
         The number prefixed in each image
+    post_json : JsonDict
     artist_user_id : int
     current_page_num : int
     """
