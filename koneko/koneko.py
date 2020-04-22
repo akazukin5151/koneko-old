@@ -43,12 +43,14 @@ import re
 import sys
 import time
 import queue
+import itertools
 import threading
 from pathlib import Path
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 
 import funcy
+import cytoolz
 from tqdm import tqdm
 from docopt import docopt
 from pixivpy3 import PixivError, AppPixivAPI
@@ -850,7 +852,11 @@ class ArtistGallery(AbstractGallery):
             prompt.gallery_like_prompt(self) # Go back to while loop
         elif len(keyseqs) == 2:
             selected_image_num = pure.find_number_map(first_num, second_num)
-            self.view_image(selected_image_num)
+            if not selected_image_num:
+                print("Invalid number!")
+                prompt.gallery_like_prompt(self) # Go back to while loop
+            else:
+                self.view_image(selected_image_num)
 
     @staticmethod
     def help():
@@ -914,7 +920,10 @@ class IllustFollowGallery(AbstractGallery):
 
     def go_artist_gallery_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
-        self.go_artist_gallery_num(selected_image_num)
+        if not selected_image_num:
+            print("Invalid number!")
+        else:
+            self.go_artist_gallery_num(selected_image_num)
 
     def go_artist_gallery_num(self, selected_image_num):
         """Like self.view_image(), but goes to artist mode instead of image"""
@@ -948,7 +957,11 @@ class IllustFollowGallery(AbstractGallery):
             self.go_artist_gallery_num(selected_image_num)
         elif len(keyseqs) == 2:
             selected_image_num = pure.find_number_map(first_num, second_num)
-            self.view_image(selected_image_num)
+            if not selected_image_num:
+                print("Invalid number!")
+                prompt.gallery_like_prompt(self) # Go back to while loop
+            else:
+                self.view_image(selected_image_num)
 
     @staticmethod
     def help():
@@ -1249,22 +1262,19 @@ def async_download_core(download_path, urls, rename_images=False,
     else:
         newnames = oldnames
 
+    filtered = itertools.filterfalse(os.path.isfile, newnames)
+    helper = downloadr(pbar=pbar)
     os.makedirs(download_path, exist_ok=True)
     with pure.cd(download_path):
         with ThreadPoolExecutor(max_workers=len(urls)) as executor:
-            for (i, name) in enumerate(newnames):
-                if not os.path.isfile(name):
-                    executor.submit(
-                        downloadr, urls[i], oldnames[i], newnames[i], pbar=pbar
-                    )
-
+            executor.map(helper, urls, oldnames, filtered)
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
 def protected_download(url):
     """Protect api download function with funcy.retry so it doesn't crash"""
     API.download(url)
 
-
+@cytoolz.curry
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads one pic given one url, rename if needed."""
     protected_download(url)
