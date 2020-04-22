@@ -119,12 +119,13 @@ def main():
     try:
         main_loop(prompted, main_command, user_input, your_id)
     except KeyboardInterrupt:
-        print("\n")
-        answer = input("Are you sure you want to exit? [y/N]:\n")
-        if answer == "y" or not answer:
-            sys.exit(0)
-        else:
-            main()
+        main()
+ #       print("\n")
+ #       answer = input("Are you sure you want to exit? [y/N]:\n")
+ #       if answer == "y" or not answer:
+ #           sys.exit(0)
+ #       else:
+ #           main()
 
 def main_loop(prompted, main_command, user_input, your_id=None):
     """
@@ -342,9 +343,10 @@ class IllustFollowModeLoop:
 class GalleryLikeMode(ABC):
     def __init__(self, current_page_num=1, all_pages_cache=None):
         self._current_page_num = current_page_num
+        self._show = True
         # Defined in self.start()
         self._current_page: 'JsonDict'
-        # Defined in self._show_gallery()
+        # Defined in self._init_download()
         self._current_page_illusts: 'JsonDictPage'
         self._all_pages_cache = all_pages_cache
         # Defined in child classes
@@ -363,14 +365,16 @@ class GalleryLikeMode(ABC):
             try:
                 utils.show_artist_illusts(self._download_path)
             except IndexError: # Folder exists but no files
-                show = True
+                self._show = True
             else:
-                show = False
+                self._show = False
         else:
-            show = True
+            self._show = True
 
         self._current_page = self._pixivrequest()
-        self._show_gallery(show=show)
+        self._init_download()
+        if self._show:
+            utils.show_artist_illusts(self._download_path)
         self._instantiate()
 
     @abstractmethod
@@ -378,19 +382,24 @@ class GalleryLikeMode(ABC):
     def _pixivrequest(self):
         raise NotImplementedError
 
-    def _show_gallery(self, show=True):
-        """
-        Downloads images, show if requested, instantiate all_pages_cache, prompt.
-        """
+    def _download_pbar(self):
+        pbar = tqdm(total=len(self._current_page_illusts), smoothing=0)
+        download_page(self._current_page_illusts, self._download_path, pbar=pbar)
+        pbar.close()
+
+    def _init_download(self):
         self._current_page_illusts = self._current_page["illusts"]
+        titles = pure.post_titles_in_page(self._current_page_illusts)
 
         if not Path(self._download_path).is_dir():
-            pbar = tqdm(total=len(self._current_page_illusts), smoothing=0)
-            download_page(self._current_page_illusts, self._download_path, pbar=pbar)
-            pbar.close()
+            self._download_pbar()
 
-        if show:
-            utils.show_artist_illusts(self._download_path)
+        elif not titles[0] in sorted(os.listdir(self._download_path))[0]:
+            print("Cache is outdated, reloading...")
+            # Remove old images
+            os.system(f"rm -r {self._download_path}") # shutil.rmtree is better
+            self._download_pbar()
+            self._show = True
 
         if not self._all_pages_cache:
             self._all_pages_cache = {"1": self._current_page}
@@ -995,6 +1004,7 @@ class Users(ABC):
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._names_cache = {}
         self._ids_cache = {}
+        self._show = True
         # Defined in _parse_user_infos():
         self._next_url: 'Dict[str, str]'
         self._ids: 'List[str]'
@@ -1003,9 +1013,12 @@ class Users(ABC):
         self._image_urls = 'List[str]'
 
     def start(self):
-        # TODO: if dir exists, show page first then parse
+        # It can't show first (including if cache is outdated),
+        # because it needs to print the right message
+        # Which means parsing is needed first
         self._parse_and_download()
-        self._show_page()
+        if self._show:
+            self._show_page()
         self._prefetch_next_page()
 
     def _parse_and_download(self):
@@ -1022,10 +1035,18 @@ class Users(ABC):
         all_names = self._names + preview_names
         splitpoint = len(self._profile_pic_urls)
 
-        if (Path(self._download_path).is_dir() and
-                len(os.listdir(self._download_path)) == splitpoint + 1):
-            return True
+        # Similar to logic in GalleryLikeMode (_init_download())...
+        if not Path(self._download_path).is_dir():
+            self._download_pbar(all_urls, preview_path, all_names, splitpoint)
 
+        elif not all_names[0] in sorted(os.listdir(self._download_path))[0]:
+            print("Cache is outdated, reloading...")
+            # Remove old images
+            os.system(f"rm -r {self._download_path}") # shutil.rmtree is better
+            self._download_pbar(all_urls, preview_path, all_names, splitpoint)
+            self._show = True
+
+    def _download_pbar(self, all_urls, preview_path, all_names, splitpoint):
         pbar = tqdm(total=len(all_urls), smoothing=0)
         async_download_core(
             preview_path,

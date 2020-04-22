@@ -93,7 +93,6 @@ For more details look at the [manual](#manual).
 
 ## Features
 
-* Fetch json and compare with cache. If no new images, proceed. If there are new images, automatically reload.
 * Image and User views should use lscat.py to render so alternate renderers can be used
 * Image view should preview the next few images in multi-image posts
 * For multi-image posts in image view, enter a number to jump to the post's page
