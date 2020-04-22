@@ -617,7 +617,9 @@ class Image:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
             ArtistGalleryMode(self._artist_user_id, self._current_page_num)
-        # Else: image prompt and class ends, goes back to gallery
+            # After backing
+            main()
+        # Else: image prompt and class ends, goes back to previous mode
 
 
 class AbstractGallery(ABC):
