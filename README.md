@@ -54,7 +54,7 @@ The mobile app even directly tells you Google "and our 198 partners" "collect an
 * I use arch btw
 
 
-# Usage
+# Installation
 0. Install [kitty](https://github.com/kovidgoyal/kitty)
 1. Run (or if you use [conda](#conda)...):
 ```sh
@@ -65,12 +65,17 @@ git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git
 # Use latest master branch
 git clone https://github.com/twenty5151/koneko.git
 
+# These might be bundled into an install.sh in the future...
+mkdir -p ~/.local/share/koneko # This is also where all downloads are cached
+cp -r ./pics/ ~/.local/share/koneko/pics
+
 cd koneko && pip install -r requirements.txt --upgrade
 cd koneko
 ./koneko.py
 ```
 
-2. There are five modes of operation:
+# Usage
+There are five modes of operation:
     1. View artist illustrations ([ex](https://www.pixiv.net/bookmark.php?type=user))
     2. View a post ([ex](https://www.pixiv.net/en/artworks/78823485))
     3. View artists that you have followed (or any other user ID) ([ex](https://www.pixiv.net/bookmark.php?type=user))
@@ -286,7 +291,6 @@ conda activate koneko
 conda env list                  # make sure you're in the correct environment...
 conda install -n koneko pip     # and make sure pip is installed...
 which pip                       # and pip is in your conda directory
-cd koneko
 pip install -r requirements.txt --upgrade --force
 cd koneko
 ./koneko.py
