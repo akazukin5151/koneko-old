@@ -1407,5 +1407,5 @@ class LastPageException(ValueError):
 
 
 if __name__ == "__main__":
-    KONEKODIR = "/tmp/koneko"
+    KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
     main()
