@@ -60,7 +60,7 @@ The mobile app even directly tells you Google "and our 198 partners" "collect an
 ```sh
 # Use latest stable release (recommended)
 # Update the tag for the latest released version
-git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git
+git clone -b 'v0.3' --depth 1 https://github.com/twenty5151/koneko.git
 
 # Use latest master branch
 git clone https://github.com/twenty5151/koneko.git
