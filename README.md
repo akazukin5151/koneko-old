@@ -286,11 +286,18 @@ Simplified UML diagram of the classes:
 
 ```sh
 git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git
+
 conda create -n koneko
 conda activate koneko
 conda env list                  # make sure you're in the correct environment...
 conda install -n koneko pip     # and make sure pip is installed...
 which pip                       # and pip is in your conda directory
+
+# These might be bundled into an install.sh in the future...
+mkdir -p ~/.local/share/koneko # This is also where all downloads are cached
+cp -r ./pics/ ~/.local/share/koneko/pics
+
+cd koneko
 pip install -r requirements.txt --upgrade --force
 cd koneko
 ./koneko.py
