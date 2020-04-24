@@ -497,6 +497,8 @@ def view_post_mode(image_id):
         async_download_spinner(large_dir, page_urls[:2])
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
 
+    # Will only be used for multi-image posts, so it's safe to use large_dir
+    # Without checking for number_of_pages
     multi_image_info = {
         'page_urls': page_urls,
         'img_post_page_num': 0,
@@ -507,8 +509,6 @@ def view_post_mode(image_id):
 
     image = Image(image_id, artist_user_id, 1, True, multi_image_info)
     prompt.image_prompt(image)
-    # Will only be used for multi-image posts, so it's safe to use large_dir
-    # Without checking for number_of_pages
 # - Mode and loop functions (some interactive and some not)
 
 
@@ -1062,9 +1062,9 @@ class Users(ABC):
         # Move artist profile pics to their correct dir
         to_move = sorted(os.listdir(preview_path))[:splitpoint]
         with pure.cd(self._download_path):
-            for pic in to_move:
-                os.rename(f"{self._download_path}/previews/{pic}",
-                          f"{self._download_path}/{pic}")
+            [os.rename(f"{self._download_path}/previews/{pic}",
+                       f"{self._download_path}/{pic}")
+             for pic in to_move]
 
 
     @abstractmethod
