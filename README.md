@@ -57,6 +57,15 @@ The mobile app even directly tells you Google "and our 198 partners" "collect an
 # Installation
 0. Install [kitty](https://github.com/kovidgoyal/kitty)
 1. `pip install koneko` (or if you use [conda](#conda)...):
+2. Run `koneko`
+
+If it fails (it shouldn't), it might be because pip didn't 'install' the welcome pictures, *and* the script failed to download them for some reason. Try:
+
+```sh
+mkdir -p ~/.local/share/koneko/pics
+curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/71471144_p0.png -o ~/.local/share/koneko/pics/71471144_p0.png
+curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/79494300_p0.png -o ~/.local/share/koneko/pics/79494300_p0.png
+```
 
 # Usage
 There are five modes of operation:
@@ -281,10 +290,7 @@ conda env list                  # make sure you're in the correct environment...
 conda install -n koneko pip     # and make sure pip is installed...
 which pip                       # and pip is in your conda directory
 
-cd koneko
-pip install .
-# or
-python setup.py install
+pip install koneko
 
 # Use anywhere:
 koneko
@@ -305,10 +311,10 @@ pip install .
 # or
 python setup.py install
 
-# Use anywhere:
-# On certain shells with implicit cd, typing koneko might cd into the src dir
+# On certain shells with implicit cd, typing `koneko` might cd into the src dir
 # Instead of running the executable
 cd ~
+# Use anywhere:
 koneko
 ```
 
