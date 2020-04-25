@@ -56,26 +56,7 @@ The mobile app even directly tells you Google "and our 198 partners" "collect an
 
 # Installation
 0. Install [kitty](https://github.com/kovidgoyal/kitty)
-1. Run (or if you use [conda](#conda)...):
-```sh
-# Use latest stable release (recommended)
-# Update the tag for the latest released version
-git clone -b 'v0.3' --depth 1 https://github.com/twenty5151/koneko.git
-
-# Use latest master branch
-git clone https://github.com/twenty5151/koneko.git
-
-cd koneko
-pip install .
-# or
-python setup.py install
-
-# Use anywhere:
-# On certain shells with implicit cd, typing koneko might cd into the src dir
-# Instead of running the executable
-cd ~
-koneko
-```
+1. `pip install koneko` (or if you use [conda](#conda)...):
 
 # Usage
 There are five modes of operation:
@@ -115,6 +96,10 @@ For more details look at the [manual](#manual).
 * Pixiv keeps emailing me saying I've logged in, every time I use this app!
 
 That's because cookies aren't stored so you log in everytime with a new session. Looking at [PixivUtil's cookie implementation](https://github.com/Nandaka/PixivUtil2/blob/master/PixivBrowserFactory.py), it would be easier to base this app on PixivUtil for downloads, than to write it myself (currently, it's based on the [pixivpy](https://github.com/upbit/pixivpy/) api). The problems with this, other than being a huge time and effort investment, is that koneko uses info from the requests, such as number of pages.
+
+* What operating systems does it support?
+
+It supports all OSes that kitty supports, which means Linux and macOS. It should work on macOS, but I don't have a test device. If you do, please contribute!
 
 # Manual
 
@@ -288,7 +273,7 @@ Simplified UML diagram of the classes:
 ## Conda environment
 
 ```sh
-git clone -b 'v0.3' --depth 1 https://github.com/twenty5151/koneko.git
+git clone -b 'v0.4' --depth 1 https://github.com/twenty5151/koneko.git
 
 conda create -n koneko
 conda activate koneko
@@ -314,6 +299,17 @@ Use the `dev` branch for latest features, fixes, and unstability:
 
 ```sh
 git clone -b dev https://github.com/twenty5151/koneko.git
+
+cd koneko
+pip install .
+# or
+python setup.py install
+
+# Use anywhere:
+# On certain shells with implicit cd, typing koneko might cd into the src dir
+# Instead of running the executable
+cd ~
+koneko
 ```
 
 ## Unit tests
