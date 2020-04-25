@@ -7,9 +7,9 @@ from configparser import ConfigParser
 
 import pixcat
 
-import pure
-import lscat
-import koneko
+from koneko import pure
+from koneko import lscat
+from koneko import koneko
 
 KONEKODIR = Path("~/.local/share/koneko/pics").expanduser()
 
@@ -137,7 +137,7 @@ def info_screen_loop():
     pixcat.Image(KONEKODIR / "79494300_p0.png").thumbnail(750).show(align="left", y=0)
 
     while True:
-        help_command = input("\nPress any key to return: ")
+        help_command = input("\nEnter any key to return: ")
         if help_command or help_command == "":
             os.system("clear")
             break

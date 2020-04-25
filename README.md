@@ -65,13 +65,16 @@ git clone -b 'v0.3' --depth 1 https://github.com/twenty5151/koneko.git
 # Use latest master branch
 git clone https://github.com/twenty5151/koneko.git
 
-# These might be bundled into an install.sh in the future...
-mkdir -p ~/.local/share/koneko # This is also where all downloads are cached
-cp -r ./pics/ ~/.local/share/koneko/pics
-
-cd koneko && pip install -r requirements.txt --upgrade
 cd koneko
-./koneko.py
+pip install .
+# or
+python setup.py install
+
+# Use anywhere:
+# On certain shells with implicit cd, typing koneko might cd into the src dir
+# Instead of running the executable
+cd ~
+koneko
 ```
 
 # Usage
@@ -87,10 +90,10 @@ Enter digits 1-5 to proceed. If prompted, paste in an appropriate pixiv ID or ur
 Alternatively, you can supply a pixiv url as a command line argument to `koneko.py`, bypassing the first interactive prompt. The pixiv url must be either the url of the artist's page, or a pixiv post. Example:
 
 ```sh
-./koneko.py https://www.pixiv.net/en/users/2232374 # Mode 1
-./koneko.py https://www.pixiv.net/en/artworks/78823485 # Mode 2
-./koneko.py f https://www.pixiv.net/en/users/2232374 # Mode 3
-./koneko.py "raika9" # Mode 4
+koneko https://www.pixiv.net/en/users/2232374 # Mode 1
+koneko https://www.pixiv.net/en/artworks/78823485 # Mode 2
+koneko f https://www.pixiv.net/en/users/2232374 # Mode 3
+koneko "raika9" # Mode 4
 ```
 For more details look at the [manual](#manual).
 
@@ -120,13 +123,13 @@ Browse pixiv in the terminal using kitty's icat to display images (in the
 terminal!)
 
 Usage:
-  ./koneko.py       [<link> | <searchstr>]
-  ./koneko.py [1|a] <link_or_id>
-  ./koneko.py [2|i] <link_or_id>
-  ./koneko.py (3|f) <link_or_id>
-  ./koneko.py [4|s] <searchstr>
-  ./koneko.py [5|n]
-  ./koneko.py -h
+  koneko       [<link> | <searchstr>]
+  koneko [1|a] <link_or_id>
+  koneko [2|i] <link_or_id>
+  koneko (3|f) <link_or_id>
+  koneko [4|s] <searchstr>
+  koneko [5|n]
+  koneko -h
 
 Notes:
 *  If you supply a link and want to go to mode 3, you must give the (3|f) argument,
@@ -285,7 +288,7 @@ Simplified UML diagram of the classes:
 ## Conda environment
 
 ```sh
-git clone -b 'v0.2' --depth 1 https://github.com/twenty5151/koneko.git
+git clone -b 'v0.3' --depth 1 https://github.com/twenty5151/koneko.git
 
 conda create -n koneko
 conda activate koneko
@@ -293,14 +296,16 @@ conda env list                  # make sure you're in the correct environment...
 conda install -n koneko pip     # and make sure pip is installed...
 which pip                       # and pip is in your conda directory
 
-# These might be bundled into an install.sh in the future...
-mkdir -p ~/.local/share/koneko # This is also where all downloads are cached
-cp -r ./pics/ ~/.local/share/koneko/pics
+cd koneko
+pip install .
+# or
+python setup.py install
 
-cd koneko
-pip install -r requirements.txt --upgrade --force
-cd koneko
-./koneko.py
+# Use anywhere:
+koneko
+
+# To remove the conda env:
+conda remove --name koneko --all
 ```
 
 ## `Dev` branch

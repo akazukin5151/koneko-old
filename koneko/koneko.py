@@ -3,13 +3,13 @@
 terminal!)
 
 Usage:
-  ./koneko.py       [<link> | <searchstr>]
-  ./koneko.py [1|a] <link_or_id>
-  ./koneko.py [2|i] <link_or_id>
-  ./koneko.py (3|f) <link_or_id>
-  ./koneko.py [4|s] <searchstr>
-  ./koneko.py [5|n]
-  ./koneko.py -h
+  koneko       [<link> | <searchstr>]
+  koneko [1|a] <link_or_id>
+  koneko [2|i] <link_or_id>
+  koneko (3|f) <link_or_id>
+  koneko [4|s] <searchstr>
+  koneko [5|n]
+  koneko -h
 
 Notes:
 *  If you supply a link and want to go to mode 3, you must give the (3|f) argument,
@@ -55,11 +55,11 @@ from tqdm import tqdm
 from docopt import docopt
 from pixivpy3 import PixivError, AppPixivAPI
 
-import pure
-import lscat
-import utils
-import prompt
-import colors
+from koneko import pure
+from koneko import lscat
+from koneko import utils
+from koneko import prompt
+from koneko import colors
 
 
 def main():
@@ -1405,7 +1405,7 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
 class LastPageException(ValueError):
     pass
 
-
+# Set constant
+KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 if __name__ == "__main__":
-    KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
     main()
