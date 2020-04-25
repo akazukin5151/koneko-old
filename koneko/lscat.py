@@ -10,7 +10,7 @@ import funcy
 import cytoolz
 from pixcat import Image
 
-from pure import cd
+from koneko.pure import cd
 
 
 # - Pure functions
