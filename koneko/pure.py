@@ -93,10 +93,9 @@ def find_number_map(x, y):
 
 
 def print_multiple_imgs(illusts_json):
-    for (index, json) in enumerate(illusts_json):
-        pages = json["page_count"]
-        if pages > 1:
-            print(f"#{index} has {pages} pages", end=", ")
+    [print(f"#{index} has {pages} pages", end=", ")
+     for (index, json) in enumerate(illusts_json)
+     if (pages := json["page_count"]) > 1]
     print("")
 
 

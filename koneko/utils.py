@@ -7,9 +7,11 @@ from configparser import ConfigParser
 
 import pixcat
 
-import pure
-import lscat
-import koneko
+from koneko import pure
+from koneko import lscat
+from koneko import koneko
+
+KONEKODIR = Path("~/.local/share/koneko/pics").expanduser()
 
 
 def verify_full_download(filepath):
@@ -47,7 +49,7 @@ def display_image_vp(filepath):
 def begin_prompt(printmessage=True):
     messages = (
         "",
-        "Welcome to koneko v0.3\n",
+        "Welcome to koneko v0.4\n",
         "Select an action:",
         "1. View artist illustrations",
         "2. Open pixiv post",
@@ -63,7 +65,7 @@ def begin_prompt(printmessage=True):
         for message in messages:
             print(" " * 27, message)
 
-    pixcat.Image("../pics/71471144_p0.png").thumbnail(550).show(align="left", y=0)
+    pixcat.Image(KONEKODIR / "71471144_p0.png").thumbnail(550).show(align="left", y=0)
     command = input("Enter a command: ")
     return command
 
@@ -113,7 +115,7 @@ def info_screen_loop():
     os.system("clear")
     messages = (
         "",
-        "koneko こねこ version 0.3 beta\n",
+        "koneko こねこ version 0.4 beta\n",
         "Browse pixiv in the terminal using kitty's icat to display",
         "images with images embedded in the terminal\n",
         "1. View an artist's illustrations",
@@ -132,10 +134,10 @@ def info_screen_loop():
     for message in messages:
         print(" " * 26, message)
 
-    pixcat.Image("../pics/79494300_p0.png").thumbnail(750).show(align="left", y=0)
+    pixcat.Image(KONEKODIR / "79494300_p0.png").thumbnail(750).show(align="left", y=0)
 
     while True:
-        help_command = input("\nPress any key to return: ")
+        help_command = input("\nEnter any key to return: ")
         if help_command or help_command == "":
             os.system("clear")
             break
