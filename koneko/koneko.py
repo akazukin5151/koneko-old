@@ -66,6 +66,11 @@ def main():
     """Read config file, start login, process any cli arguments, go to main loop"""
     os.system("clear")
     credentials, your_id = utils.config()
+    if not Path("~/.local/share/koneko").expanduser().exists():
+        print("Please wait, downloading welcome image (this will only occur once)...")
+        Path("~/.local/share/koneko/pics").expanduser().mkdir(parents=True)
+        os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/71471144_p0.png -o ~/.local/share/koneko/pics/71471144_p0.png")
+        os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/79494300_p0.png -o ~/.local/share/koneko/pics/79494300_p0.png")
 
     # It'll never be changed after logging in
     global API, API_QUEUE, API_THREAD
