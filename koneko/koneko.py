@@ -3,13 +3,13 @@
 terminal!)
 
 Usage:
-  ./koneko.py       [<link> | <searchstr>]
-  ./koneko.py [1|a] <link_or_id>
-  ./koneko.py [2|i] <link_or_id>
-  ./koneko.py (3|f) <link_or_id>
-  ./koneko.py [4|s] <searchstr>
-  ./koneko.py [5|n]
-  ./koneko.py -h
+  koneko       [<link> | <searchstr>]
+  koneko [1|a] <link_or_id>
+  koneko [2|i] <link_or_id>
+  koneko (3|f) <link_or_id>
+  koneko [4|s] <searchstr>
+  koneko [5|n]
+  koneko -h
 
 Notes:
 *  If you supply a link and want to go to mode 3, you must give the (3|f) argument,
@@ -43,27 +43,34 @@ import re
 import sys
 import time
 import queue
+import itertools
 import threading
 from pathlib import Path
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 
 import funcy
+import cytoolz
 from tqdm import tqdm
 from docopt import docopt
 from pixivpy3 import PixivError, AppPixivAPI
 
-import pure
-import lscat
-import utils
-import prompt
-import colors
+from koneko import pure
+from koneko import lscat
+from koneko import utils
+from koneko import prompt
+from koneko import colors
 
 
 def main():
     """Read config file, start login, process any cli arguments, go to main loop"""
     os.system("clear")
     credentials, your_id = utils.config()
+    if not Path("~/.local/share/koneko").expanduser().exists():
+        print("Please wait, downloading welcome image (this will only occur once)...")
+        Path("~/.local/share/koneko/pics").expanduser().mkdir(parents=True)
+        os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/71471144_p0.png -o ~/.local/share/koneko/pics/71471144_p0.png")
+        os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/79494300_p0.png -o ~/.local/share/koneko/pics/79494300_p0.png")
 
     # It'll never be changed after logging in
     global API, API_QUEUE, API_THREAD
@@ -117,12 +124,13 @@ def main():
     try:
         main_loop(prompted, main_command, user_input, your_id)
     except KeyboardInterrupt:
-        print("\n")
-        answer = input("Are you sure you want to exit? [y/N]:\n")
-        if answer == "y" or not answer:
-            sys.exit(0)
-        else:
-            main()
+        main()
+ #       print("\n")
+ #       answer = input("Are you sure you want to exit? [y/N]:\n")
+ #       if answer == "y" or not answer:
+ #           sys.exit(0)
+ #       else:
+ #           main()
 
 def main_loop(prompted, main_command, user_input, your_id=None):
     """
@@ -133,6 +141,7 @@ def main_loop(prompted, main_command, user_input, your_id=None):
         For view_post_mode, it is image_id : int
         For following users mode, it is your_id : int
         For search users mode, it is search_string : str
+        For illust following mode, it's not required
     """
     # SPEED: gallery mode - if tmp has artist id and '1' dir,
     # immediately show it without trying to log in or download
@@ -193,11 +202,6 @@ class Loop(ABC):
     validate input (can be overridden)
     wait for api thread to finish logging in
     activates the selected mode (needs to be overridden)
-
-    Note: this violates the Liskov substitution principle, because
-    subclasses can 'remove' methods (by overriding them to `pass`)
-    This isn't a big concern because I just want to reduce code duplication,
-    thematically group functions into the Loop ABC, & those methods are private anyway
     """
     def __init__(self, prompted, user_input):
         self._prompted = prompted
@@ -243,6 +247,7 @@ class Loop(ABC):
 
     @abstractmethod
     def _go_to_mode(self):
+        """Define self.mode here"""
         raise NotImplementedError
 
 
@@ -298,8 +303,10 @@ class SearchUsersModeLoop(Loop):
         self._user_input = self._url_or_id
 
     def _validate_input(self):
-        """Overriding base class: search string doesn't need to be int"""
-        pass
+        """Overriding base class: search string doesn't need to be int
+        Technically it doesn't violate LSP because all inputs are valid
+        """
+        return True
 
     def _go_to_mode(self):
         self.mode = SearchUsers(self._user_input)
@@ -311,7 +318,7 @@ class FollowingUserModeLoop(Loop):
     """
     Ask for pixiv ID or url and process it, wait for API to finish logging in
     before proceeding
-    If user agrees to use the your_id saved in configu, prompt_url_id() will be
+    If user agrees to use the your_id saved in config, prompt_url_id() will be
     skipped
     """
     def _prompt_url_id(self):
@@ -322,14 +329,8 @@ class FollowingUserModeLoop(Loop):
         self.mode.start()
         prompt.user_prompt(self.mode)
 
-class IllustFollowModeLoop(Loop):
-    """
-    Immediately goes to IllustFollow()
-    Doesn't actually need to inherit from Loop ABC because it's so different
-    TODO: just use a normal function
-    """
-    def __init__(self): pass
-
+class IllustFollowModeLoop:
+    """Immediately goes to IllustFollow()"""
     def start(self):
         while True:
             API_THREAD.join()  # Wait for API to finish
@@ -337,8 +338,6 @@ class IllustFollowModeLoop(Loop):
             API = API_QUEUE.get()  # Assign API to PixivAPI object
 
             self._go_to_mode()
-
-    def _prompt_url_id(self): pass
 
     def _go_to_mode(self):
         self.mode = IllustFollowMode()
@@ -349,9 +348,10 @@ class IllustFollowModeLoop(Loop):
 class GalleryLikeMode(ABC):
     def __init__(self, current_page_num=1, all_pages_cache=None):
         self._current_page_num = current_page_num
+        self._show = True
         # Defined in self.start()
         self._current_page: 'JsonDict'
-        # Defined in self._show_gallery()
+        # Defined in self._init_download()
         self._current_page_illusts: 'JsonDictPage'
         self._all_pages_cache = all_pages_cache
         # Defined in child classes
@@ -366,19 +366,20 @@ class GalleryLikeMode(ABC):
         for contents!)
         Else, fetch current_page json and proceed download -> show -> prompt
         """
-        # If path exists, show immediately (without checking for contents!)
         if Path(self._download_path).is_dir():
             try:
                 utils.show_artist_illusts(self._download_path)
             except IndexError: # Folder exists but no files
-                show = True
+                self._show = True
             else:
-                show = False
+                self._show = False
         else:
-            show = True
+            self._show = True
 
         self._current_page = self._pixivrequest()
-        self._show_gallery(show=show)
+        self._init_download()
+        if self._show:
+            utils.show_artist_illusts(self._download_path)
         self._instantiate()
 
     @abstractmethod
@@ -386,25 +387,31 @@ class GalleryLikeMode(ABC):
     def _pixivrequest(self):
         raise NotImplementedError
 
-    def _show_gallery(self, show=True):
-        """
-        Downloads images, show if requested, instantiate all_pages_cache, prompt.
-        """
+    def _download_pbar(self):
+        pbar = tqdm(total=len(self._current_page_illusts), smoothing=0)
+        download_page(self._current_page_illusts, self._download_path, pbar=pbar)
+        pbar.close()
+
+    def _init_download(self):
         self._current_page_illusts = self._current_page["illusts"]
+        titles = pure.post_titles_in_page(self._current_page_illusts)
 
         if not Path(self._download_path).is_dir():
-            pbar = tqdm(total=len(self._current_page_illusts), smoothing=0)
-            download_page(self._current_page_illusts, self._download_path, pbar=pbar)
-            pbar.close()
+            self._download_pbar()
 
-        if show:
-            utils.show_artist_illusts(self._download_path)
+        elif not titles[0] in sorted(os.listdir(self._download_path))[0]:
+            print("Cache is outdated, reloading...")
+            # Remove old images
+            os.system(f"rm -r {self._download_path}") # shutil.rmtree is better
+            self._download_pbar()
+            self._show = True
 
         if not self._all_pages_cache:
             self._all_pages_cache = {"1": self._current_page}
 
     @abstractmethod
     def _instantiate(self):
+        """Instantiate the correct Gallery class"""
         raise NotImplementedError
 
 class ArtistGalleryMode(GalleryLikeMode):
@@ -440,10 +447,6 @@ class ArtistGalleryMode(GalleryLikeMode):
 
 
 class IllustFollowMode(GalleryLikeMode):
-    """
-    artist_user_id is useless. Only determines where the pics will be saved
-    It's set to a string for now, will remove later
-    """
     def __init__(self, current_page_num=1, all_pages_cache=None):
         self._download_path = f"{KONEKODIR}/illustfollow/{current_page_num}/"
         super().__init__(current_page_num, all_pages_cache)
@@ -499,6 +502,8 @@ def view_post_mode(image_id):
         async_download_spinner(large_dir, page_urls[:2])
         downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
 
+    # Will only be used for multi-image posts, so it's safe to use large_dir
+    # Without checking for number_of_pages
     multi_image_info = {
         'page_urls': page_urls,
         'img_post_page_num': 0,
@@ -509,8 +514,6 @@ def view_post_mode(image_id):
 
     image = Image(image_id, artist_user_id, 1, True, multi_image_info)
     prompt.image_prompt(image)
-    # Will only be used for multi-image posts, so it's safe to use large_dir
-    # Without checking for number_of_pages
 # - Mode and loop functions (some interactive and some not)
 
 
@@ -619,7 +622,9 @@ class Image:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
             ArtistGalleryMode(self._artist_user_id, self._current_page_num)
-        # Else: image prompt and class ends, goes back to gallery
+            # After backing
+            main()
+        # Else: image prompt and class ends, goes back to previous mode
 
 
 class AbstractGallery(ABC):
@@ -864,7 +869,11 @@ class ArtistGallery(AbstractGallery):
             prompt.gallery_like_prompt(self) # Go back to while loop
         elif len(keyseqs) == 2:
             selected_image_num = pure.find_number_map(first_num, second_num)
-            self.view_image(selected_image_num)
+            if not selected_image_num:
+                print("Invalid number!")
+                prompt.gallery_like_prompt(self) # Go back to while loop
+            else:
+                self.view_image(selected_image_num)
 
     @staticmethod
     def help():
@@ -928,7 +937,10 @@ class IllustFollowGallery(AbstractGallery):
 
     def go_artist_gallery_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
-        self.go_artist_gallery_num(selected_image_num)
+        if not selected_image_num:
+            print("Invalid number!")
+        else:
+            self.go_artist_gallery_num(selected_image_num)
 
     def go_artist_gallery_num(self, selected_image_num):
         """Like self.view_image(), but goes to artist mode instead of image"""
@@ -962,7 +974,11 @@ class IllustFollowGallery(AbstractGallery):
             self.go_artist_gallery_num(selected_image_num)
         elif len(keyseqs) == 2:
             selected_image_num = pure.find_number_map(first_num, second_num)
-            self.view_image(selected_image_num)
+            if not selected_image_num:
+                print("Invalid number!")
+                prompt.gallery_like_prompt(self) # Go back to while loop
+            else:
+                self.view_image(selected_image_num)
 
     @staticmethod
     def help():
@@ -996,6 +1012,7 @@ class Users(ABC):
         self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._names_cache = {}
         self._ids_cache = {}
+        self._show = True
         # Defined in _parse_user_infos():
         self._next_url: 'Dict[str, str]'
         self._ids: 'List[str]'
@@ -1004,9 +1021,12 @@ class Users(ABC):
         self._image_urls = 'List[str]'
 
     def start(self):
-        # TODO: if dir exists, show page first then parse
+        # It can't show first (including if cache is outdated),
+        # because it needs to print the right message
+        # Which means parsing is needed first
         self._parse_and_download()
-        self._show_page()
+        if self._show:
+            self._show_page()
         self._prefetch_next_page()
 
     def _parse_and_download(self):
@@ -1023,10 +1043,18 @@ class Users(ABC):
         all_names = self._names + preview_names
         splitpoint = len(self._profile_pic_urls)
 
-        if (Path(self._download_path).is_dir() and
-                len(os.listdir(self._download_path)) == splitpoint + 1):
-            return True
+        # Similar to logic in GalleryLikeMode (_init_download())...
+        if not Path(self._download_path).is_dir():
+            self._download_pbar(all_urls, preview_path, all_names, splitpoint)
 
+        elif not all_names[0] in sorted(os.listdir(self._download_path))[0]:
+            print("Cache is outdated, reloading...")
+            # Remove old images
+            os.system(f"rm -r {self._download_path}") # shutil.rmtree is better
+            self._download_pbar(all_urls, preview_path, all_names, splitpoint)
+            self._show = True
+
+    def _download_pbar(self, all_urls, preview_path, all_names, splitpoint):
         pbar = tqdm(total=len(all_urls), smoothing=0)
         async_download_core(
             preview_path,
@@ -1040,9 +1068,9 @@ class Users(ABC):
         # Move artist profile pics to their correct dir
         to_move = sorted(os.listdir(preview_path))[:splitpoint]
         with pure.cd(self._download_path):
-            for pic in to_move:
-                os.rename(f"{self._download_path}/previews/{pic}",
-                          f"{self._download_path}/{pic}")
+            [os.rename(f"{self._download_path}/previews/{pic}",
+                       f"{self._download_path}/{pic}")
+             for pic in to_move]
 
 
     @abstractmethod
@@ -1157,9 +1185,6 @@ class SearchUsers(Users):
     """
     Inherits from Users class, define self._input as the search string (user)
     Parent directory for downloads should go to search/
-    Note that pixivpy3 does not have search_user() yet (not released yet);
-    you need to install the master branch (which should be done if you used
-    the requirements.txt)
     """
     def __init__(self, user):
         self._main_path = f"{KONEKODIR}/search"
@@ -1266,22 +1291,19 @@ def async_download_core(download_path, urls, rename_images=False,
     else:
         newnames = oldnames
 
+    filtered = itertools.filterfalse(os.path.isfile, newnames)
+    helper = downloadr(pbar=pbar)
     os.makedirs(download_path, exist_ok=True)
     with pure.cd(download_path):
         with ThreadPoolExecutor(max_workers=len(urls)) as executor:
-            for (i, name) in enumerate(newnames):
-                if not os.path.isfile(name):
-                    executor.submit(
-                        downloadr, urls[i], oldnames[i], newnames[i], pbar=pbar
-                    )
-
+            executor.map(helper, urls, oldnames, filtered)
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
 def protected_download(url):
     """Protect api download function with funcy.retry so it doesn't crash"""
     API.download(url)
 
-
+@cytoolz.curry
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads one pic given one url, rename if needed."""
     protected_download(url)
@@ -1360,10 +1382,9 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
 
     Parameters
     ----------
-    post_json : JsonDict
-        description
     number_prefix : int
         The number prefixed in each image
+    post_json : JsonDict
     artist_user_id : int
     current_page_num : int
     """
@@ -1390,7 +1411,7 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
 class LastPageException(ValueError):
     pass
 
-
+# Set constant
+KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 if __name__ == "__main__":
-    KONEKODIR = "/tmp/koneko"
     main()

@@ -16,7 +16,7 @@ class IllustFollowModeLoop {
     +start()
 }
 Loop <|-down- ArtistModeLoop: inherits
-Loop <|-down- IllustFollowModeLoop: inherits
+Loop <|-down[hidden]- IllustFollowModeLoop: inherits
 
 
 abstract class GalleryLikeMode <<(A, red)>>{
