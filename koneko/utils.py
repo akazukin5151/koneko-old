@@ -166,7 +166,10 @@ def config():
         else:
             your_id = None
 
-        with open(Path("~/.config/koneko/config.ini").expanduser(), 'w') as c:
+        config_path = Path("~/.config/koneko/config.ini").expanduser()
+        config_path.parent.mkdir(exist_ok=True)
+        config_path.touch()
+        with open(config_path, 'w') as c:
             config_object.write(c)
 
         credentials = config_object["Credentials"]
