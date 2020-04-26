@@ -200,6 +200,7 @@ git clone -b master https://github.com/twenty5151/koneko.git
 git clone -b dev https://github.com/twenty5151/koneko.git
 
 # Manually install without PyPI
+# Both will correctly copy the required pictures
 cd koneko
 pip install .
 # or
