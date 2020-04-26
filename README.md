@@ -121,7 +121,7 @@ It supports all OSes that kitty supports, which means Linux and macOS. It should
 
 **Note on terminology**: [lsix](https://github.com/hackerb9/lsix/) is the name of the original shell script I used, which uses sixel. I edited it to use icat and renamed it **lscat**. Then I rewrote it with python, which is named **lscat.py**. **lscat.py is the default renderer and the fastest.**
 
-**Note on installation**: if you edit it, you'll need to install it manually (or send a PR), see [manual installation](#manual-installation) (running `python koneko.py` should work too)
+**Note on installation**: if you edit it, you'll need to install it manually (or send a PR), see [manual installation](#manual-installation)
 
 You might have problems with image positioning with lscat.py. I wrote it to fit my screen and my terminal size, so there is no functionality to adjust for different terminal size. There are also 'magic numbers' (numbers that just exist) around. If you encounter problems, there are four things you can do, in order of least to most effort:
 
@@ -152,6 +152,8 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 * Edit the files on your fork
 * Submit a pull request
 * If you want to, you can create an issue first. Ask any questions by opening a new issue.
+
+**NOTE:** running `koneko.py` with python or executing it will fail with an import error (circular import). Python imports are a mess, just install it with `pip install .` when you want to test a change
 
 ## Priorities
 (As in, what I think I need help on and what you might want to focus on, not what will only be accepted. All PRs will be considered, regardless if it's important or not)
