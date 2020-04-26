@@ -55,7 +55,6 @@ The mobile app even directly tells you Google "and our 198 partners" "collect an
 
 
 # Installation
-**Note: koneko has not been uploaded to PyPI yet (until v0.4), so at the meantime use instructions from [manual installation](#manual-installation)**
 See also: [manual installation](#manual-installation)
 
 0. Install [kitty](https://github.com/kovidgoyal/kitty)
@@ -195,7 +194,7 @@ conda remove --name koneko --all
 ```sh
 # Use the latest stable version (recommended)
 # Make sure the version number is the latest
-git clone -b 'v0.3' --depth 1 https://github.com/twenty5151/koneko.git
+git clone -b 'v0.4' --depth 1 https://github.com/twenty5151/koneko.git
 # Use the master branch for upcoming features:
 git clone -b master https://github.com/twenty5151/koneko.git
 # Use the dev branch for latest features, fixes, and instability:
