@@ -71,6 +71,7 @@ def main():
         Path("~/.local/share/koneko/pics").expanduser().mkdir(parents=True)
         os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/71471144_p0.png -o ~/.local/share/koneko/pics/71471144_p0.png")
         os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/79494300_p0.png -o ~/.local/share/koneko/pics/79494300_p0.png")
+        os.system("clear")
 
     # It'll never be changed after logging in
     global API, API_QUEUE, API_THREAD
