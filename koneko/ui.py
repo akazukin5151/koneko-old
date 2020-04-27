@@ -266,7 +266,7 @@ class ArtistGallery(AbstractGallery):
     @staticmethod
     def help():
         print("".join(
-            colors.base1 + colors.base2
+            colors.base1 + "view " + colors.base2
             + ["view ", colors.m, "anual; ",
                colors.b, "ack\n"]))
 
@@ -363,7 +363,7 @@ class IllustFollowGallery(AbstractGallery):
     def help():
         print("".join(
             colors.base1
-            + [colors.a, "rtist gallery; "]
+            + [colors.a, "view artist's illusts; "]
             + colors.base2
             + ["view ", colors.m, "anual\n"]))
 
