@@ -254,8 +254,9 @@ def user_prompt(user_class):
 
             elif user_prompt_command == "h":
                 print("".join([
-                    colors.n, "ext image; ",
-                    colors.p, "revious image; ",
+                    colors.i, "view nth artist's illusts",
+                    colors.n, "ext page; ",
+                    colors.p, "revious page; ",
                     colors.r, "eload and re-download all; ",
                     colors.q, "uit (with confirmation);\n",
                     "view ", colors.m, "anual\n"
