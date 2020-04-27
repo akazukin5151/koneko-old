@@ -316,7 +316,7 @@ class IllustFollowGallery(AbstractGallery):
 
     def go_artist_gallery_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
-        if not selected_image_num:
+        if selected_image_num is False: # 0 is valid!
             print("Invalid number!")
         else:
             self.go_artist_gallery_num(selected_image_num)
