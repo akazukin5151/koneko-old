@@ -34,8 +34,8 @@ _tlc = ["a", "o", "d"]
 
 # Public
 # {y}{x}
-coords = "".join([Fore.RED, "{", Fore.BLUE, "y", Fore.RED, "}{", Fore.BLUE,
-                  "x", Fore.RED, "}", Fore.RESET])
+coords = "".join([Fore.RED, "{", Fore.BLUE, "x", Fore.RED, "}{", Fore.BLUE,
+                  "y", Fore.RED, "}", Fore.RESET])
 
 n, p, r, q, m, b, o_, d_ = list(map(_letter, _letters))
 

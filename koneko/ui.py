@@ -362,10 +362,13 @@ class IllustFollowGallery(AbstractGallery):
     @staticmethod
     def help():
         print("".join(
-            colors.base1
-            + [colors.a, "view artist's illusts; "]
-            + colors.base2
-            + ["view ", colors.m, "anual\n"]))
+            colors.base1 + [
+            colors.a, "view artist's illusts; ",
+            colors.n, "ext page;\n",
+            colors.p, "revious page; ",
+            colors.r, "eload and re-download all; ",
+            colors.q, "uit (with confirmation); ",
+            "view ", colors.m, "anual\n"]))
 
 def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
