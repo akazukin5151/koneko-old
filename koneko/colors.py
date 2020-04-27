@@ -51,8 +51,8 @@ base1 = [
 ]
 
 base2 = [
-    n, "ext image; ",
-    p, "revious image;\n",
+    n, "ext page; ",
+    p, "revious page;\n",
     r, "eload and re-download all; ",
     q, "uit (with confirmation); ",
 ]
