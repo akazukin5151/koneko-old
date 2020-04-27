@@ -178,6 +178,7 @@ class AbstractGallery(ABC):
         ans = input("This will delete cached images and redownload them. Proceed?\n")
         if ans == "y" or not ans:
             os.system(f"rm -r {self._main_path}") # shutil.rmtree is better
+            self._all_pages_cache = {} # Ensures prefetch after reloading
             self._back()
         else:
             # After reloading, back will return to the same mode again
