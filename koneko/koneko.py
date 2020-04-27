@@ -429,10 +429,8 @@ class ArtistGalleryMode(GalleryLikeMode):
         super().__init__(current_page_num, None)
 
 
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
     def _pixivrequest(self):
-        return API.user_illusts(self._artist_user_id)
+        return artist_gallery_request(API, self._artist_user_id)
 
     def _instantiate(self):
         self.gallery = ArtistGallery(
@@ -452,10 +450,8 @@ class IllustFollowMode(GalleryLikeMode):
         self._download_path = f"{KONEKODIR}/illustfollow/{current_page_num}/"
         super().__init__(current_page_num, all_pages_cache)
 
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
     def _pixivrequest(self):
-        return API.illust_follow(restrict='private')
+        return illust_follow_request(API, restrict='private') # Publicity
 
     def _instantiate(self):
         self.gallery = IllustFollowGallery(
@@ -476,7 +472,7 @@ def view_post_mode(image_id):
     """
     print("Fetching illust details...")
     try:
-        post_json = API.illust_detail(image_id)["illust"]
+        post_json = protected_illust_detail(API, image_id)["illust"]
     except KeyError:
         print("Work has been deleted or the ID does not exist!")
         sys.exit(1)
@@ -770,7 +766,7 @@ class AbstractGallery(ABC):
         if not next_url:  # this is the last page
             raise LastPageException
 
-        parse_page = API.parse_qs(next_url)
+        parse_page = parse_next(API, next_url)
         next_page = self._pixivrequest(**parse_page)
         self._all_pages_cache[str(self._current_page_num + 1)] = next_page
         current_page_illusts = next_page["illusts"]
@@ -843,10 +839,8 @@ class ArtistGallery(AbstractGallery):
         super().__init__(current_page_illusts, current_page, current_page_num,
                          all_pages_cache)
 
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
     def _pixivrequest(self, **kwargs):
-        return API.user_illusts(**kwargs)
+        return artist_gallery_parse_next(API, **kwargs)
 
     def _back(self):
         # After user 'back's from image prompt, start mode again
@@ -922,17 +916,8 @@ class IllustFollowGallery(AbstractGallery):
         super().__init__(current_page_illusts, current_page, current_page_num,
                          all_pages_cache)
 
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
     def _pixivrequest(self, **kwargs):
-        """
-        **kwargs can be **parse_page (for _prefetch_next_page), or
-        publicity='private' (for normal)
-        """
-        if 'restrict' in kwargs:
-            return API.illust_follow(**kwargs)
-        else:
-            return API.illust_follow()
+        return illust_follow_request(API, **kwargs)
 
     def go_artist_gallery_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -1123,7 +1108,7 @@ class Users(ABC):
         oldnum = self._page_num
 
         if self._next_url:
-            self._offset = API.parse_qs(self._next_url)["offset"]
+            self._offset = parse_next(API, next_url)["offset"]
             # For when next -> prev -> next
             self._page_num = int(self._offset) // 30 + 1
             self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
@@ -1189,9 +1174,8 @@ class SearchUsers(Users):
         self._main_path = f"{KONEKODIR}/search"
         super().__init__(user)
 
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
-        return API.search_user(self._input, offset=self._offset)
+        return search_user_request(API, self._input, self._offset)
 
 
 class FollowingUsers(Users):
@@ -1205,11 +1189,9 @@ class FollowingUsers(Users):
         self._main_path = f"{KONEKODIR}/following"
         super().__init__(your_id)
 
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
-        return API.user_following(
-            self._input, restrict=self._publicity, offset=self._offset
-        )
+        return following_user_request(API, self._input, self._publicity,
+                                      self._offset)
 
 # ===============================   MODEL ====================================
 
@@ -1225,73 +1207,62 @@ def setup(out_queue, credentials):
     out_queue : queue.Queue()
         queue for storing logged-in API object. Needed for threading
     """
-    global API
     API = AppPixivAPI()
     API.login(credentials["Username"], credentials["Password"])
     out_queue.put(API)
 
 
 # API request functions for each mode
-def parse_next(next_url):
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+def parse_next(API, next_url):
+    """All modes; parse next_url for next page's json"""
     return API.parse_qs(next_url)
-
-def next_offset():
-    self._offset = API.parse_qs(self._next_url)["offset"]
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
 @pure.spinner("")
-def artist_gallery_parse_next(self, **kwargs):
+def artist_gallery_parse_next(API, **kwargs):
+    """Mode 1, feed in next page"""
     return API.user_illusts(**kwargs)
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
 @pure.spinner("")
-def artist_gallery_request(self):
-    return API.user_illusts(self._artist_user_id)
-
-def view_post_request(image_id):
-    return API.illust_detail(image_id)["illust"]
+def artist_gallery_request(API, artist_user_id):
+    """Mode 1, normal usage"""
+    return API.user_illusts(artist_user_id)
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-def search_user_request(self):
-    return API.search_user(self._input, offset=self._offset)
+def search_user_request(API, searchstr, offset):
+    """Mode 3"""
+    return API.search_user(searchstr, offset=offset)
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-def following_user_request(self):
-    return API.user_following(
-        self._input, restrict=self._publicity, offset=self._offset
-    )
+def following_user_request(API, user_id, publicity, offset):
+    """Mode 4"""
+    return API.user_following(user_id, restrict=publicity, offset=offset)
 
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
 @pure.spinner("")
-def illust_follow_parse_next(self, **kwargs):
-    """
-    **kwargs can be **parse_page (for _prefetch_next_page), or
+def illust_follow_request(API, **kwargs):
+    """Mode 5
+    **kwargs can be **parse_page (for _prefetch_next_page), but also contain
     publicity='private' (for normal)
     """
-    if 'restrict' in kwargs:
-        return API.illust_follow(**kwargs)
-    else:
-        return API.illust_follow()
-
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-@pure.spinner("")
-def illust_follow_request(self):
-    return API.illust_follow(restrict='private')
+    return API.illust_follow(**kwargs)
 
 
 # Requests used by mode 2
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-def protected_illust_detail(image_id):
+def protected_illust_detail(API, image_id):
     return API.illust_detail(image_id)
 
 @pure.spinner("Getting full image details... ")
-def full_img_details(png=False, post_json=None, image_id=None):
+def full_img_details(API, png=False, post_json=None, image_id=None):
     """
     All in one function that gets the full-resolution url, filename, and
     filepath of given image id. Or it can get the id given the post json
     """
     if image_id and not post_json:
-        current_image = protected_illust_detail(image_id)
+        current_image = protected_illust_detail(API, image_id)
 
         post_json = current_image.illust
 
