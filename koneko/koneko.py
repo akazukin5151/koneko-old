@@ -614,6 +614,7 @@ def async_download_core(download_path, urls, rename_images=False,
         newnames = oldnames
 
     filtered = itertools.filterfalse(os.path.isfile, newnames)
+    oldnames = itertools.filterfalse(os.path.isfile, oldnames)
     helper = downloadr(pbar=pbar)
     os.makedirs(download_path, exist_ok=True)
     with pure.cd(download_path):
