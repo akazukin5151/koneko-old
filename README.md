@@ -362,6 +362,8 @@ Nine trackers in the Android app, according to [exodus](https://reports.exodus-p
 
 Advertisers from pixiv's [privacy policy](https://policies.pixiv.net/en.html#booth):
 
+* Looker
+* Repro
 * Qualaroo
 * DDAI（Date Driven Advertising Initiative）
 * YourAdChoices

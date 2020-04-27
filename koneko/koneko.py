@@ -152,25 +152,25 @@ def main_loop(_API, prompted, main_command, user_input, your_id=None):
             main_command = utils.begin_prompt(printmessage)
 
         if main_command == "1":
-            Artistuioop(prompted, user_input).start(_API)
+            ArtistModeLoop(prompted, user_input).start(_API)
 
         elif main_command == "2":
-            ViewPostuioop(prompted, user_input).start(_API)
+            ViewPostModeLoop(prompted, user_input).start(_API)
 
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
                 if ans in {"y", ""}:
-                    FollowingUseruioop(prompted, your_id).start(_API)
+                    FollowingUserModeLoop(prompted, your_id).start(_API)
 
             # If your_id not stored, or if ans is no, ask for your_id
-            FollowingUseruioop(prompted, user_input).start(_API)
+            FollowingUserModeLoop(prompted, user_input).start(_API)
 
         elif main_command == "4":
-            SearchUsersuioop(prompted, user_input).start(_API)
+            SearchUsersModeLoop(prompted, user_input).start(_API)
 
         elif main_command == "5":
-            IllustFollowuioop().start(_API)
+            IllustFollowModeLoop().start(_API)
 
         elif main_command == "?":
             utils.info_screen_loop()
@@ -253,7 +253,7 @@ class Loop(ABC):
         raise NotImplementedError
 
 
-class Artistuioop(Loop):
+class ArtistModeLoop(Loop):
     """
     Ask for artist ID and process it, wait for API to finish logging in
     before proceeding
@@ -267,7 +267,7 @@ class Artistuioop(Loop):
         main()
 
 
-class ViewPostuioop(Loop):
+class ViewPostModeLoop(Loop):
     """
     Ask for post ID and process it, wait for API to finish logging in
     before proceeding
@@ -290,7 +290,7 @@ class ViewPostuioop(Loop):
         self.mode = view_post_mode(self._user_input)
 
 
-class SearchUsersuioop(Loop):
+class SearchUsersModeLoop(Loop):
     """
     Ask for search string and process it, wait for API to finish logging in
     before proceeding
@@ -314,7 +314,7 @@ class SearchUsersuioop(Loop):
         prompt.user_prompt(self.mode)
 
 
-class FollowingUseruioop(Loop):
+class FollowingUserModeLoop(Loop):
     """
     Ask for pixiv ID or url and process it, wait for API to finish logging in
     before proceeding
@@ -329,7 +329,7 @@ class FollowingUseruioop(Loop):
         self.mode.start()
         prompt.user_prompt(self.mode)
 
-class IllustFollowuioop:
+class IllustFollowModeLoop:
     """Immediately goes to IllustFollow()"""
     def start(self, _API):
         API_QUEUE, API_THREAD = _API
