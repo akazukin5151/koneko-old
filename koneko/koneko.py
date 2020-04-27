@@ -61,7 +61,7 @@ from koneko import utils
 from koneko import prompt
 from koneko import colors
 
-
+# =============================   CONTROLLER =================================
 def main():
     """Read config file, start login, process any cli arguments, go to main loop"""
     os.system("clear")
@@ -195,7 +195,7 @@ def main_loop(prompted, main_command, user_input, your_id=None):
             continue
 
 
-#- Loop classes ==========================================================
+#- Loop classes
 class Loop(ABC):
     """Ask for details relevant to mode then go to mode
     prompt user for details, if no command line arguments supplied
@@ -343,8 +343,6 @@ class IllustFollowModeLoop:
     def _go_to_mode(self):
         self.mode = IllustFollowMode()
 
-# - Loop classes ==========================================================
-
 # - Mode classes
 class GalleryLikeMode(ABC):
     def __init__(self, current_page_num=1, all_pages_cache=None):
@@ -468,7 +466,6 @@ class IllustFollowMode(GalleryLikeMode):
         # After backing
         main()
 
-# - Mode and loop functions (some interactive and some not)
 def view_post_mode(image_id):
     """
     Fetch all the illust info, download it in the correct directory, then display it.
@@ -515,10 +512,10 @@ def view_post_mode(image_id):
 
     image = Image(image_id, artist_user_id, 1, True, multi_image_info)
     prompt.image_prompt(image)
-# - Mode and loop functions (some interactive and some not)
+# =============================   CONTROLLER =================================
 
 
-# - Interactive functions (frontend)
+# ===============================   MODEL ====================================
 class Image:
     """
     Image view commands (No need to press enter):
@@ -1212,11 +1209,11 @@ class FollowingUsers(Users):
             self._input, restrict=self._publicity, offset=self._offset
         )
 
-# - End interactive (frontend) functions
+# ===============================   MODEL ====================================
 
 
 
-# - API FUNCTIONS ======================================================
+# ================================   API  ====================================
 def setup(out_queue, credentials):
     """
     Logins to pixiv in the background, using credentials from config file.
@@ -1232,16 +1229,58 @@ def setup(out_queue, credentials):
     out_queue.put(API)
 
 
-# - Uses web requests, impure
-@pure.spinner("Fetching user illustrations... ")
-def user_illusts_spinner(artist_user_id):
-    return API.user_illusts(artist_user_id)
+# API request functions for each mode
+def parse_next(next_url):
+    return API.parse_qs(next_url)
+
+def next_offset():
+    self._offset = API.parse_qs(self._next_url)["offset"]
+
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+@pure.spinner("")
+def artist_gallery_parse_next(self, **kwargs):
+    return API.user_illusts(**kwargs)
+
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+@pure.spinner("")
+def artist_gallery_request(self):
+    return API.user_illusts(self._artist_user_id)
+
+def view_post_request(image_id):
+    return API.illust_detail(image_id)["illust"]
+
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+def search_user_request(self):
+    return API.search_user(self._input, offset=self._offset)
+
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+def following_user_request(self):
+    return API.user_following(
+        self._input, restrict=self._publicity, offset=self._offset
+    )
+
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+@pure.spinner("")
+def illust_follow_parse_next(self, **kwargs):
+    """
+    **kwargs can be **parse_page (for _prefetch_next_page), or
+    publicity='private' (for normal)
+    """
+    if 'restrict' in kwargs:
+        return API.illust_follow(**kwargs)
+    else:
+        return API.illust_follow()
+
+@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+@pure.spinner("")
+def illust_follow_request(self):
+    return API.illust_follow(restrict='private')
 
 
+# Requests used by mode 2
 @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
 def protected_illust_detail(image_id):
     return API.illust_detail(image_id)
-
 
 @pure.spinner("Getting full image details... ")
 def full_img_details(png=False, post_json=None, image_id=None):
@@ -1259,11 +1298,8 @@ def full_img_details(png=False, post_json=None, image_id=None):
     filepath = pure.generate_filepath(filename)
     return url, filename, filepath
 
-# - API FUNCTIONS ======================================================
 
-
-
-# - DOWNLOAD FUNCTIONS ==================================================
+# - DOWNLOAD FUNCTIONS
 # - For batch downloading multiple images (all 5 functions related)
 @pure.spinner("")
 def async_download_spinner(download_path, urls, rename_images=False,
