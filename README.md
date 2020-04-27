@@ -173,8 +173,6 @@ Simplified UML diagram of the classes:
 ## Conda environment
 
 ```sh
-git clone -b 'v0.4' --depth 1 https://github.com/twenty5151/koneko.git
-
 conda create -n koneko
 conda activate koneko
 conda env list                  # make sure you're in the correct environment...
