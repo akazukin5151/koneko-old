@@ -13,6 +13,7 @@ from koneko import lscat
 from koneko import colors
 from koneko import utils
 from koneko import prompt
+from koneko import download
 
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 
@@ -74,7 +75,7 @@ class AbstractGallery(ABC):
         self._current_page = self._all_pages_cache[str(self._current_page_num)]
         self._current_page_illusts = self._current_page["illusts"]
         post_json = self._current_page_illusts[number]
-        koneko.download_image_verified(post_json=post_json)
+        download.download_image_verified(post_json=post_json)
 
     def view_image(self, selected_image_num):
         self._selected_image_num = selected_image_num
@@ -169,7 +170,7 @@ class AbstractGallery(ABC):
         download_path = f"{self._main_path}/{self._current_page_num+1}/"
         if not Path(download_path).is_dir():
             pbar = tqdm(total=len(current_page_illusts), smoothing=0)
-            koneko.download_page(
+            download.download_page(
                 current_page_illusts, download_path, pbar=pbar
             )
             pbar.close()
@@ -394,7 +395,7 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     url = pure.url_given_size(post_json, "large")
     filename = pure.split_backslash_last(url)
     large_dir = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/large/"
-    koneko.download_core(large_dir, url, filename)
+    download.download_core(large_dir, url, filename)
 
     # BLOCKING: imput is blocking, will not display large image until input
     # received
@@ -446,7 +447,7 @@ class Image:
         large_url = pure.change_url_to_full(url=current_url)
         filename = pure.split_backslash_last(large_url)
         filepath = pure.generate_filepath(filename)
-        koneko.download_image_verified(url=large_url, filename=filename,
+        download.download_image_verified(url=large_url, filename=filename,
                                        filepath=filepath)
 
     def next_image(self):
@@ -474,7 +475,7 @@ class Image:
             self._downloaded_images = map(pure.split_backslash_last,
                                           self._page_urls[:2])
             self._downloaded_images = list(self._downloaded_images)
-            koneko.async_download_spinner(self._download_path, [url])
+            download.async_download_spinner(self._download_path, [url])
 
         utils.display_image_vp("".join([
             self._download_path,
@@ -490,7 +491,7 @@ class Image:
             self._downloaded_images.append(
                 pure.split_backslash_last(next_img_url)
             )
-            koneko.async_download_spinner(self._download_path, [next_img_url])
+            download.async_download_spinner(self._download_path, [next_img_url])
 
         print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
 
@@ -582,7 +583,7 @@ class Users(ABC):
 
     def _download_pbar(self, all_urls, preview_path, all_names, splitpoint):
         pbar = tqdm(total=len(all_urls), smoothing=0)
-        koneko.async_download_core(
+        download.async_download_core(
             preview_path,
             all_urls,
             rename_images=True,
