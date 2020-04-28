@@ -64,13 +64,6 @@ from koneko import ui
 
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 
-def start_api_thread(credentials):
-    API_QUEUE = queue.Queue()
-    API_THREAD = threading.Thread(target=setup, args=(API_QUEUE, credentials))
-    API_THREAD.start()  # Start logging in
-    _API = (API_QUEUE, API_THREAD)
-    return _API
-
 def main():
     """Read config file, start login, process any cli arguments, go to main loop"""
     os.system("clear")
@@ -83,7 +76,8 @@ def main():
         os.system("clear")
 
     # It'll never be changed after logging in
-    _API = start_api_thread(credentials)
+    _API = APIHandler(credentials)
+    _API.start()
 
     # During this part, the API can still be logging in but we can proceed
     args = docopt(__doc__)
@@ -213,7 +207,6 @@ class Loop(ABC):
 
     def start(self, _API):
         """Ask for further info if not provided; wait for log in then proceed"""
-        API_QUEUE, API_THREAD = _API
         while True:
             if self._prompted and not self._user_input:
                 self._prompt_url_id()
@@ -222,10 +215,7 @@ class Loop(ABC):
                 self._process_url_or_input()
                 self._validate_input()
 
-            API_THREAD.join()  # Wait for API to finish
-            global API
-            API = API_QUEUE.get()  # Assign API to PixivAPI object
-
+            _API.await_login()
             self._go_to_mode()
 
     @abstractmethod
@@ -332,12 +322,8 @@ class FollowingUserModeLoop(Loop):
 class IllustFollowModeLoop:
     """Immediately goes to IllustFollow()"""
     def start(self, _API):
-        API_QUEUE, API_THREAD = _API
         while True:
-            API_THREAD.join()  # Wait for API to finish
-            global API
-            API = API_QUEUE.get()  # Assign API to PixivAPI object
-
+            _API.await_login()
             self._go_to_mode()
 
     def _go_to_mode(self):
@@ -511,18 +497,29 @@ def view_post_mode(image_id):
 
 
 # ================================   API  ====================================
-def setup(out_queue, credentials):
-    """
-    Logins to pixiv in the background, using credentials from config file.
+class APIHandler:
+    def __init__(self, credentials):
+        self._credentials = credentials
+        self.API_QUEUE = queue.Queue()
+        self.API_THREAD = threading.Thread(target=self.login)
 
-    Parameters
-    ----------
-    out_queue : queue.Queue()
-        queue for storing logged-in API object. Needed for threading
-    """
-    API = AppPixivAPI()
-    API.login(credentials["Username"], credentials["Password"])
-    out_queue.put(API)
+    def start(self):
+        """Start logging in"""
+        self.API_THREAD.start()
+
+    def await_login(self):
+        """Wait for login to finish, then assign PixivAPI session to API"""
+        self.API_THREAD.join()
+        global API
+        API = self.API_QUEUE.get()
+
+    def login(self):
+        """
+        Logins to pixiv in the background, using credentials from config file.
+        """
+        api = AppPixivAPI()
+        api.login(self._credentials["Username"], self._credentials["Password"])
+        self.API_QUEUE.put(api)
 
 
 # API request functions for each mode
