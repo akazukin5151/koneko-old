@@ -9,7 +9,7 @@ import pixcat
 
 from koneko import pure
 from koneko import lscat
-from koneko import koneko
+from koneko import main
 
 KONEKODIR = Path("~/.local/share/koneko/pics").expanduser()
 
@@ -34,10 +34,8 @@ def show_artist_illusts(path, renderer="lscat", **kwargs):
         if renderer == "lscat":
             lscat.Gallery(path, **kwargs).render()
         elif renderer == "lscat old":
-            from pathlib import Path
             os.system(f"{Path(lscat_path).parent}/legacy/lscat")
         elif renderer == "lsix":
-            from pathlib import Path
             os.system(f"{Path(lscat_path).parent}/legacy/lsix")
 
 
@@ -78,15 +76,15 @@ def artist_user_id_prompt():
 @pure.catch_ctrl_c
 def show_man_loop():
     os.system("clear")
-    print(koneko.__doc__)
+    print(main.__doc__)
     print(" " * 3, "=" * 30)
-    print(koneko.ArtistGallery.__doc__)
+    print(main.ArtistGallery.__doc__)
     print(" " * 3, "=" * 30)
-    print(koneko.Image.__doc__)
+    print(main.Image.__doc__)
     print(" " * 3, "=" * 30)
-    print(koneko.Users.__doc__)
+    print(main.Users.__doc__)
     print(" " * 3, "=" * 30)
-    print(koneko.IllustFollowGallery.__doc__)
+    print(main.IllustFollowGallery.__doc__)
     while True:
         help_command = input("\n\nEnter any key to return: ")
         if help_command or help_command == "":

@@ -10,49 +10,50 @@ def _letter(letter):
     """
     return "".join([Fore.RED, "[", Fore.MAGENTA, letter, Fore.RED, "]", Fore.RESET])
 
+_blue_n = "".join([Fore.RED, "[", Fore.BLUE, "n", Fore.RED, "]"])
+
 def _letter_with_coords(letter):
     """ letter is magenta, n is blue, [] is red
     >>> _letter_with_coords("i")
     ... [i][n]
     """
-    return "".join([Fore.RED, "[", Fore.MAGENTA, letter, Fore.RED, "][",
-                    Fore.BLUE, "n", Fore.RED, "]", Fore.RESET])
+    return "".join([Fore.RED, "[", Fore.MAGENTA, letter, Fore.RED, "]",
+                    _blue_n, Fore.RESET])
 
 def _two_letter_with_coords(letter):
     """ [] and {} is red, | is black, o and O is magenta, y and x is blue
     >>> _two_letter_with_coords("o")
-    ... [o|O]{y}{x}
+    ... [o{y}{x}|O[n]]
     """
-    return "".join([Fore.RED, "[", Fore.MAGENTA, letter.lower(), Fore.RESET, "|",
-                    Fore.MAGENTA, letter.upper(), Fore.RED, "]", coords, Fore.RESET])
+    return "".join([Fore.RED, "[", Fore.MAGENTA, letter.lower(), Fore.RESET, coords, "|",
+                    Fore.MAGENTA, letter.upper(), _blue_n, Fore.RED, "]", Fore.RESET])
 
 
-_letters = ["a", "n", "p", "r", "q", "m", "b", "o", "d"]
-_tlc = ["o", "d"]
+_letters = ["n", "p", "r", "q", "m", "b", "o", "d"]
+_tlc = ["a", "o", "d"]
 
 # Public
 # {y}{x}
-coords = "".join([Fore.RED, "{", Fore.BLUE, "y", Fore.RED, "}{", Fore.BLUE,
-                  "x", Fore.RED, "}", Fore.RESET])
+coords = "".join([Fore.RED, "{", Fore.BLUE, "x", Fore.RED, "}{", Fore.BLUE,
+                  "y", Fore.RED, "}", Fore.RESET])
 
-a, n, p, r, q, m, b, o_, d_ = list(map(_letter, _letters))
+n, p, r, q, m, b, o_, d_ = list(map(_letter, _letters))
 
 i = _letter_with_coords("i")
 
-
-o, d = list(map(_two_letter_with_coords, _tlc))
+a, o, d = list(map(_two_letter_with_coords, _tlc))
 
 # For galleries
 base1 = [
     coords, " view image at (x, y); ",
     i, " view nth image; ",
     d, " download image;\n",
-    o, " open image in browser; view "
+    o, " open image in browser; "
 ]
 
 base2 = [
-    n, "ext image; ",
-    p, "revious image;\n",
+    n, "ext page; ",
+    p, "revious page;\n",
     r, "eload and re-download all; ",
     q, "uit (with confirmation); ",
 ]
