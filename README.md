@@ -106,6 +106,7 @@ For more details refer to the [manual](#manual).
 
 ## Structure and maintenence
 
+* APIHandler can be instantiated in api.py and modules should refer to that instance
 * Re-write AbstractGallery in the style and form of Users (and merging GalleryLikeMode(s) into it). Might be even possible to pull out a more abstract core.
 
 # FAQ

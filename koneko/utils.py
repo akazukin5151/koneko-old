@@ -34,10 +34,8 @@ def show_artist_illusts(path, renderer="lscat", **kwargs):
         if renderer == "lscat":
             lscat.Gallery(path, **kwargs).render()
         elif renderer == "lscat old":
-            from pathlib import Path
             os.system(f"{Path(lscat_path).parent}/legacy/lscat")
         elif renderer == "lsix":
-            from pathlib import Path
             os.system(f"{Path(lscat_path).parent}/legacy/lsix")
 
 

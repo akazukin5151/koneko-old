@@ -107,7 +107,7 @@ class AbstractGallery(ABC):
         }
 
         image = Image(image_id, artist_user_id, self._current_page_num,
-                             False, multi_image_info)
+                      False, multi_image_info)
         prompt.image_prompt(image)
 
         # Image prompt ends, user presses back
@@ -242,8 +242,8 @@ class ArtistGallery(AbstractGallery):
     def _back(self):
         # After user 'back's from image prompt, start mode again
         main.ArtistGalleryMode(self._artist_user_id, self._current_page_num,
-                                 all_pages_cache=self._all_pages_cache,
-                                 current_page=self._current_page)
+                               all_pages_cache=self._all_pages_cache,
+                               current_page=self._current_page)
 
     def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
                       first_num, second_num):
@@ -363,8 +363,7 @@ class IllustFollowGallery(AbstractGallery):
 
     @staticmethod
     def help():
-        print("".join(
-            colors.base1 + [
+        print("".join(colors.base1 + [
             colors.a, "view artist's illusts; ",
             colors.n, "ext page;\n",
             colors.p, "revious page; ",
@@ -448,7 +447,7 @@ class Image:
         filename = pure.split_backslash_last(large_url)
         filepath = pure.generate_filepath(filename)
         download.download_image_verified(url=large_url, filename=filename,
-                                       filepath=filepath)
+                                         filepath=filepath)
 
     def next_image(self):
         if not self._page_urls:
