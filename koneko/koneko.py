@@ -42,26 +42,25 @@ import os
 import re
 import sys
 import time
-import queue
 import itertools
-import threading
 from pathlib import Path
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 
-import funcy
 import cytoolz
 from tqdm import tqdm
 from docopt import docopt
-from pixivpy3 import PixivError, AppPixivAPI
 
 from koneko import pure
-from koneko import lscat
 from koneko import utils
 from koneko import prompt
-from koneko import colors
 from koneko import ui
+from koneko import api
 
+
+# Pseudo-global as all functions rely on this value's closure
+# Note: _single underscore doesn't mean it's private here ... just 'special'
+_API = api.APIHandler()
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 
 def main():
@@ -75,7 +74,6 @@ def main():
         os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/79494300_p0.png -o ~/.local/share/koneko/pics/79494300_p0.png")
         os.system("clear")
 
-    # It'll never be changed after logging in
     _API.add_credentials(credentials)
     _API.start()
 
@@ -369,7 +367,6 @@ class GalleryLikeMode(ABC):
         self._instantiate()
 
     @abstractmethod
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
     def _pixivrequest(self):
         raise NotImplementedError
 
@@ -497,85 +494,7 @@ def view_post_mode(image_id):
     prompt.image_prompt(image)
 
 
-# ================================   API  ====================================
-class APIHandler:
-    def __init__(self):
-        self.API_QUEUE = queue.Queue()
-        self.API_THREAD = threading.Thread(target=self._login)
-        self._credentials: 'Dict'
-        self.API: 'AppPixivAPI()'
-
-    def add_credentials(self, credentials):
-        self._credentials = credentials
-
-    def start(self):
-        """Start logging in"""
-        self.API_THREAD.start()
-
-    def await_login(self):
-        """Wait for login to finish, then assign PixivAPI session to API"""
-        self.API_THREAD.join()
-        self.API = self.API_QUEUE.get()
-
-    def _login(self):
-        """
-        Logins to pixiv in the background, using credentials from config file.
-        """
-        api = AppPixivAPI()
-        api.login(self._credentials["Username"], self._credentials["Password"])
-        self.API_QUEUE.put(api)
-
-
-    # API request functions for each mode
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    def parse_next(self, next_url):
-        """All modes; parse next_url for next page's json"""
-        return self.API.parse_qs(next_url)
-
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
-    def artist_gallery_parse_next(self, **kwargs):
-        """Mode 1, feed in next page"""
-        return self.API.user_illusts(**kwargs)
-
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
-    def artist_gallery_request(self, artist_user_id):
-        """Mode 1, normal usage"""
-        return self.API.user_illusts(artist_user_id)
-
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    def protected_illust_detail(self, image_id):
-        """Mode 2"""
-        return self.API.illust_detail(image_id)
-
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    def search_user_request(self, searchstr, offset):
-        """Mode 3"""
-        return self.API.search_user(searchstr, offset=offset)
-
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    def following_user_request(self, user_id, publicity, offset):
-        """Mode 4"""
-        return self.API.user_following(user_id, restrict=publicity, offset=offset)
-
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
-    def illust_follow_request(self, **kwargs):
-        """Mode 5
-        **kwargs can be **parse_page (for _prefetch_next_page), but also contain
-        publicity='private' (for normal)
-        """
-        return self.API.illust_follow(**kwargs)
-
-    # Download
-    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    def protected_download(self, url):
-        """Protect api download function with funcy.retry so it doesn't crash"""
-        self.API.download(url)
-
-
-# - DOWNLOAD FUNCTIONS
+# =============================   DOWNLOAD  ==================================
 # - For batch downloading multiple images (all 4 functions related)
 @pure.spinner("")
 def async_download_spinner(download_path, urls, rename_images=False,
@@ -696,8 +615,6 @@ def full_img_details(png=False, post_json=None, image_id=None):
     filepath = pure.generate_filepath(filename)
     return url, filename, filepath
 
-
-_API = APIHandler()
 
 if __name__ == "__main__":
     main()
