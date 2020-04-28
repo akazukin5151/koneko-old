@@ -94,7 +94,6 @@ For more details refer to the [manual](#manual).
 
 ## Features
 
-* Colored multi-image indicator in gallery view
 * For multi-image posts in image view, enter a number to jump to the post's page
 * Image view should preview the next few images in multi-image posts (but either it blocks the prompt or the prompt blocks)
 * Image and User views should use lscat.py to render so alternate renderers can be used
@@ -109,7 +108,7 @@ For more details refer to the [manual](#manual).
 * Pixiv keeps emailing me saying I've logged in, every time I use this app!
 
 That's because cookies aren't stored so you log in everytime with a new session. Looking at [PixivUtil's cookie implementation](https://github.com/Nandaka/PixivUtil2/blob/master/PixivBrowserFactory.py), it would be easier to base this app on PixivUtil for downloads, than to write it myself (currently, it's based on the [pixivpy](https://github.com/upbit/pixivpy/) api). The problems with this, other than being a huge time and effort investment, is that koneko uses info from the requests, such as number of pages.
-I should probably fix this
+I'd like to fix this but I'd rather not use mechanize but I don't know how to do it either way.
 
 * What operating systems does it support?
 

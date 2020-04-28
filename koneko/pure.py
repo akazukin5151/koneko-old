@@ -12,6 +12,7 @@ from contextlib import contextmanager
 import funcy
 import cytoolz
 
+from colorama import Fore
 
 @contextmanager
 def cd(newdir):
@@ -93,7 +94,10 @@ def find_number_map(x, y):
 
 
 def print_multiple_imgs(illusts_json):
-    [print(f"#{index} has {pages} pages", end=", ")
+    _red = Fore.RED
+    _r = Fore.RESET
+    _blue = Fore.BLUE
+    [print(f"{_red}#{index}{_r} has {_blue}{pages}{_r} pages", end=", ")
      for (index, json) in enumerate(illusts_json)
      if (pages := json["page_count"]) > 1]
     print("")
