@@ -161,7 +161,7 @@ class AbstractGallery(ABC):
         if not next_url:  # this is the last page
             raise LastPageException
 
-        parse_page = koneko.parse_next(next_url)
+        parse_page = koneko._API.parse_next(next_url)
         next_page = self._pixivrequest(**parse_page)
         self._all_pages_cache[str(self._current_page_num + 1)] = next_page
         current_page_illusts = next_page["illusts"]
@@ -236,7 +236,7 @@ class ArtistGallery(AbstractGallery):
                          all_pages_cache)
 
     def _pixivrequest(self, **kwargs):
-        return koneko.artist_gallery_parse_next(**kwargs)
+        return koneko._API.artist_gallery_parse_next(**kwargs)
 
     def _back(self):
         # After user 'back's from image prompt, start mode again
@@ -313,7 +313,7 @@ class IllustFollowGallery(AbstractGallery):
                          all_pages_cache)
 
     def _pixivrequest(self, **kwargs):
-        return koneko.illust_follow_request(**kwargs)
+        return koneko._API.illust_follow_request(**kwargs)
 
     def go_artist_gallery_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -649,7 +649,7 @@ class Users(ABC):
         oldnum = self._page_num
 
         if self._next_url:
-            self._offset = koneko.parse_next(self._next_url)["offset"]
+            self._offset = koneko._API.parse_next(self._next_url)["offset"]
             # For when next -> prev -> next
             self._page_num = int(self._offset) // 30 + 1
             self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
@@ -716,7 +716,7 @@ class SearchUsers(Users):
         super().__init__(user)
 
     def _pixivrequest(self):
-        return koneko.search_user_request(self._input, self._offset)
+        return koneko._API.search_user_request(self._input, self._offset)
 
 class FollowingUsers(Users):
     """
@@ -730,4 +730,4 @@ class FollowingUsers(Users):
         super().__init__(your_id)
 
     def _pixivrequest(self):
-        return koneko.following_user_request(self._input, self._publicity, self._offset)
+        return koneko._API.following_user_request(self._input, self._publicity, self._offset)
