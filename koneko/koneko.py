@@ -76,7 +76,7 @@ def main():
         os.system("clear")
 
     # It'll never be changed after logging in
-    _API = APIHandler(credentials)
+    _API.add_credentials(credentials)
     _API.start()
 
     # During this part, the API can still be logging in but we can proceed
@@ -123,11 +123,11 @@ def main():
         main_command = "4"
 
     try:
-        main_loop(_API, prompted, main_command, user_input, your_id)
+        main_loop(prompted, main_command, user_input, your_id)
     except KeyboardInterrupt:
         main()
 
-def main_loop(_API, prompted, main_command, user_input, your_id=None):
+def main_loop(prompted, main_command, user_input, your_id=None):
     """
     Ask for mode selection, if no command line arguments supplied
     call the right function depending on the mode
@@ -146,25 +146,25 @@ def main_loop(_API, prompted, main_command, user_input, your_id=None):
             main_command = utils.begin_prompt(printmessage)
 
         if main_command == "1":
-            ArtistModeLoop(prompted, user_input).start(_API)
+            ArtistModeLoop(prompted, user_input).start()
 
         elif main_command == "2":
-            ViewPostModeLoop(prompted, user_input).start(_API)
+            ViewPostModeLoop(prompted, user_input).start()
 
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
                 if ans in {"y", ""}:
-                    FollowingUserModeLoop(prompted, your_id).start(_API)
+                    FollowingUserModeLoop(prompted, your_id).start()
 
             # If your_id not stored, or if ans is no, ask for your_id
-            FollowingUserModeLoop(prompted, user_input).start(_API)
+            FollowingUserModeLoop(prompted, user_input).start()
 
         elif main_command == "4":
-            SearchUsersModeLoop(prompted, user_input).start(_API)
+            SearchUsersModeLoop(prompted, user_input).start()
 
         elif main_command == "5":
-            IllustFollowModeLoop().start(_API)
+            IllustFollowModeLoop().start()
 
         elif main_command == "?":
             utils.info_screen_loop()
@@ -205,7 +205,7 @@ class Loop(ABC):
         self._url_or_id: str
         self.mode: Any
 
-    def start(self, _API):
+    def start(self):
         """Ask for further info if not provided; wait for log in then proceed"""
         while True:
             if self._prompted and not self._user_input:
@@ -321,7 +321,7 @@ class FollowingUserModeLoop(Loop):
 
 class IllustFollowModeLoop:
     """Immediately goes to IllustFollow()"""
-    def start(self, _API):
+    def start(self):
         while True:
             _API.await_login()
             self._go_to_mode()
@@ -414,7 +414,7 @@ class ArtistGalleryMode(GalleryLikeMode):
 
 
     def _pixivrequest(self):
-        return artist_gallery_request(self._artist_user_id)
+        return _API.artist_gallery_request(self._artist_user_id)
 
     def _instantiate(self):
         self.gallery = ui.ArtistGallery(
@@ -435,7 +435,7 @@ class IllustFollowMode(GalleryLikeMode):
         super().__init__(current_page_num, all_pages_cache)
 
     def _pixivrequest(self):
-        return illust_follow_request(restrict='private') # Publicity
+        return _API.illust_follow_request(restrict='private') # Publicity
 
     def _instantiate(self):
         self.gallery = ui.IllustFollowGallery(
@@ -456,7 +456,7 @@ def view_post_mode(image_id):
     """
     print("Fetching illust details...")
     try:
-        post_json = protected_illust_detail(image_id)["illust"]
+        post_json = _API.protected_illust_detail(image_id)["illust"]
     except KeyError:
         print("Work has been deleted or the ID does not exist!")
         sys.exit(1)
@@ -498,10 +498,14 @@ def view_post_mode(image_id):
 
 # ================================   API  ====================================
 class APIHandler:
-    def __init__(self, credentials):
-        self._credentials = credentials
+    def __init__(self):
         self.API_QUEUE = queue.Queue()
-        self.API_THREAD = threading.Thread(target=self.login)
+        self.API_THREAD = threading.Thread(target=self._login)
+        self._credentials: 'Dict'
+        self.API: 'AppPixivAPI()'
+
+    def add_credentials(self, credentials):
+        self._credentials = credentials
 
     def start(self):
         """Start logging in"""
@@ -512,8 +516,9 @@ class APIHandler:
         self.API_THREAD.join()
         global API
         API = self.API_QUEUE.get()
+        self.API = API
 
-    def login(self):
+    def _login(self):
         """
         Logins to pixiv in the background, using credentials from config file.
         """
@@ -522,64 +527,47 @@ class APIHandler:
         self.API_QUEUE.put(api)
 
 
-# API request functions for each mode
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-def parse_next(next_url):
-    """All modes; parse next_url for next page's json"""
-    return API.parse_qs(next_url)
+    # API request functions for each mode
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    def parse_next(self, next_url):
+        """All modes; parse next_url for next page's json"""
+        return self.API.parse_qs(next_url)
 
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-@pure.spinner("")
-def artist_gallery_parse_next(**kwargs):
-    """Mode 1, feed in next page"""
-    return API.user_illusts(**kwargs)
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
+    def artist_gallery_parse_next(self, **kwargs):
+        """Mode 1, feed in next page"""
+        return self.API.user_illusts(**kwargs)
 
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-@pure.spinner("")
-def artist_gallery_request(artist_user_id):
-    """Mode 1, normal usage"""
-    return API.user_illusts(artist_user_id)
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
+    def artist_gallery_request(self, artist_user_id):
+        """Mode 1, normal usage"""
+        return self.API.user_illusts(artist_user_id)
 
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-def search_user_request(searchstr, offset):
-    """Mode 3"""
-    return API.search_user(searchstr, offset=offset)
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    def protected_illust_detail(self, image_id):
+        """Mode 2"""
+        return self.API.illust_detail(image_id)
 
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-def following_user_request(user_id, publicity, offset):
-    """Mode 4"""
-    return API.user_following(user_id, restrict=publicity, offset=offset)
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    def search_user_request(self, searchstr, offset):
+        """Mode 3"""
+        return self.API.search_user(searchstr, offset=offset)
 
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-@pure.spinner("")
-def illust_follow_request(**kwargs):
-    """Mode 5
-    **kwargs can be **parse_page (for _prefetch_next_page), but also contain
-    publicity='private' (for normal)
-    """
-    return API.illust_follow(**kwargs)
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    def following_user_request(self, user_id, publicity, offset):
+        """Mode 4"""
+        return self.API.user_following(user_id, restrict=publicity, offset=offset)
 
-
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-def protected_illust_detail(image_id):
-    """Mode 2"""
-    return API.illust_detail(image_id)
-
-@pure.spinner("Getting full image details... ")
-def full_img_details(png=False, post_json=None, image_id=None):
-    """
-    All in one function that gets the full-resolution url, filename, and
-    filepath of given image id. Or it can get the id given the post json
-    """
-    if image_id and not post_json:
-        current_image = protected_illust_detail(image_id)
-
-        post_json = current_image.illust
-
-    url = pure.change_url_to_full(post_json=post_json, png=png)
-    filename = pure.split_backslash_last(url)
-    filepath = pure.generate_filepath(filename)
-    return url, filename, filepath
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    @pure.spinner("")
+    def illust_follow_request(self, **kwargs):
+        """Mode 5
+        **kwargs can be **parse_page (for _prefetch_next_page), but also contain
+        publicity='private' (for normal)
+        """
+        return self.API.illust_follow(**kwargs)
 
 
 # - DOWNLOAD FUNCTIONS
@@ -691,6 +679,25 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
         download_image_verified(url=url, png=True)
     else:
         print(f"Image downloaded at {filepath}\n")
+
+@pure.spinner("Getting full image details... ")
+def full_img_details(png=False, post_json=None, image_id=None):
+    """
+    All in one function that gets the full-resolution url, filename, and
+    filepath of given image id. Or it can get the id given the post json
+    """
+    if image_id and not post_json:
+        current_image = _API.protected_illust_detail(image_id)
+
+        post_json = current_image.illust
+
+    url = pure.change_url_to_full(post_json=post_json, png=png)
+    filename = pure.split_backslash_last(url)
+    filepath = pure.generate_filepath(filename)
+    return url, filename, filepath
+
+
+_API = APIHandler()
 
 if __name__ == "__main__":
     main()
