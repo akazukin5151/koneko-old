@@ -512,7 +512,7 @@ class Image:
             # Defaults to page 1
             main.ArtistGalleryMode(self._artist_user_id, self._current_page_num)
             # After backing
-            main.main()
+            main.main(start=False)
         # Else: image prompt and class ends, goes back to previous mode
 
 

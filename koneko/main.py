@@ -122,6 +122,9 @@ def main(start=True):
     try:
         main_loop(prompted, main_command, user_input, your_id, start)
     except KeyboardInterrupt:
+        # If ctrl+c pressed before a mode is selected, thread will never join
+        # Get it to join first so that modes still work
+        _API.await_login()
         main(start=False)
 
 def main_loop(prompted, main_command, user_input, your_id=None, start=True):
@@ -207,10 +210,9 @@ class Loop(ABC):
         while True:
             if self._prompted and not self._user_input:
                 self._prompt_url_id()
-                os.system("clear")
-
                 self._process_url_or_input()
                 self._validate_input()
+                os.system("clear")
 
             if start:
                 _API.await_login()
@@ -232,8 +234,11 @@ class Loop(ABC):
             int(self._user_input)
         except ValueError:
             print("Invalid image ID! Returning to main...")
+            # If ctrl+c pressed before a mode is selected, thread will never join
+            # Get it to join first so that modes still work
+            _API.await_login()
             time.sleep(2)
-            main()
+            main(start=False)
 
     @abstractmethod
     def _go_to_mode(self):
@@ -252,7 +257,7 @@ class ArtistModeLoop(Loop):
     def _go_to_mode(self):
         self.mode = ArtistGalleryMode(self._user_input)
         # This is the entry mode, user goes back but there is nothing to catch it
-        main()
+        main(start=False)
 
 
 class ViewPostModeLoop(Loop):
@@ -446,7 +451,7 @@ class IllustFollowMode(GalleryLikeMode):
         )
         prompt.gallery_like_prompt(self.gallery)
         # After backing
-        main()
+        main(start=False)
 
 def view_post_mode(image_id):
     """
