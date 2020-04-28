@@ -61,7 +61,7 @@ from koneko import download
 _API = api.APIHandler()
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 
-def main():
+def main(start=True):
     """Read config file, start login, process any cli arguments, go to main loop"""
     os.system("clear")
     credentials, your_id = utils.config()
@@ -73,7 +73,8 @@ def main():
         os.system("clear")
 
     _API.add_credentials(credentials)
-    _API.start()
+    if start:
+        _API.start()
 
     # During this part, the API can still be logging in but we can proceed
     args = docopt(__doc__)
@@ -119,11 +120,11 @@ def main():
         main_command = "4"
 
     try:
-        main_loop(prompted, main_command, user_input, your_id)
+        main_loop(prompted, main_command, user_input, your_id, start)
     except KeyboardInterrupt:
-        main()
+        main(start=False)
 
-def main_loop(prompted, main_command, user_input, your_id=None):
+def main_loop(prompted, main_command, user_input, your_id=None, start=True):
     """
     Ask for mode selection, if no command line arguments supplied
     call the right function depending on the mode
@@ -142,25 +143,25 @@ def main_loop(prompted, main_command, user_input, your_id=None):
             main_command = utils.begin_prompt(printmessage)
 
         if main_command == "1":
-            ArtistModeLoop(prompted, user_input).start()
+            ArtistModeLoop(prompted, user_input).start(start)
 
         elif main_command == "2":
-            ViewPostModeLoop(prompted, user_input).start()
+            ViewPostModeLoop(prompted, user_input).start(start)
 
         elif main_command == "3":
             if your_id: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
                 if ans in {"y", ""}:
-                    FollowingUserModeLoop(prompted, your_id).start()
+                    FollowingUserModeLoop(prompted, your_id).start(start)
 
             # If your_id not stored, or if ans is no, ask for your_id
-            FollowingUserModeLoop(prompted, user_input).start()
+            FollowingUserModeLoop(prompted, user_input).start(start)
 
         elif main_command == "4":
-            SearchUsersModeLoop(prompted, user_input).start()
+            SearchUsersModeLoop(prompted, user_input).start(start)
 
         elif main_command == "5":
-            IllustFollowModeLoop().start()
+            IllustFollowModeLoop().start(start)
 
         elif main_command == "?":
             utils.info_screen_loop()
@@ -201,7 +202,7 @@ class Loop(ABC):
         self._url_or_id: str
         self.mode: Any
 
-    def start(self):
+    def start(self, start):
         """Ask for further info if not provided; wait for log in then proceed"""
         while True:
             if self._prompted and not self._user_input:
@@ -211,7 +212,8 @@ class Loop(ABC):
                 self._process_url_or_input()
                 self._validate_input()
 
-            _API.await_login()
+            if start:
+                _API.await_login()
             self._go_to_mode()
 
     @abstractmethod
@@ -317,9 +319,10 @@ class FollowingUserModeLoop(Loop):
 
 class IllustFollowModeLoop:
     """Immediately goes to IllustFollow()"""
-    def start(self):
+    def start(self, start):
         while True:
-            _API.await_login()
+            if start:
+                _API.await_login()
             self._go_to_mode()
 
     def _go_to_mode(self):
