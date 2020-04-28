@@ -104,6 +104,10 @@ For more details refer to the [manual](#manual).
 
 * Display each image as soon as they finish downloading (but due to lscat limitations, only one page at a time). Requires "integrating" (read: basically rewriting) lscat.py and threaded download functions
 
+## Structure and maintenence
+
+* Re-write AbstractGallery in the style and form of Users (and merging GalleryLikeMode(s) into it). Might be even possible to pull out a more abstract core.
+
 # FAQ
 * Pixiv keeps emailing me saying I've logged in, every time I use this app!
 
