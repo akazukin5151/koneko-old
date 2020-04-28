@@ -1,7 +1,6 @@
 @startuml
 
-title koneko
-
+title main.py
 
 abstract class Loop <<(A, red)>>{
   +{abstract}start()
@@ -28,7 +27,7 @@ class ArtistGalleryMode {
 class IllustFollowMode {
     + gallery
 }
-abstract class AbstractGallery <<(A, red)>>{
+abstract class ui.AbstractGallery <<(A, red)>>{
     +next_page()
     +preview_page()
     +open_link_coords()
@@ -40,39 +39,34 @@ abstract class AbstractGallery <<(A, red)>>{
     +{abstract}handle_prompt()
 }
 
-class ArtistGallery <<(C, cyan)>>{
+class ui.ArtistGallery <<(C, cyan)>>{
     +handle_prompt()
 }
-class IllustFollowGallery <<(C, cyan)>>{
+class ui.IllustFollowGallery <<(C, cyan)>>{
     +go_artist_gallery_coords()
     +go_artist_gallery_num()
     +handle_prompt()
 }
-object gallery_prompt
-
 GalleryLikeMode <-down- ArtistGalleryMode: inherits
-ArtistModeLoop "1" *-down- ArtistGalleryMode: composes mode
+ArtistModeLoop*-down- ArtistGalleryMode: composes mode
 
 GalleryLikeMode <-down- IllustFollowMode: inherits
-IllustFollowModeLoop "1" *-down- IllustFollowMode: composes mode
+IllustFollowModeLoop*-down- IllustFollowMode: composes mode
 
-AbstractGallery <-down- IllustFollowGallery: inherits
-IllustFollowMode "1" *-down-- IllustFollowGallery: composes gallery
+ui.AbstractGallery <-down- ui.IllustFollowGallery: inherits
+IllustFollowMode*-down-- ui.IllustFollowGallery: composes gallery
 
-AbstractGallery <-down- ArtistGallery: inherits
-ArtistGalleryMode "1" *-down-- ArtistGallery: composes gallery
+ui.AbstractGallery <-down- ui.ArtistGallery: inherits
+ArtistGalleryMode*-down-- ui.ArtistGallery: composes gallery
 
-gallery_prompt -right[hidden]-> AbstractGallery
-ArtistGallery .right. gallery_prompt
-IllustFollowGallery .right. gallery_prompt
+ui.ArtistGallery -right[hidden]-> ui.IllustFollowGallery
 
 class ViewPostModeLoop {
     + mode
     +start()
 }
 object view_post_mode
-object image_prompt
-class Image <<(C, cyan)>>{
+class ui.Image <<(C, cyan)>>{
     + download_image()
     + open_image()
     + next_image()
@@ -80,45 +74,36 @@ class Image <<(C, cyan)>>{
     + leave()
 }
 
-ViewPostModeLoop -right[hidden]-> SearchUsersModeLoop
 Loop <|-down- ViewPostModeLoop: inherits
 ViewPostModeLoop .. view_post_mode
-view_post_mode .. Image
-Image .. image_prompt
+view_post_mode .. ui.Image
 
 
 class FollowingUsersModeLoop {
-    + following
+    + mode
     +start()
 }
 class SearchUsersModeLoop {
-    + searching
+    + mode
     +start()
 }
-object user_prompt
-
-FollowingUsersModeLoop -right[hidden]-> IllustFollowModeLoop
-SearchUsersModeLoop -right[hidden]-> IllustFollowModeLoop
 Loop <|-down- FollowingUsersModeLoop: inherits
 Loop <|-down- SearchUsersModeLoop: inherits
 
-user_prompt -right[hidden]-> Users
-FollowingUsers .. user_prompt
-SearchUsers .. user_prompt
-
-class FollowingUsers <<(C, cyan)>>
-class SearchUsers <<(C, cyan)>>
-abstract class Users <<(A, red)>>{
+class ui.FollowingUsers <<(C, cyan)>>
+class ui.SearchUsers <<(C, cyan)>>
+abstract class ui.Users <<(A, red)>>{
     +go_artist_mode()
     +next_page()
     +previous_page()
     +reload()
     +start()
 }
-Users <-down- FollowingUsers: inherits
-Users <-down- SearchUsers: inherits
-FollowingUsersModeLoop "1" *-down- FollowingUsers: composes following
-SearchUsersModeLoop "1" *-down- SearchUsers: composes searching
+ui.Users <-down- ui.FollowingUsers: inherits
+ui.Users <-down- ui.SearchUsers: inherits
+FollowingUsersModeLoop*-down- ui.FollowingUsers: composes mode
+SearchUsersModeLoop*-down- ui.SearchUsers: composes mode
+
 
 abstract class lscat.View <<(A, red)>>{
     +{abstract}render()
@@ -130,23 +115,35 @@ class lscat.Gallery {
     + render()
 }
 
-lscat.View <-down- lscat.Card: inherits
-lscat.View <-left- lscat.Gallery: inherits
+lscat.View <-right- lscat.Card: inherits
+lscat.View <-down- lscat.Gallery: inherits
 
-Users "1" *.down. lscat.Card: composes view
-GalleryLikeMode "1" *.up lscat.Gallery: composes view
-AbstractGallery "1" *.up lscat.Gallery: composes view
+ui.Users*.down. lscat.Card: composes view
+GalleryLikeMode*.up lscat.Gallery: composes view
+ui.AbstractGallery*.up lscat.Gallery: composes view
 
-AbstractGallery --up[hidden]-> GalleryLikeMode
+ui.AbstractGallery --up[hidden]-> GalleryLikeMode
 IllustFollowMode -right[hidden]-> ArtistGalleryMode
-SearchUsers -right[hidden]-> IllustFollowMode
+ui.SearchUsers -right[hidden]-> IllustFollowMode
 
-lscat.Gallery --left[hidden]-> IllustFollowGallery
-GalleryLikeMode -down[hidden]-> IllustFollowGallery
-GalleryLikeMode -down[hidden]-> ArtistGallery
+GalleryLikeMode -down[hidden]-> ui.IllustFollowGallery
+GalleryLikeMode -down[hidden]-> ui.ArtistGallery
 
-Users -right[hidden]-> GalleryLikeMode
+ui.Users -right[hidden]-> GalleryLikeMode
 lscat.Card -up[hidden]-> GalleryLikeMode
+lscat.Card -up[hidden]-> lscat.Gallery
+lscat.Card --up[hidden]-> ui.AbstractGallery
+
+package prompt {
+    object user_prompt
+    ui.Users .. user_prompt
+
+    object gallery_prompt
+    ui.AbstractGallery .down. gallery_prompt
+
+    object image_prompt
+    ui.Image .down..image_prompt
+}
 
 @enduml
 
