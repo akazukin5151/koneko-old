@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import cytoolz
 
-from koneko import koneko
+from koneko import main
 from koneko import pure
 from koneko import utils
 
@@ -45,7 +45,7 @@ def async_download_core(download_path, urls, rename_images=False,
 @cytoolz.curry
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads one pic given one url, rename if needed."""
-    koneko._API.protected_download(url)
+    main._API.protected_download(url)
 
     if pbar:
         pbar.update(1)
@@ -118,7 +118,7 @@ def full_img_details(png=False, post_json=None, image_id=None):
     filepath of given image id. Or it can get the id given the post json
     """
     if image_id and not post_json:
-        current_image = koneko._API.protected_illust_detail(image_id)
+        current_image = main._API.protected_illust_detail(image_id)
 
         post_json = current_image.illust
 

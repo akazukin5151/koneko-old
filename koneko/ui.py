@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import funcy
 from tqdm import tqdm
 
-from koneko import koneko
+from koneko import main
 from koneko import pure
 from koneko import lscat
 from koneko import colors
@@ -162,7 +162,7 @@ class AbstractGallery(ABC):
         if not next_url:  # this is the last page
             raise LastPageException
 
-        parse_page = koneko._API.parse_next(next_url)
+        parse_page = main._API.parse_next(next_url)
         next_page = self._pixivrequest(**parse_page)
         self._all_pages_cache[str(self._current_page_num + 1)] = next_page
         current_page_illusts = next_page["illusts"]
@@ -237,11 +237,11 @@ class ArtistGallery(AbstractGallery):
                          all_pages_cache)
 
     def _pixivrequest(self, **kwargs):
-        return koneko._API.artist_gallery_parse_next(**kwargs)
+        return main._API.artist_gallery_parse_next(**kwargs)
 
     def _back(self):
         # After user 'back's from image prompt, start mode again
-        koneko.ArtistGalleryMode(self._artist_user_id, self._current_page_num,
+        main.ArtistGalleryMode(self._artist_user_id, self._current_page_num,
                                  all_pages_cache=self._all_pages_cache,
                                  current_page=self._current_page)
 
@@ -314,7 +314,7 @@ class IllustFollowGallery(AbstractGallery):
                          all_pages_cache)
 
     def _pixivrequest(self, **kwargs):
-        return koneko._API.illust_follow_request(**kwargs)
+        return main._API.illust_follow_request(**kwargs)
 
     def go_artist_gallery_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -331,13 +331,13 @@ class IllustFollowGallery(AbstractGallery):
         self._post_json = self._current_page_illusts[selected_image_num]
 
         artist_user_id = self._post_json['user']['id']
-        koneko.ArtistGalleryMode(artist_user_id)
+        main.ArtistGalleryMode(artist_user_id)
         # Gallery prompt ends, user presses back
         self._back()
 
     def _back(self):
         # User 'back's out of artist gallery, start current mode again
-        koneko.IllustFollowMode(self._current_page_num, self._all_pages_cache)
+        main.IllustFollowMode(self._current_page_num, self._all_pages_cache)
 
     def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
                       first_num, second_num):
@@ -510,9 +510,9 @@ class Image:
         if self._firstmode or force:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
-            koneko.ArtistGalleryMode(self._artist_user_id, self._current_page_num)
+            main.ArtistGalleryMode(self._artist_user_id, self._current_page_num)
             # After backing
-            koneko.main()
+            main.main()
         # Else: image prompt and class ends, goes back to previous mode
 
 
@@ -650,7 +650,7 @@ class Users(ABC):
         oldnum = self._page_num
 
         if self._next_url:
-            self._offset = koneko._API.parse_next(self._next_url)["offset"]
+            self._offset = main._API.parse_next(self._next_url)["offset"]
             # For when next -> prev -> next
             self._page_num = int(self._offset) // 30 + 1
             self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
@@ -681,7 +681,7 @@ class Users(ABC):
             artist_user_id = current_page_ids[selected_user_num]
         except IndexError:
             print("Invalid number!")
-        koneko.ArtistGalleryMode(artist_user_id)
+        main.ArtistGalleryMode(artist_user_id)
         # After backing from gallery
         self._show_page()
         prompt.user_prompt(self)
@@ -717,7 +717,7 @@ class SearchUsers(Users):
         super().__init__(user)
 
     def _pixivrequest(self):
-        return koneko._API.search_user_request(self._input, self._offset)
+        return main._API.search_user_request(self._input, self._offset)
 
 class FollowingUsers(Users):
     """
@@ -731,4 +731,4 @@ class FollowingUsers(Users):
         super().__init__(your_id)
 
     def _pixivrequest(self):
-        return koneko._API.following_user_request(self._input, self._publicity, self._offset)
+        return main._API.following_user_request(self._input, self._publicity, self._offset)
