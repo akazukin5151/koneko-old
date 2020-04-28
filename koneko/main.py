@@ -1,42 +1,15 @@
-#!/usr/bin/env python3
 """Browse pixiv in the terminal using kitty's icat to display images (in the
 terminal!)
 
-Usage:
-  koneko       [<link> | <searchstr>]
-  koneko [1|a] <link_or_id>
-  koneko [2|i] <link_or_id>
-  koneko (3|f) <link_or_id>
-  koneko [4|s] <searchstr>
-  koneko [5|n]
-  koneko -h
+Entry point of package, start all the while loops here and launch the
+required mode.
 
-Notes:
-*  If you supply a link and want to go to mode 3, you must give the (3|f) argument,
-   otherwise your link would default to mode 1.
-*  It is assumed you won't need to search for an artist named '5' or 'n' from the
-   command line, because it would go to mode 5.
-
-Optional arguments (for specifying a mode):
-  1 a  Mode 1 (Artist gallery)
-  2 i  Mode 2 (Image view)
-  3 f  Mode 3 (Following artists)
-  4 s  Mode 4 (Search for artists)
-  5 n  Mode 5 (Newest works from following artists ("illust follow"))
-
-Required arguments if a mode is specified:
-  <link>        Pixiv url, auto detect mode. Only works for modes 1, 2, and 4
-  <link_or_id>  Either pixiv url or artist ID or image ID
-  <searchstr>   String to search for artists
-
-Options:
-  -h  Show this help
+Capitalized tag definitions:
+    TODO: to-do, high priority
+    SPEED: speed things up, high priority
+    FEATURE: extra feature, low priority
+    BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 """
-# Capitalized tag definitions:
-#     TODO: to-do, high priority
-#     SPEED: speed things up, high priority
-#     FEATURE: extra feature, low priority
-#     BLOCKING: this is blocking the prompt but I'm stuck on how to proceed
 
 import os
 import re
