@@ -4,7 +4,7 @@ import sys
 import time
 from blessed import Terminal
 
-from koneko import koneko
+from koneko import main
 from koneko import pure
 from koneko import colors
 
@@ -250,12 +250,13 @@ def user_prompt(user_class):
                 ask_quit()
 
             elif user_prompt_command == "m":
-                print(koneko.Users.__doc__)
+                print(main.Users.__doc__)
 
             elif user_prompt_command == "h":
                 print("".join([
-                    colors.n, "ext image; ",
-                    colors.p, "revious image; ",
+                    colors.i, "view nth artist's illusts",
+                    colors.n, "ext page; ",
+                    colors.p, "revious page; ",
                     colors.r, "eload and re-download all; ",
                     colors.q, "uit (with confirmation);\n",
                     "view ", colors.m, "anual\n"

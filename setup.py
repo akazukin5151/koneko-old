@@ -42,7 +42,7 @@ setup(
     extras_requires = ["pytest==5.4.1"],
     entry_points={
         "console_scripts": [
-            "koneko=koneko.koneko:main",
+            "koneko=koneko.main:main",
         ]
     },
 )
