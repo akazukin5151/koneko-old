@@ -355,6 +355,7 @@ class GalleryLikeMode(ABC):
             try:
                 utils.show_artist_illusts(self._download_path)
             except IndexError: # Folder exists but no files
+                Path(self._download_path).rmdir()
                 self._show = True
             else:
                 self._show = False
