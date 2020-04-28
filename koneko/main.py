@@ -116,12 +116,12 @@ def main_loop(prompted, main_command, user_input, your_id=None, start=True):
             ViewPostModeLoop(prompted, user_input).start(start)
 
         elif main_command == "3":
-            if your_id: # your_id stored in config file
+            if your_id and not user_input: # your_id stored in config file
                 ans = input("Do you want to use the Pixiv ID saved in your config?\n")
                 if ans in {"y", ""}:
                     FollowingUserModeLoop(prompted, your_id).start(start)
 
-            # If your_id not stored, or if ans is no, ask for your_id
+            # If your_id not stored, or if ans is no, or if id provided, via cli
             FollowingUserModeLoop(prompted, user_input).start(start)
 
         elif main_command == "4":
