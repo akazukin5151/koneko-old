@@ -515,9 +515,7 @@ class APIHandler:
     def await_login(self):
         """Wait for login to finish, then assign PixivAPI session to API"""
         self.API_THREAD.join()
-        global API
-        API = self.API_QUEUE.get()
-        self.API = API
+        self.API = self.API_QUEUE.get()
 
     def _login(self):
         """
@@ -570,9 +568,15 @@ class APIHandler:
         """
         return self.API.illust_follow(**kwargs)
 
+    # Download
+    @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
+    def protected_download(self, url):
+        """Protect api download function with funcy.retry so it doesn't crash"""
+        self.API.download(url)
+
 
 # - DOWNLOAD FUNCTIONS
-# - For batch downloading multiple images (all 5 functions related)
+# - For batch downloading multiple images (all 4 functions related)
 @pure.spinner("")
 def async_download_spinner(download_path, urls, rename_images=False,
                            file_names=None, pbar=None):
@@ -607,15 +611,10 @@ def async_download_core(download_path, urls, rename_images=False,
         with ThreadPoolExecutor(max_workers=len(urls)) as executor:
             executor.map(helper, urls, oldnames, filtered)
 
-@funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-def protected_download(url):
-    """Protect api download function with funcy.retry so it doesn't crash"""
-    API.download(url)
-
 @cytoolz.curry
 def downloadr(url, img_name, new_file_name=None, pbar=None):
     """Actually downloads one pic given one url, rename if needed."""
-    protected_download(url)
+    _API.protected_download(url)
 
     if pbar:
         pbar.update(1)
