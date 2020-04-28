@@ -46,7 +46,6 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 
 from tqdm import tqdm
-from docopt import docopt
 
 from koneko import pure
 from koneko import utils
@@ -54,6 +53,7 @@ from koneko import prompt
 from koneko import ui
 from koneko import api
 from koneko import download
+from koneko import cli
 
 
 # Pseudo-global as all functions rely on this value's closure
@@ -67,57 +67,21 @@ def main(start=True):
     credentials, your_id = utils.config()
     if not Path("~/.local/share/koneko").expanduser().exists():
         print("Please wait, downloading welcome image (this will only occur once)...")
-        Path("~/.local/share/koneko/pics").expanduser().mkdir(parents=True)
-        os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/71471144_p0.png -o ~/.local/share/koneko/pics/71471144_p0.png")
-        os.system("curl -s https://raw.githubusercontent.com/twenty5151/koneko/master/pics/79494300_p0.png -o ~/.local/share/koneko/pics/79494300_p0.png")
+        baseurl = "https://raw.githubusercontent.com/twenty5151/koneko/master/pics/"
+        basedir = Path("~/.local/share/koneko/pics").expanduser()
+
+        basedir.mkdir(parents=True)
+        for pic in ("71471144_p0.png", "79494300_p0.png"):
+            os.system(f"curl -s {baseurl}{pic} -o {basedir}{pic}")
+
         os.system("clear")
 
     _API.add_credentials(credentials)
     if start:
         _API.start()
 
-    # During this part, the API can still be logging in but we can proceed
-    args = docopt(__doc__)
-    if len(sys.argv) > 1:
-        print("Logging in...")
-        prompted = False
-    else:  # No cli arguments
-        prompted = True
-        main_command = None
-        user_input = None
-
-    # Direct command line arguments
-    if url_or_str := args['<link>']:
-        # Link given, no mode specified
-        if "users" in url_or_str:
-            user_input, main_command = pure.process_user_url(url_or_str)
-
-        elif "artworks" in url_or_str or "illust_id" in url_or_str:
-            user_input, main_command = pure.process_artwork_url(url_or_str)
-
-        # Assume you won't search for '5' or 'n'
-        elif url_or_str == "5" or url_or_str == "n":
-            main_command = "5"
-            user_input = None
-
-        else:  # Mode 4, string to search for artists
-            user_input = url_or_str
-            main_command = "4"
-
-    elif url_or_id := args['<link_or_id>']:
-        # Mode specified, argument can be link or id
-        if args['1'] or args['a']:
-            user_input, main_command = pure.process_user_url(url_or_id)
-
-        elif args['2'] or args['i']:
-            user_input, main_command = pure.process_artwork_url(url_or_id)
-
-        elif args['3'] or args['f']:
-            user_input, main_command = pure.process_user_url(url_or_id)
-            main_command = "3"
-
-    elif user_input := args['<searchstr>']:
-        main_command = "4"
+    # After this part, the API is logging in in the background and we can proceed
+    prompted, main_command, user_input = cli.process_cli_args()
 
     try:
         main_loop(prompted, main_command, user_input, your_id, start)
