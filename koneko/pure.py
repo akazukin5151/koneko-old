@@ -11,8 +11,8 @@ from contextlib import contextmanager
 
 import funcy
 import cytoolz
-
 from colorama import Fore
+
 
 @contextmanager
 def cd(newdir):

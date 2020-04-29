@@ -1,15 +1,13 @@
 import os
 import imghdr
 import shutil
-from pathlib import Path
 from getpass import getpass
+from pathlib import Path
 from configparser import ConfigParser
 
 import pixcat
 
-from koneko import pure
-from koneko import lscat
-from koneko import main
+from koneko import main, pure, lscat
 
 KONEKODIR = Path("~/.local/share/koneko/pics").expanduser()
 

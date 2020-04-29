@@ -2,9 +2,7 @@ import os
 
 import pytest
 
-from koneko import pure
-from koneko import lscat
-from koneko import utils
+from koneko import pure, lscat, utils
 from page_json import *  # Imports the current_page (dict) stored in disk
 
 page_illusts = page_json["illusts"]

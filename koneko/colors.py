@@ -2,6 +2,7 @@
 
 from colorama import Fore
 
+
 # Private
 def _letter(letter):
     """[] are red and a is magenta

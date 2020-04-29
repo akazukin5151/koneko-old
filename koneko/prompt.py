@@ -2,11 +2,10 @@
 
 import sys
 import time
+
 from blessed import Terminal
 
-from koneko import main
-from koneko import pure
-from koneko import colors
+from koneko import main, pure, colors
 
 TERM = Terminal()
 
