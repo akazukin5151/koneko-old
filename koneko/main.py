@@ -29,9 +29,6 @@ from koneko import download
 from koneko import cli
 
 
-# Pseudo-global as all functions rely on this value's closure
-# Note: _single underscore doesn't mean it's private here ... just 'special'
-_API = api.APIHandler()
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 
 def main(start=True):
@@ -49,9 +46,9 @@ def main(start=True):
 
         os.system("clear")
 
-    _API.add_credentials(credentials)
+    api.myapi.add_credentials(credentials)
     if start:
-        _API.start()
+        api.myapi.start()
 
     # After this part, the API is logging in in the background and we can proceed
     prompted, main_command, user_input = cli.process_cli_args()
@@ -61,7 +58,7 @@ def main(start=True):
     except KeyboardInterrupt:
         # If ctrl+c pressed before a mode is selected, thread will never join
         # Get it to join first so that modes still work
-        _API.await_login()
+        api.myapi.await_login()
         main(start=False)
 
 def main_loop(prompted, main_command, user_input, your_id=None, start=True):
@@ -152,7 +149,7 @@ class Loop(ABC):
                 os.system("clear")
 
             if start:
-                _API.await_login()
+                api.myapi.await_login()
             self._go_to_mode()
 
     @abstractmethod
@@ -173,7 +170,7 @@ class Loop(ABC):
             print("Invalid image ID! Returning to main...")
             # If ctrl+c pressed before a mode is selected, thread will never join
             # Get it to join first so that modes still work
-            _API.await_login()
+            api.myapi.await_login()
             time.sleep(2)
             main(start=False)
 
@@ -264,7 +261,7 @@ class IllustFollowModeLoop:
     def start(self, start):
         while True:
             if start:
-                _API.await_login()
+                api.myapi.await_login()
             self._go_to_mode()
 
     def _go_to_mode(self):
@@ -356,7 +353,7 @@ class ArtistGalleryMode(GalleryLikeMode):
 
 
     def _pixivrequest(self):
-        return _API.artist_gallery_request(self._artist_user_id)
+        return api.myapi.artist_gallery_request(self._artist_user_id)
 
     def _instantiate(self):
         self.gallery = ui.ArtistGallery(
@@ -377,7 +374,7 @@ class IllustFollowMode(GalleryLikeMode):
         super().__init__(current_page_num, all_pages_cache)
 
     def _pixivrequest(self):
-        return _API.illust_follow_request(restrict='private') # Publicity
+        return api.myapi.illust_follow_request(restrict='private') # Publicity
 
     def _instantiate(self):
         self.gallery = ui.IllustFollowGallery(
@@ -398,7 +395,7 @@ def view_post_mode(image_id):
     """
     print("Fetching illust details...")
     try:
-        post_json = _API.protected_illust_detail(image_id)["illust"]
+        post_json = api.myapi.protected_illust_detail(image_id)["illust"]
     except KeyError:
         print("Work has been deleted or the ID does not exist!")
         sys.exit(1)
