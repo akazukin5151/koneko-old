@@ -1,20 +1,13 @@
 """Handles user interaction inside all the modes. No knowledge of API needed"""
 
 import os
-from pathlib import Path
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 import funcy
 from tqdm import tqdm
 
-from koneko import main
-from koneko import pure
-from koneko import lscat
-from koneko import colors
-from koneko import utils
-from koneko import prompt
-from koneko import download
-from koneko import api
+from koneko import api, main, pure, lscat, utils, colors, prompt, download
 
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 

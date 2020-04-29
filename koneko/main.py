@@ -15,19 +15,12 @@ import os
 import re
 import sys
 import time
-from pathlib import Path
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from tqdm import tqdm
 
-from koneko import pure
-from koneko import utils
-from koneko import prompt
-from koneko import ui
-from koneko import api
-from koneko import download
-from koneko import cli
-
+from koneko import ui, api, cli, pure, utils, prompt, download
 
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 

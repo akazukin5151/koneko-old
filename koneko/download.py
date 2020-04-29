@@ -5,9 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import cytoolz
 
-from koneko import pure
-from koneko import utils
-from koneko import api
+from koneko import api, pure, utils
+
 
 @pure.spinner("")
 def async_download_spinner(download_path, urls, rename_images=False,
