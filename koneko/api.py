@@ -84,3 +84,5 @@ class APIHandler:
     def protected_download(self, url):
         """Protect api download function with funcy.retry so it doesn't crash"""
         self.api.download(url)
+
+myapi = APIHandler()
