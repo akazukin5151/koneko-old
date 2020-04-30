@@ -65,8 +65,6 @@ def main_loop(prompted, main_command, user_input, your_id=None, start=True):
         For search users mode, it is search_string : str
         For illust following mode, it's not required
     """
-    # SPEED: gallery mode - if tmp has artist id and '1' dir,
-    # immediately show it without trying to log in or download
     printmessage = True
     while True:
         if prompted and not user_input:
