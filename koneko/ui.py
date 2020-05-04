@@ -411,7 +411,7 @@ class Image:
     def download_image(self):
         # Need to work on multi-image posts
         # Doing the same job as full_img_details
-        large_url = pure.change_url_to_full(url=self.data.current_url)
+        large_url = pure.change_url_to_full(url=self.data.current_url())
         filename = pure.split_backslash_last(large_url)
         filepath = pure.generate_filepath(filename)
         download.download_image_verified(url=large_url, filename=filename,
@@ -438,13 +438,14 @@ class Image:
 
         # First time from gallery; download next image
         if self.data.img_post_page_num == 1:
-            download.async_download_spinner(self.data.large_dir, [self.data.current_url])
+            download.async_download_spinner(self.data.large_dir,
+                                            [self.data.current_url()])
 
-        utils.display_image_vp(self.data.filepath)
+        utils.display_image_vp(self.data.filepath())
 
         # Downloads the next image
         try:
-            next_img_url = self.data.next_img_url
+            next_img_url = self.data.next_img_url()
         except IndexError: # Last page
             pass
         else:  # No error
@@ -462,7 +463,7 @@ class Image:
             print("This is the first image in the post!")
         else:
             self.data.img_post_page_num -= 1
-            utils.display_image_vp(f"{self.data.download_path}{self.data.image_filename}")
+            utils.display_image_vp(f"{self.data.large_dir}{self.data.image_filename()}")
             print(f"Page {self.data.img_post_page_num+1}/{self.data.number_of_pages}")
 
     def leave(self, force=False):

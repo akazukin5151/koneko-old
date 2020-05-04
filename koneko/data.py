@@ -55,13 +55,17 @@ class ImageJson:
             # So it won't be duplicated later
             self.large_dir = f"{KONEKODIR}/{self.artist_user_id}/individual/{image_id}/"
 
-            # Attributes only for multi-image posts
-            self.image_filename = self.downloaded_images[self.img_post_page_num]
-            self.filepath = "".join([self.large_dir, self.image_filename])
-            self.next_img_url = self.page_urls[self.img_post_page_num + 1]
+    def image_filename(self):
+        return self.downloaded_images[self.img_post_page_num]
 
+    def filepath(self):
+        return "".join([self.large_dir, self.image_filename()])
 
-        self.current_url = self.page_urls[self.img_post_page_num]
+    def next_img_url(self):
+        return self.page_urls[self.img_post_page_num + 1]
+
+    def current_url(self):
+        return self.page_urls[self.img_post_page_num]
 
 
 class UserJson:
