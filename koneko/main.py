@@ -20,7 +20,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from koneko import ui, api, cli, pure, utils, prompt, download
+from koneko import ui, api, cli, pure, utils, prompt, download, data
 
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 
@@ -262,6 +262,7 @@ class IllustFollowModeLoop:
 class GalleryLikeMode(ABC):
     def __init__(self, current_page_num=1, gdata=None):
         self._current_page_num = current_page_num
+        self.data = gdata
         self._show = True
         # Defined in child classes
         self._download_path: str
@@ -286,9 +287,9 @@ class GalleryLikeMode(ABC):
         else:
             self._show = True
 
-        if not gdata:
+        if not self.data:
             current_page = self._pixivrequest()
-            gdata = data.GalleryJson(current_page)
+            self.data = data.GalleryJson(current_page)
         self._init_download()
         if self._show:
             utils.show_artist_illusts(self._download_path)
@@ -299,8 +300,8 @@ class GalleryLikeMode(ABC):
         raise NotImplementedError
 
     def _download_pbar(self):
-        pbar = tqdm(total=len(gdata.current_illusts()), smoothing=0)
-        download.download_page(gdata.current_illusts(), self._download_path,
+        pbar = tqdm(total=len(self.data.current_illusts()), smoothing=0)
+        download.download_page(self.data.current_illusts(), self._download_path,
                                pbar=pbar)
         pbar.close()
 
@@ -309,7 +310,7 @@ class GalleryLikeMode(ABC):
         if not Path(self._download_path).is_dir():
             self._download_pbar()
 
-        elif (not gdata.titles[0] in sorted(os.listdir(self._download_path))[0]
+        elif (not self.data.titles[0] in sorted(os.listdir(self._download_path))[0]
               and self._current_page_num == 1):
             print("Cache is outdated, reloading...")
             # Remove old images
@@ -334,7 +335,7 @@ class ArtistGalleryMode(GalleryLikeMode):
 
     def _instantiate(self):
         self.gallery = ui.ArtistGallery(
-            gdata,
+            self.data,
             self._current_page_num,
             self._artist_user_id,
         )
@@ -352,7 +353,7 @@ class IllustFollowMode(GalleryLikeMode):
         return api.myapi.illust_follow_request(restrict='private') # Publicity
 
     def _instantiate(self):
-        self.gallery = ui.IllustFollowGallery(gdata, self._current_page_num)
+        self.gallery = ui.IllustFollowGallery(self.data, self._current_page_num)
         prompt.gallery_like_prompt(self.gallery)
         # After backing
         main(start=False)
