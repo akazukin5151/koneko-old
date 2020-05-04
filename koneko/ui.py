@@ -397,7 +397,6 @@ class Image:
     """
     def __init__(self, image_id, idata, current_page_num=1, firstmode=False):
         self._image_id = image_id
-        self._artist_user_id = idata.artist_user_id
         self._current_page_num = current_page_num
         self._firstmode = firstmode
 
@@ -436,20 +435,20 @@ class Image:
 
         # First time from gallery; download next image
         if idata.img_post_page_num == 1:
-            download.async_download_spinner(idata.download_path, [idata.current_url])
+            download.async_download_spinner(idata.large_dir, [idata.current_url])
 
-        utils.display_image_vp(idata.filepath())
+        utils.display_image_vp(idata.filepath)
 
         # Downloads the next image
         try:
-            next_img_url = idata.next_img_url()
+            next_img_url = idata.next_img_url
         except IndexError: # Last page
             pass
         else:  # No error
-            idata.download_images.append(
+            idata.downloaded_images.append(
                 pure.split_backslash_last(next_img_url)
             )
-            download.async_download_spinner(idata.download_path, [next_img_url])
+            download.async_download_spinner(idata.large_dir, [next_img_url])
 
         print(f"Page {idata.img_post_page_num+1}/{idata.number_of_pages}")
 
@@ -460,14 +459,14 @@ class Image:
             print("This is the first image in the post!")
         else:
             idata.img_post_page_num -= 1
-            utils.display_image_vp(f"{idata.download_path}{idata.image_filename()}")
+            utils.display_image_vp(f"{idata.download_path}{idata.image_filename}")
             print(f"Page {idata.img_post_page_num+1}/{idata.number_of_pages}")
 
     def leave(self, force=False):
         if self._firstmode or force:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
-            main.ArtistGalleryMode(self._artist_user_id, self._current_page_num)
+            main.ArtistGalleryMode(idata.artist_user_id, self._current_page_num)
             # After backing
             main.main(start=False)
         # Else: image prompt and class ends, goes back to previous mode
