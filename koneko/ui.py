@@ -46,10 +46,9 @@ class AbstractGallery(ABC):
         else:
             self.open_link_num(selected_image_num)
 
-    @staticmethod
-    def open_link_num(number):
+    def open_link_num(self, number):
         # Update current_page_illusts, in case if you're in another page
-        image_id = self.data.image_id(current_page_num, number)
+        image_id = self.data.image_id(self._current_page_num, number)
         link = f"https://www.pixiv.net/artworks/{image_id}"
         os.system(f"xdg-open {link}")
         print(f"Opened {link}!\n")
@@ -81,18 +80,8 @@ class AbstractGallery(ABC):
             self._current_page_num
         )
 
-        # blocking: no way to unblock prompt
         number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
-
-        # self._main_path defined in child classes
-        multi_image_info = {
-            'page_urls': page_urls,
-            'img_post_page_num': 0,
-            'number_of_pages': number_of_pages,
-            'downloaded_images': None,
-            'download_path': f"{self._main_path}/{self._current_page_num}/large/",
-        }
-
+        # blocking: no way to unblock prompt
         image = main.view_post_mode(image_id)
 
         # Image prompt ends, user presses back
@@ -497,6 +486,7 @@ class Users(ABC):
         self._page_num = 1
         self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._show = True
+        self.data: 'data.UserJson'
 
     def start(self):
         # It can't show first (including if cache is outdated),
@@ -520,6 +510,7 @@ class Users(ABC):
             self._download_pbar(preview_path)
 
         elif not self.data.all_names()[0] in sorted(os.listdir(self.download_path))[0]:
+            breakpoint()
             # FIXME: incorrectly detects cache is outdated
             print("Cache is outdated, reloading...")
             # Remove old images
