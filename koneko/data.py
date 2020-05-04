@@ -2,7 +2,10 @@
 TODO: The ui classes would never need to interact directly with the api
 as they should focus on responding to user input and print/display.
 """
+from pathlib import Path
 from koneko import pure
+
+KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 
 class GalleryJson:
     def __init__(self, raw):
@@ -37,6 +40,8 @@ class GalleryJson:
 class ImageJson:
     def __init__(self, raw, image_id):
         self._raw = raw
+        self.url = pure.url_given_size(self._raw, "large")
+        self.filename = pure.split_backslash_last(self.url)
         self.artist_user_id = self._raw["user"]["id"]
         self.img_post_page_num = 0
 
@@ -50,17 +55,21 @@ class ImageJson:
             # So it won't be duplicated later
             self.large_dir = f"{KONEKODIR}/{self.artist_user_id}/individual/{image_id}/"
 
+            # Attributes only for multi-image posts
+            self.image_filename = self.downloaded_images[self.img_post_page_num]
+            self.filepath = "".join([self.large_dir, self.image_filename])
+            self.next_img_url = self.page_urls[self.img_post_page_num + 1]
 
-        # Public attributes being used:
+
         self.current_url = self.page_urls[self.img_post_page_num]
-        self.image_filename = self.downloaded_images[self.img_post_page_num]
-        self.filepath = "".join([self.large_dir, self.image_filename])
-        self.next_img_url = self.page_urls[self.img_post_page_num + 1]
 
 
 class UserJson:
     def __init__(self, raw, page_num):
         self.ids_cache, self.names_cache = {}, {}
+        self.update(raw, page_num)
+
+    def update(self, raw, page_num):
         self.raw = raw
         self.next_url = self.raw['next_url']
         page = self.raw["user_previews"]
@@ -78,7 +87,6 @@ class UserJson:
         self.image_urls = [page[i]['illusts'][j]['image_urls']['square_medium']
                            for i in range(len(page))
                            for j in range(len(page[i]['illusts']))]
-
 
     def artist_user_id(self, page_num, selected_user_num):
         return self.ids_cache[page_num][selected_user_num]
