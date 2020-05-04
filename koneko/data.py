@@ -36,18 +36,17 @@ class GalleryJson:
 
 class ImageJson:
     def __init__(self, raw, image_id):
-        self.raw = raw
-        self.url = pure.url_given_size(self.raw, "large")
-        self.filename = pure.split_backslash_last(self.url)
-        self.artist_user_id = self.raw["user"]["id"]
+        self._raw = raw
+        url = pure.url_given_size(self._raw, "large")
+        self.artist_user_id = self._raw["user"]["id"]
         self.img_post_page_num = 0
 
-        self.number_of_pages, self.page_urls = pure.page_urls_in_post(post_json, "large")
+        self.number_of_pages, self.page_urls = pure.page_urls_in_post(self._raw, "large")
         if self.number_of_pages == 1:
             self.downloaded_images = None
             self.large_dir = f"{KONEKODIR}/{self.artist_user_id}/individual/"
         else:
-            self.download_images = list(map(pure.split_backslash_last,
+            self.downloaded_images = list(map(pure.split_backslash_last,
                                             self.page_urls[:2]))
             # So it won't be duplicated later
             self.large_dir = f"{KONEKODIR}/{self.artist_user_id}/individual/{image_id}/"
@@ -56,29 +55,30 @@ class ImageJson:
         # Public attributes being used:
         self.current_url = self.page_urls[self.img_post_page_num]
         self.image_filename = self.download_images[self.img_post_page_num]
-        self.filepath = "".join([self.download_path, self.image_filename])
+        self.filepath = "".join([self.large_dir, self.image_filename])
         self.next_img_url = self.page_urls[self.img_post_page_num + 1]
 
 
 class UserJson:
     def __init__(self, raw, page_num):
+        self.ids_cache, self.names_cache = {}, {}
         self.raw = raw
         self.next_url = self.raw['next_url']
-        page = udata.raw["user_previews"]
+        page = self.raw["user_previews"]
 
         ids = list(map(self._user_id, page))
         self.ids_cache.update({page_num: ids})
 
-        self.names = list(map(self._user_name, page))
-        self.names_cache.update({page_num: self._names})
+        names = list(map(self._user_name, page))
+        self.names_cache.update({page_num: names})
 
         self.profile_pic_urls = list(map(self._user_profile_pic, page))
 
         # max(i) == number of artists on this page
         # max(j) == 3 == 3 previews for every artist
         self.image_urls = [page[i]['illusts'][j]['image_urls']['square_medium']
-                            for i in range(len(page))
-                            for j in range(len(page[i]['illusts']))]
+                           for i in range(len(page))
+                           for j in range(len(page[i]['illusts']))]
 
 
     def artist_user_id(self, page_num, selected_user_num):
@@ -93,7 +93,7 @@ class UserJson:
     def all_names(self):
         preview_names_ext = map(pure.split_backslash_last, self.image_urls)
         preview_names = [x.split('.')[0] for x in preview_names_ext]
-        return self.names + preview_names
+        return self.names(1) + preview_names
 
     def splitpoint(self):
         return len(self.profile_pic_urls)
