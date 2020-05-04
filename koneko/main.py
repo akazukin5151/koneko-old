@@ -329,13 +329,12 @@ class ArtistGalleryMode(GalleryLikeMode):
         self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
         super().__init__(current_page_num, gdata)
 
-
     def _pixivrequest(self):
         return api.myapi.artist_gallery_request(self._artist_user_id)
 
     def _instantiate(self):
         self.gallery = ui.ArtistGallery(
-            gdata
+            gdata,
             self._current_page_num,
             self._artist_user_id,
         )

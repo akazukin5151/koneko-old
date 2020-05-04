@@ -37,7 +37,6 @@ class GalleryJson:
 class ImageJson:
     def __init__(self, raw, image_id):
         self._raw = raw
-        url = pure.url_given_size(self._raw, "large")
         self.artist_user_id = self._raw["user"]["id"]
         self.img_post_page_num = 0
 
@@ -47,14 +46,14 @@ class ImageJson:
             self.large_dir = f"{KONEKODIR}/{self.artist_user_id}/individual/"
         else:
             self.downloaded_images = list(map(pure.split_backslash_last,
-                                            self.page_urls[:2]))
+                                              self.page_urls[:2]))
             # So it won't be duplicated later
             self.large_dir = f"{KONEKODIR}/{self.artist_user_id}/individual/{image_id}/"
 
 
         # Public attributes being used:
         self.current_url = self.page_urls[self.img_post_page_num]
-        self.image_filename = self.download_images[self.img_post_page_num]
+        self.image_filename = self.downloaded_images[self.img_post_page_num]
         self.filepath = "".join([self.large_dir, self.image_filename])
         self.next_img_url = self.page_urls[self.img_post_page_num + 1]
 
