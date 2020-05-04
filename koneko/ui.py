@@ -7,7 +7,7 @@ from pathlib import Path
 import funcy
 from tqdm import tqdm
 
-from koneko import api, main, pure, lscat, utils, colors, prompt, download
+from koneko import api, main, pure, lscat, utils, colors, prompt, download, data
 
 KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
 
@@ -15,31 +15,26 @@ class LastPageException(ValueError):
     pass
 
 class AbstractGallery(ABC):
-    def __init__(self, current_page_illusts, current_page, current_page_num,
-                 all_pages_cache):
-        self._current_page_illusts = current_page_illusts
-        self._current_page = current_page
+    def __init__(self, gdata, current_page_num):
         self._current_page_num = current_page_num
-        self._all_pages_cache = all_pages_cache
         # Defined in self.view_image
-        self._post_json: 'PostJson'
         self._selected_image_num: int
         # Defined in child classes
         self._main_path: str
 
-        pure.print_multiple_imgs(self._current_page_illusts)
+        pure.print_multiple_imgs(gdata.current_page_illusts)
         print(f"Page {self._current_page_num}")
         # Fixes: Gallery -> next page -> image prompt -> back -> prev page
         # Gallery -> Image -> back still retains all_pages_cache, no need to
         # prefetch again
-        if len(self._all_pages_cache) == 1:
+        if len(gdata.all_pages_cache) == 1:
             # Prefetch the next page on first gallery load
             with funcy.suppress(LastPageException):
                 self._prefetch_next_page()
 
         else:
             # Gallery -> next -> image prompt -> back
-            self._all_pages_cache[str(self._current_page_num)] = self._current_page
+            gdata.all_pages_cache[str(self._current_page_num)] = self._current_page
 
     def open_link_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -50,9 +45,7 @@ class AbstractGallery(ABC):
 
     def open_link_num(self, number):
         # Update current_page_illusts, in case if you're in another page
-        self._current_page = self._all_pages_cache[str(self._current_page_num)]
-        self._current_page_illusts = self._current_page["illusts"]
-        image_id = self._current_page_illusts[number]["id"]
+        image_id = gdata.image_id(current_page_num, number)
         link = f"https://www.pixiv.net/artworks/{image_id}"
         os.system(f"xdg-open {link}")
         print(f"Opened {link}!\n")
@@ -66,30 +59,26 @@ class AbstractGallery(ABC):
 
     def download_image_num(self, number):
         # Update current_page_illusts, in case if you're in another page
-        self._current_page = self._all_pages_cache[str(self._current_page_num)]
-        self._current_page_illusts = self._current_page["illusts"]
-        post_json = self._current_page_illusts[number]
+        post_json = gdata.post_json(self._current_page_num, number)
         download.download_image_verified(post_json=post_json)
 
     def view_image(self, selected_image_num):
         self._selected_image_num = selected_image_num
-        self._current_page = self._all_pages_cache[str(self._current_page_num)]
-        self._current_page_illusts = self._current_page["illusts"]
-        self._post_json = self._current_page_illusts[selected_image_num]
+        post_json = gdata.post_json(self._current_page_num, number)
 
         # IllustFollow doesn't have artist_user_id
-        artist_user_id = self._post_json['user']['id']
-        image_id = self._post_json.id
+        artist_user_id = post_json['user']['id']
+        image_id = post_json.id
 
         display_image(
-            self._post_json,
+            post_json,
             artist_user_id,
             self._selected_image_num,
             self._current_page_num
         )
 
         # blocking: no way to unblock prompt
-        number_of_pages, page_urls = pure.page_urls_in_post(self._post_json, "large")
+        number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
 
         # self._main_path defined in child classes
         multi_image_info = {
@@ -123,7 +112,7 @@ class AbstractGallery(ABC):
             print("Enter a gallery command:\n")
 
         # Skip prefetching again for cases like next -> prev -> next
-        if str(self._current_page_num + 1) not in self._all_pages_cache.keys():
+        if str(self._current_page_num + 1) not in gdata.cached_pages():
             try:
                 # After showing gallery, pre-fetch the next page
                 self._prefetch_next_page()
@@ -132,9 +121,8 @@ class AbstractGallery(ABC):
 
     def previous_page(self):
         if self._current_page_num > 1:
-            self._current_page = self._all_pages_cache[str(self._current_page_num - 1)]
-            self._current_page_illusts = self._current_page["illusts"]
             self._current_page_num -= 1
+            gdata.update_current_illusts(current_page_num)
 
             download_path = (
                 f"{self._main_path}/{self._current_page_num}/"
@@ -151,14 +139,15 @@ class AbstractGallery(ABC):
         raise NotImplementedError
 
     def _prefetch_next_page(self):
+        # TODO: move this somewhere else
         # print("   Prefetching next page...", flush=True, end="\r")
-        next_url = self._all_pages_cache[str(self._current_page_num)]["next_url"]
+        next_url = gdata.next_url()
         if not next_url:  # this is the last page
             raise LastPageException
 
         parse_page = api.myapi.parse_next(next_url)
         next_page = self._pixivrequest(**parse_page)
-        self._all_pages_cache[str(self._current_page_num + 1)] = next_page
+        gdata.all_pages_cache[str(self._current_page_num + 1)] = next_page
         current_page_illusts = next_page["illusts"]
 
         download_path = f"{self._main_path}/{self._current_page_num+1}/"
@@ -173,7 +162,7 @@ class AbstractGallery(ABC):
         ans = input("This will delete cached images and redownload them. Proceed?\n")
         if ans == "y" or not ans:
             os.system(f"rm -r {self._main_path}") # shutil.rmtree is better
-            self._all_pages_cache = {} # Ensures prefetch after reloading
+            gdata.all_pages_cache = {} # Ensures prefetch after reloading
             self._back()
         else:
             # After reloading, back will return to the same mode again
@@ -222,22 +211,21 @@ class ArtistGallery(AbstractGallery):
         o25   --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
-    def __init__(self, current_page_illusts, current_page,
-                 current_page_num, artist_user_id, all_pages_cache, **kwargs):
+    def __init__(self, gdata, current_page_num, artist_user_id, **kwargs):
         self._main_path = f"{KONEKODIR}/{artist_user_id}/"
         self._artist_user_id = artist_user_id
         self._kwargs = kwargs
-        super().__init__(current_page_illusts, current_page, current_page_num,
-                         all_pages_cache)
+        super().__init__(gdata, current_page_num)
 
     def _pixivrequest(self, **kwargs):
         return api.myapi.artist_gallery_parse_next(**kwargs)
 
     def _back(self):
         # After user 'back's from image prompt, start mode again
+        # TODO: pass in the entire gdata object
         main.ArtistGalleryMode(self._artist_user_id, self._current_page_num,
-                               all_pages_cache=self._all_pages_cache,
-                               current_page=self._current_page)
+                               all_pages_cache=gdata.all_pages_cache,
+                               current_page=gdata.current_page(self._current_page_num))
 
     def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
                       first_num, second_num):
@@ -301,11 +289,9 @@ class IllustFollowGallery(AbstractGallery):
         o25   --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
-    def __init__(self, current_page_illusts, current_page,
-                 current_page_num, all_pages_cache):
+    def __init__(self, gdata, current_page_num):
         self._main_path = f"{KONEKODIR}/illustfollow/"
-        super().__init__(current_page_illusts, current_page, current_page_num,
-                         all_pages_cache)
+        super().__init__(gdata, current_page_num)
 
     def _pixivrequest(self, **kwargs):
         return api.myapi.illust_follow_request(**kwargs)
@@ -320,18 +306,16 @@ class IllustFollowGallery(AbstractGallery):
     def go_artist_gallery_num(self, selected_image_num):
         """Like self.view_image(), but goes to artist mode instead of image"""
         self._selected_image_num = selected_image_num
-        self._current_page = self._all_pages_cache[str(self._current_page_num)]
-        self._current_page_illusts = self._current_page["illusts"]
-        self._post_json = self._current_page_illusts[selected_image_num]
+        post_json = gdata.post_json(self._current_page_num, selected_image_num)
 
-        artist_user_id = self._post_json['user']['id']
+        artist_user_id = post_json['user']['id']
         main.ArtistGalleryMode(artist_user_id)
         # Gallery prompt ends, user presses back
         self._back()
 
     def _back(self):
         # User 'back's out of artist gallery, start current mode again
-        main.IllustFollowMode(self._current_page_num, self._all_pages_cache)
+        main.IllustFollowMode(self._current_page_num, gdata.all_pages_cache)
 
     def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
                       first_num, second_num):
@@ -413,20 +397,11 @@ class Image:
         q -- quit (with confirmation)
 
     """
-    def __init__(self, image_id, artist_user_id, current_page_num=1,
-                 firstmode=False, multi_image_info=None):
+    def __init__(self, image_id, idata, current_page_num=1, firstmode=False):
         self._image_id = image_id
-        self._artist_user_id = artist_user_id
+        self._artist_user_id = idata.artist_user_id
         self._current_page_num = current_page_num
         self._firstmode = firstmode
-
-        if multi_image_info:  # Posts with multiple pages
-            self._page_urls = multi_image_info["page_urls"]
-            # Starts from 0
-            self._img_post_page_num = multi_image_info["img_post_page_num"]
-            self._number_of_pages = multi_image_info["number_of_pages"]
-            self._downloaded_images = multi_image_info["downloaded_images"]
-            self._download_path = multi_image_info['download_path']
 
     def open_image(self):
         link = f"https://www.pixiv.net/artworks/{self._image_id}"
@@ -434,23 +409,22 @@ class Image:
         print(f"Opened {link} in browser")
 
     def download_image(self):
-        current_url = self._page_urls[self._img_post_page_num]
         # Need to work on multi-image posts
         # Doing the same job as full_img_details
-        large_url = pure.change_url_to_full(url=current_url)
+        large_url = pure.change_url_to_full(url=idata.current_url)
         filename = pure.split_backslash_last(large_url)
         filepath = pure.generate_filepath(filename)
         download.download_image_verified(url=large_url, filename=filename,
                                          filepath=filepath)
 
     def next_image(self):
-        if not self._page_urls:
+        if not idata.page_urls:
             print("This is the only page in the post!")
-        elif self._img_post_page_num + 1 == self._number_of_pages:
+        elif idata.img_post_page_num + 1 == idata.number_of_pages:
             print("This is the last image in the post!")
 
         else:
-            self._img_post_page_num += 1  # Be careful of 0 index
+            idata.img_post_page_num += 1  # Be careful of 0 index
             self._go_next_image()
 
     def _go_next_image(self):
@@ -463,41 +437,33 @@ class Image:
         # to download when you load it
 
         # First time from gallery; download next image
-        if self._img_post_page_num == 1:
-            url = self._page_urls[self._img_post_page_num]
-            self._downloaded_images = map(pure.split_backslash_last,
-                                          self._page_urls[:2])
-            self._downloaded_images = list(self._downloaded_images)
-            download.async_download_spinner(self._download_path, [url])
+        if idata.img_post_page_num == 1:
+            download.async_download_spinner(idata.download_path, [idata.current_url])
 
-        utils.display_image_vp("".join([
-            self._download_path,
-            self._downloaded_images[self._img_post_page_num]
-        ]))
+        utils.display_image_vp(idata.filepath())
 
         # Downloads the next image
         try:
-            next_img_url = self._page_urls[self._img_post_page_num + 1]
-        except IndexError:
-            pass  # Last page
+            next_img_url = idata.next_img_url()
+        except IndexError: # Last page
+            pass
         else:  # No error
-            self._downloaded_images.append(
+            idata.download_images.append(
                 pure.split_backslash_last(next_img_url)
             )
-            download.async_download_spinner(self._download_path, [next_img_url])
+            download.async_download_spinner(idata.download_path, [next_img_url])
 
-        print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
+        print(f"Page {idata.img_post_page_num+1}/{idata.number_of_pages}")
 
     def previous_image(self):
-        if not self._page_urls:
+        if not idata.page_urls:
             print("This is the only page in the post!")
-        elif self._img_post_page_num == 0:
+        elif idata.img_post_page_num == 0:
             print("This is the first image in the post!")
         else:
-            self._img_post_page_num -= 1
-            image_filename = self._downloaded_images[self._img_post_page_num]
-            utils.display_image_vp(f"{self._download_path}{image_filename}")
-            print(f"Page {self._img_post_page_num+1}/{self._number_of_pages}")
+            idata.img_post_page_num -= 1
+            utils.display_image_vp(f"{idata.download_path}{idata.image_filename()}")
+            print(f"Page {idata.img_post_page_num+1}/{idata.number_of_pages}")
 
     def leave(self, force=False):
         if self._firstmode or force:
@@ -529,16 +495,8 @@ class Users(ABC):
         self._input = user_or_id
         self._offset = 0
         self._page_num = 1
-        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
-        self._names_cache = {}
-        self._ids_cache = {}
+        self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._show = True
-        # Defined in _parse_user_infos():
-        self._next_url: 'Dict[str, str]'
-        self._ids: 'List[str]'
-        self._names: 'List[str]'
-        self._profile_pic_urls: 'List[str]'
-        self._image_urls = 'List[str]'
 
     def start(self):
         # It can't show first (including if cache is outdated),
@@ -555,41 +513,35 @@ class Users(ABC):
         move the profile pics to the correct dir (less files to move)
         """
         self._parse_user_infos()
-
         preview_path = f"{self._main_path}/{self._input}/{self._page_num}/previews/"
-        all_urls = self._profile_pic_urls + self._image_urls
-        preview_names_ext = map(pure.split_backslash_last, self._image_urls)
-        preview_names = [x.split('.')[0] for x in preview_names_ext]
-        all_names = self._names + preview_names
-        splitpoint = len(self._profile_pic_urls)
 
         # Similar to logic in GalleryLikeMode (_init_download())...
-        if not Path(self._download_path).is_dir():
-            self._download_pbar(all_urls, preview_path, all_names, splitpoint)
+        if not Path(self.download_path).is_dir():
+            self._download_pbar(udata, preview_path)
 
-        elif not all_names[0] in sorted(os.listdir(self._download_path))[0]:
+        elif not udata.all_names()[0] in sorted(os.listdir(self.download_path))[0]:
             print("Cache is outdated, reloading...")
             # Remove old images
-            os.system(f"rm -r {self._download_path}") # shutil.rmtree is better
-            self._download_pbar(all_urls, preview_path, all_names, splitpoint)
+            os.system(f"rm -r {self.download_path}") # shutil.rmtree is better
+            self._download_pbar(udata, preview_path)
             self._show = True
 
-    def _download_pbar(self, all_urls, preview_path, all_names, splitpoint):
+    def _download_pbar(self, udata, preview_path):
         pbar = tqdm(total=len(all_urls), smoothing=0)
         download.async_download_core(
             preview_path,
-            all_urls,
+            udata.all_urls,
             rename_images=True,
-            file_names=all_names,
+            file_names=udata.all_names,
             pbar=pbar
         )
         pbar.close()
 
         # Move artist profile pics to their correct dir
-        to_move = sorted(os.listdir(preview_path))[:splitpoint]
-        with pure.cd(self._download_path):
-            [os.rename(f"{self._download_path}/previews/{pic}",
-                       f"{self._download_path}/{pic}")
+        to_move = sorted(os.listdir(preview_path))[:udata.splitpoint()]
+        with pure.cd(self.download_path):
+            [os.rename(f"{self.download_path}/previews/{pic}",
+                       f"{self.download_path}/{pic}")
              for pic in to_move]
 
 
@@ -602,31 +554,15 @@ class Users(ABC):
     def _parse_user_infos(self):
         """Parse json and get list of artist names, profile pic urls, and id"""
         result = self._pixivrequest()
-        page = result["user_previews"]
-        self._next_url = result["next_url"]
-
-        self._ids = list(map(self._user_id, page))
-        self._ids_cache.update({self._page_num: self._ids})
-
-        self._names = list(map(self._user_name, page))
-        self._names_cache.update({self._page_num: self._names})
-
-        self._profile_pic_urls = list(map(self._user_profile_pic, page))
-
-        # max(i) == number of artists on this page
-        # max(j) == 3 == 3 previews for every artist
-        self._image_urls = [page[i]['illusts'][j]['image_urls']['square_medium']
-                            for i in range(len(page))
-                            for j in range(len(page[i]['illusts']))]
-
+        udata = data.UserJson(result, 1)
 
     def _show_page(self):
         try:
-            names = self._names_cache[self._page_num]
+            names = udata.names(self._page_num)
         except KeyError:
             print("This is the last page!")
             self._page_num -= 1
-            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+            self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
         else:
             names_prefixed = map(pure.prefix_artist_name, names, range(len(names)))
@@ -634,28 +570,29 @@ class Users(ABC):
 
             # LSCAT
             lscat.Card(
-                self._download_path,
+                self.download_path,
                 f"{self._main_path}/{self._input}/{self._page_num}/previews/",
                 messages=names_prefixed,
             ).render()
 
     def _prefetch_next_page(self):
+        # TODO: split into download and data parts
         oldnum = self._page_num
 
-        if self._next_url:
-            self._offset = api.myapi.parse_next(self._next_url)["offset"]
+        if udata.next_url:
+            self._offset = api.myapi.parse_next(udata.next_url)["offset"]
             # For when next -> prev -> next
             self._page_num = int(self._offset) // 30 + 1
-            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+            self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
             self._parse_and_download()
 
         self._page_num = oldnum
-        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+        self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
     def next_page(self):
         self._page_num += 1
-        self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+        self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
         self._show_page()
 
         self._prefetch_next_page()
@@ -663,21 +600,21 @@ class Users(ABC):
     def previous_page(self):
         if self._page_num > 1:
             self._page_num -= 1
-            self._download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+            self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
             self._show_page()
         else:
             print("This is the first page!")
 
     def go_artist_mode(self, selected_user_num):
-        current_page_ids = self._ids_cache[self._page_num]
         try:
-            artist_user_id = current_page_ids[selected_user_num]
+            artist_user_id = udata.artist_user_id(self._page_num, selected_user_num)
         except IndexError:
             print("Invalid number!")
-        main.ArtistGalleryMode(artist_user_id)
-        # After backing from gallery
-        self._show_page()
-        prompt.user_prompt(self)
+        else:
+            main.ArtistGalleryMode(artist_user_id)
+            # After backing from gallery
+            self._show_page()
+            prompt.user_prompt(self)
 
     def reload(self):
         ans = input("This will delete cached images and redownload them. Proceed?\n")
@@ -686,18 +623,6 @@ class Users(ABC):
             self.__init__(self._input)
             self.start()
         prompt.user_prompt(self)
-
-    @staticmethod
-    def _user_id(json):
-        return json["user"]["id"]
-
-    @staticmethod
-    def _user_name(json):
-        return json["user"]["name"]
-
-    @staticmethod
-    def _user_profile_pic(json):
-        return json["user"]["profile_image_urls"]["medium"]
 
 
 class SearchUsers(Users):

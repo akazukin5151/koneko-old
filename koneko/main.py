@@ -260,14 +260,9 @@ class IllustFollowModeLoop:
 
 # - Mode classes
 class GalleryLikeMode(ABC):
-    def __init__(self, current_page_num=1, all_pages_cache=None):
+    def __init__(self, current_page_num=1, gdata=None):
         self._current_page_num = current_page_num
         self._show = True
-        # Defined in self.start()
-        self._current_page: 'JsonDict'
-        # Defined in self._init_download()
-        self._current_page_illusts: 'JsonDictPage'
-        self._all_pages_cache = all_pages_cache
         # Defined in child classes
         self._download_path: str
         self.gallery: GalleryLikeMode
@@ -291,7 +286,9 @@ class GalleryLikeMode(ABC):
         else:
             self._show = True
 
-        self._current_page = self._pixivrequest()
+        if not gdata:
+            current_page = self._pixivrequest()
+            gdata = data.GalleryJson(current_page)
         self._init_download()
         if self._show:
             utils.show_artist_illusts(self._download_path)
@@ -302,27 +299,24 @@ class GalleryLikeMode(ABC):
         raise NotImplementedError
 
     def _download_pbar(self):
-        pbar = tqdm(total=len(self._current_page_illusts), smoothing=0)
-        download.download_page(self._current_page_illusts, self._download_path,
+        pbar = tqdm(total=len(gdata.current_illusts()), smoothing=0)
+        download.download_page(gdata.current_illusts(), self._download_path,
                                pbar=pbar)
         pbar.close()
 
     def _init_download(self):
-        self._current_page_illusts = self._current_page["illusts"]
-        titles = pure.post_titles_in_page(self._current_page_illusts)
-
+        # FIXME: next page -> image -> back == downloads 1st page to 2nd page dir
         if not Path(self._download_path).is_dir():
             self._download_pbar()
 
-        elif not titles[0] in sorted(os.listdir(self._download_path))[0]:
+        elif (not gdata.titles[0] in sorted(os.listdir(self._download_path))[0]
+              and self._current_page_num == 1):
             print("Cache is outdated, reloading...")
             # Remove old images
             os.system(f"rm -r {self._download_path}") # shutil.rmtree is better
             self._download_pbar()
             self._show = True
 
-        if not self._all_pages_cache:
-            self._all_pages_cache = {"1": self._current_page}
 
     @abstractmethod
     def _instantiate(self):
@@ -330,17 +324,10 @@ class GalleryLikeMode(ABC):
         raise NotImplementedError
 
 class ArtistGalleryMode(GalleryLikeMode):
-    def __init__(self, artist_user_id, current_page_num=1, **kwargs):
+    def __init__(self, artist_user_id, current_page_num=1, gdata=None):
         self._artist_user_id = artist_user_id
         self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
-
-        if kwargs:
-            self._current_page_num = current_page_num
-            self._current_page = kwargs['current_page']
-            self._all_pages_cache = kwargs['all_pages_cache']
-
-            self.start()
-        super().__init__(current_page_num, None)
+        super().__init__(current_page_num, gdata)
 
 
     def _pixivrequest(self):
@@ -348,11 +335,9 @@ class ArtistGalleryMode(GalleryLikeMode):
 
     def _instantiate(self):
         self.gallery = ui.ArtistGallery(
-            self._current_page_illusts,
-            self._current_page,
+            gdata
             self._current_page_num,
             self._artist_user_id,
-            self._all_pages_cache
         )
         prompt.gallery_like_prompt(self.gallery)
         # After backing, exit mode. The class that instantiated this mode
@@ -360,20 +345,15 @@ class ArtistGalleryMode(GalleryLikeMode):
 
 
 class IllustFollowMode(GalleryLikeMode):
-    def __init__(self, current_page_num=1, all_pages_cache=None):
+    def __init__(self, current_page_num=1, gdata=None):
         self._download_path = f"{KONEKODIR}/illustfollow/{current_page_num}/"
-        super().__init__(current_page_num, all_pages_cache)
+        super().__init__(current_page_num, gdata)
 
     def _pixivrequest(self):
         return api.myapi.illust_follow_request(restrict='private') # Publicity
 
     def _instantiate(self):
-        self.gallery = ui.IllustFollowGallery(
-            self._current_page_illusts,
-            self._current_page,
-            self._current_page_num,
-            self._all_pages_cache,
-        )
+        self.gallery = ui.IllustFollowGallery(gdata, self._current_page_num)
         prompt.gallery_like_prompt(self.gallery)
         # After backing
         main(start=False)
@@ -391,38 +371,17 @@ def view_post_mode(image_id):
         print("Work has been deleted or the ID does not exist!")
         sys.exit(1)
 
-    url = pure.url_given_size(post_json, "large")
-    filename = pure.split_backslash_last(url)
-    artist_user_id = post_json["user"]["id"]
+    idata = data.ImageJson(post_json, image_id)
 
-    # If it's a multi-image post, download the first pic in individual/{image_id}
-    # So it won't be duplicated later
-    number_of_pages, page_urls = pure.page_urls_in_post(post_json, "large")
-    if number_of_pages == 1:
-        large_dir = f"{KONEKODIR}/{artist_user_id}/individual/"
-        downloaded_images = None
-    else:
-        large_dir = f"{KONEKODIR}/{artist_user_id}/individual/{image_id}/"
-
-    download.download_core(large_dir, url, filename)
-    utils.display_image_vp(f"{large_dir}{filename}")
+    download.download_core(idata.large_dir, idata.url, idata.filename)
+    utils.display_image_vp(f"{idata.large_dir}{idata.filename}")
 
     # Download the next page for multi-image posts
-    if number_of_pages != 1:
-        download.async_download_spinner(large_dir, page_urls[:2])
-        downloaded_images = list(map(pure.split_backslash_last, page_urls[:2]))
+    if idata.number_of_pages != 1:
+        download.async_download_spinner(idata.large_dir, idata.page_urls[:2])
+        downloaded_images = list(map(pure.split_backslash_last, idata.page_urls[:2]))
 
-    # Will only be used for multi-image posts, so it's safe to use large_dir
-    # Without checking for number_of_pages
-    multi_image_info = {
-        'page_urls': page_urls,
-        'img_post_page_num': 0,
-        'number_of_pages': number_of_pages,
-        'downloaded_images': downloaded_images,
-        'download_path': large_dir,
-    }
-
-    image = ui.Image(image_id, artist_user_id, 1, True, multi_image_info)
+    image = ui.Image(image_id, idata, 1, True)
     prompt.image_prompt(image)
 
 if __name__ == "__main__":
