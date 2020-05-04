@@ -222,10 +222,8 @@ class ArtistGallery(AbstractGallery):
 
     def _back(self):
         # After user 'back's from image prompt, start mode again
-        # TODO: pass in the entire gdata object
         main.ArtistGalleryMode(self._artist_user_id, self._current_page_num,
-                               all_pages_cache=gdata.all_pages_cache,
-                               current_page=gdata.current_page(self._current_page_num))
+                               gdata)
 
     def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
                       first_num, second_num):
