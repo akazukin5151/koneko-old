@@ -34,7 +34,9 @@ class AbstractGallery(ABC):
 
         else:
             # Gallery -> next -> image prompt -> back
-            gdata.all_pages_cache[str(self._current_page_num)] = self._current_page
+            #gdata.all_pages_cache[str(self._current_page_num)] = self._current_page
+            # FIXME: incorrectly detects cache is outdated
+            pass
 
     def open_link_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -43,7 +45,8 @@ class AbstractGallery(ABC):
         else:
             self.open_link_num(selected_image_num)
 
-    def open_link_num(self, number):
+    @staticmethod
+    def open_link_num(number):
         # Update current_page_illusts, in case if you're in another page
         image_id = gdata.image_id(current_page_num, number)
         link = f"https://www.pixiv.net/artworks/{image_id}"
@@ -64,7 +67,7 @@ class AbstractGallery(ABC):
 
     def view_image(self, selected_image_num):
         self._selected_image_num = selected_image_num
-        post_json = gdata.post_json(self._current_page_num, number)
+        post_json = gdata.post_json(self._current_page_num, selected_image_num)
 
         # IllustFollow doesn't have artist_user_id
         artist_user_id = post_json['user']['id']
