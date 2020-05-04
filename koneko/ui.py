@@ -509,9 +509,9 @@ class Users(ABC):
         if not Path(self.download_path).is_dir():
             self._download_pbar(preview_path)
 
-        elif not self.data.all_names()[0] in sorted(os.listdir(self.download_path))[0]:
-            breakpoint()
-            # FIXME: incorrectly detects cache is outdated
+        elif not (self.data.all_names(self._page_num)[0]
+                  in sorted(os.listdir(self.download_path))[0]):
+
             print("Cache is outdated, reloading...")
             # Remove old images
             os.system(f"rm -r {self.download_path}") # shutil.rmtree is better
@@ -524,7 +524,7 @@ class Users(ABC):
             preview_path,
             self.data.all_urls(),
             rename_images=True,
-            file_names=self.data.all_names(),
+            file_names=self.data.all_names(self._page_num),
             pbar=pbar
         )
         pbar.close()
@@ -575,12 +575,15 @@ class Users(ABC):
         oldnum = self._page_num
 
         if self.data.next_url:
-            self._offset = api.myapi.parse_next(self.data.next_url)["offset"]
-            # For when next -> prev -> next
-            self._page_num = int(self._offset) // 30 + 1
-            self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
+            next_offset = api.myapi.parse_next(self.data.next_url)["offset"]
+            # Won't download if not immediately next page, eg
+            # p1 (p2 downloaded) -> p2 (p3) -> p1 -> p2 (p4 won't download)
+            if int(next_offset) - int(self._offset) <= 30:
+                self._offset = next_offset
+                self._page_num = int(self._offset) // 30 + 1
+                self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
 
-            self._parse_and_download()
+                self._parse_and_download()
 
         self._page_num = oldnum
         self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
@@ -595,6 +598,7 @@ class Users(ABC):
     def previous_page(self):
         if self._page_num > 1:
             self._page_num -= 1
+            self._offset = int(self._offset) - 30
             self.download_path = f"{self._main_path}/{self._input}/{self._page_num}"
             self._show_page()
         else:

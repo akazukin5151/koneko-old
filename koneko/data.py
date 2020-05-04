@@ -101,10 +101,10 @@ class UserJson:
     def all_urls(self):
         return self.profile_pic_urls + self.image_urls
 
-    def all_names(self):
+    def all_names(self, page_num):
         preview_names_ext = map(pure.split_backslash_last, self.image_urls)
         preview_names = [x.split('.')[0] for x in preview_names_ext]
-        return self.names(1) + preview_names
+        return self.names(page_num) + preview_names
 
     def splitpoint(self):
         return len(self.profile_pic_urls)
