@@ -154,6 +154,7 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 * Edit the files on your fork
 * Submit a pull request
 * If you want to, you can create an issue first. Ask any questions by opening a new issue.
+* If you're encountering/fixing a bug and you're stuck, try clearing the cache.
 
 **NOTE:** running `koneko.py` with python or executing it will fail with an import error (circular import). Python imports are a mess, just use `python setup.py develop` when you want to test a change.
 
