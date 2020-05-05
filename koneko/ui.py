@@ -25,20 +25,12 @@ class AbstractGallery(ABC):
 
         pure.print_multiple_imgs(self.data.current_page_illusts)
         print(f'Page {self._current_page_num}')
-        # Fixes: Gallery -> next page -> image prompt -> back -> prev page
-        # Gallery -> Image -> back still retains all_pages_cache, no need to
-        # prefetch again
+        # Make sure the following work:
+        # Gallery -> next page -> image prompt -> back -> prev page
         if len(self.data.all_pages_cache) == 1:
             # Prefetch the next page on first gallery load
             with funcy.suppress(LastPageException):
                 self._prefetch_next_page()
-
-        else:
-            # Gallery -> next -> image prompt -> back
-            #gdata.all_pages_cache[str(self._current_page_num)] = self._current_page
-            # FIXME: incorrectly detects cache is outdated
-            # Now Image thinks it's the first mode, need to fix that first
-            pass
 
     def open_link_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -69,21 +61,19 @@ class AbstractGallery(ABC):
     def view_image(self, selected_image_num):
         self._selected_image_num = selected_image_num
         post_json = self.data.post_json(self._current_page_num, selected_image_num)
-
-        # IllustFollow doesn't have artist_user_id
-        artist_user_id = post_json['user']['id']
         image_id = post_json.id
+        idata = data.ImageJson(post_json, image_id)
 
         display_image(
             post_json,
-            artist_user_id,
+            idata.artist_user_id,
             self._selected_image_num,
             self._current_page_num
         )
 
-        number_of_pages, page_urls = pure.page_urls_in_post(post_json, 'large')
         # blocking: no way to unblock prompt
-        image = main.view_post_mode(image_id)
+        image = Image(image_id, idata, self._current_page_num, False)
+        prompt.image_prompt(image)
 
         # Image prompt ends, user presses back
         self._back()
@@ -305,7 +295,7 @@ class IllustFollowGallery(AbstractGallery):
 
     def _back(self):
         # User 'back's out of artist gallery, start current mode again
-        main.IllustFollowMode(self._current_page_num, self.data.all_pages_cache)
+        main.IllustFollowMode(self._current_page_num, self.data)
 
     def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
                       first_num, second_num):
