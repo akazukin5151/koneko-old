@@ -306,7 +306,6 @@ class GalleryLikeMode(ABC):
         pbar.close()
 
     def _init_download(self):
-        # FIXME: next page -> image -> back == downloads 1st page to 2nd page dir
         if not Path(self._download_path).is_dir():
             self._download_pbar()
 
