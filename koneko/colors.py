@@ -9,16 +9,16 @@ def _letter(letter):
     >>> _letter("a")
     ... [a]
     """
-    return "".join([Fore.RED, "[", Fore.MAGENTA, letter, Fore.RED, "]", Fore.RESET])
+    return ''.join([Fore.RED, '[', Fore.MAGENTA, letter, Fore.RED, ']', Fore.RESET])
 
-_blue_n = "".join([Fore.RED, "[", Fore.BLUE, "n", Fore.RED, "]"])
+_blue_n = ''.join([Fore.RED, '[', Fore.BLUE, 'n', Fore.RED, ']'])
 
 def _letter_with_coords(letter):
     """ letter is magenta, n is blue, [] is red
     >>> _letter_with_coords("i")
     ... [i][n]
     """
-    return "".join([Fore.RED, "[", Fore.MAGENTA, letter, Fore.RED, "]",
+    return ''.join([Fore.RED, '[', Fore.MAGENTA, letter, Fore.RED, ']',
                     _blue_n, Fore.RESET])
 
 def _two_letter_with_coords(letter):
@@ -26,35 +26,35 @@ def _two_letter_with_coords(letter):
     >>> _two_letter_with_coords("o")
     ... [o{y}{x}|O[n]]
     """
-    return "".join([Fore.RED, "[", Fore.MAGENTA, letter.lower(), Fore.RESET, coords, "|",
-                    Fore.MAGENTA, letter.upper(), _blue_n, Fore.RED, "]", Fore.RESET])
+    return ''.join([Fore.RED, '[', Fore.MAGENTA, letter.lower(), Fore.RESET, coords, '|',
+                    Fore.MAGENTA, letter.upper(), _blue_n, Fore.RED, ']', Fore.RESET])
 
 
-_letters = ["n", "p", "r", "q", "m", "b", "o", "d"]
-_tlc = ["a", "o", "d"]
+_letters = ['n', 'p', 'r', 'q', 'm', 'b', 'o', 'd']
+_tlc = ['a', 'o', 'd']
 
 # Public
 # {y}{x}
-coords = "".join([Fore.RED, "{", Fore.BLUE, "x", Fore.RED, "}{", Fore.BLUE,
-                  "y", Fore.RED, "}", Fore.RESET])
+coords = ''.join([Fore.RED, '{', Fore.BLUE, 'x', Fore.RED, '}{', Fore.BLUE,
+                  'y', Fore.RED, '}', Fore.RESET])
 
 n, p, r, q, m, b, o_, d_ = list(map(_letter, _letters))
 
-i = _letter_with_coords("i")
+i = _letter_with_coords('i')
 
 a, o, d = list(map(_two_letter_with_coords, _tlc))
 
 # For galleries
 base1 = [
-    coords, " view image at (x, y); ",
-    i, " view nth image; ",
-    d, " download image;\n",
-    o, " open image in browser; "
+    coords, ' view image at (x, y); ',
+    i, ' view nth image; ',
+    d, ' download image;\n',
+    o, ' open image in browser; '
 ]
 
 base2 = [
-    n, "ext page; ",
-    p, "revious page;\n",
-    r, "eload and re-download all; ",
-    q, "uit (with confirmation); ",
+    n, 'ext page; ',
+    p, 'revious page;\n',
+    r, 'eload and re-download all; ',
+    q, 'uit (with confirmation); ',
 ]

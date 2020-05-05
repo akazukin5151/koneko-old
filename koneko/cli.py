@@ -39,7 +39,7 @@ from koneko import pure
 def process_cli_args():
     args = docopt(__doc__)
     if len(sys.argv) > 1:
-        print("Logging in...")
+        print('Logging in...')
         prompted = False
     else:  # No cli arguments
         prompted = True
@@ -49,25 +49,25 @@ def process_cli_args():
     # Direct command line arguments
     if url_or_str := args['<link>']:
         # Link given, no mode specified
-        if "users" in url_or_str:
+        if 'users' in url_or_str:
             user_input, main_command = pure.process_user_url(url_or_str)
 
-        elif "artworks" in url_or_str or "illust_id" in url_or_str:
+        elif 'artworks' in url_or_str or 'illust_id' in url_or_str:
             user_input, main_command = pure.process_artwork_url(url_or_str)
 
         # Assume you won't search for '3' or 'f'
-        elif url_or_str == "3" or url_or_str == "f":
-            main_command = "3"
+        elif url_or_str == '3' or url_or_str == 'f':
+            main_command = '3'
             user_input = None
 
         # Assume you won't search for '5' or 'n'
-        elif url_or_str == "5" or url_or_str == "n":
-            main_command = "5"
+        elif url_or_str == '5' or url_or_str == 'n':
+            main_command = '5'
             user_input = None
 
         else:  # Mode 4, string to search for artists
             user_input = url_or_str
-            main_command = "4"
+            main_command = '4'
 
     elif url_or_id := args['<link_or_id>']:
         # Mode specified, argument can be link or id
@@ -79,9 +79,9 @@ def process_cli_args():
 
         elif args['3'] or args['f']:
             user_input, main_command = pure.process_user_url(url_or_id)
-            main_command = "3"
+            main_command = '3'
 
     elif user_input := args['<searchstr>']:
-        main_command = "4"
+        main_command = '4'
 
     return prompted, main_command, user_input

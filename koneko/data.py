@@ -5,12 +5,12 @@ as they should focus on responding to user input and print/display.
 from pathlib import Path
 from koneko import pure
 
-KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
+KONEKODIR = Path('~/.local/share/koneko/cache').expanduser()
 
 class GalleryJson:
     def __init__(self, raw):
         self.raw = raw
-        self.all_pages_cache = {"1": self.raw}
+        self.all_pages_cache = {'1': self.raw}
         self.current_page_illusts = self.raw['illusts']
 
         self.titles = pure.post_titles_in_page(self.current_page_illusts)
@@ -25,7 +25,7 @@ class GalleryJson:
         return self.current_illusts(current_page_num)[post_number]
 
     def image_id(self, current_page_num, number):
-        return self.current_illusts(current_page_num)[number]["id"]
+        return self.current_illusts(current_page_num)[number]['id']
 
     def update_current_illusts(self, current_page_num):
         self.current_page_illusts = self.current_illusts(current_page_num)
@@ -34,32 +34,32 @@ class GalleryJson:
         return self.all_pages_cache.keys()
 
     def next_url(self, current_page_num):
-        return self.all_pages_cache[str(current_page_num)]["next_url"]
+        return self.all_pages_cache[str(current_page_num)]['next_url']
 
 
 class ImageJson:
     def __init__(self, raw, image_id):
         self._raw = raw
-        self.url = pure.url_given_size(self._raw, "large")
+        self.url = pure.url_given_size(self._raw, 'large')
         self.filename = pure.split_backslash_last(self.url)
-        self.artist_user_id = self._raw["user"]["id"]
+        self.artist_user_id = self._raw['user']['id']
         self.img_post_page_num = 0
 
-        self.number_of_pages, self.page_urls = pure.page_urls_in_post(self._raw, "large")
+        self.number_of_pages, self.page_urls = pure.page_urls_in_post(self._raw, 'large')
         if self.number_of_pages == 1:
             self.downloaded_images = None
-            self.large_dir = f"{KONEKODIR}/{self.artist_user_id}/individual/"
+            self.large_dir = f'{KONEKODIR}/{self.artist_user_id}/individual/'
         else:
             self.downloaded_images = list(map(pure.split_backslash_last,
                                               self.page_urls[:2]))
             # So it won't be duplicated later
-            self.large_dir = f"{KONEKODIR}/{self.artist_user_id}/individual/{image_id}/"
+            self.large_dir = f'{KONEKODIR}/{self.artist_user_id}/individual/{image_id}/'
 
     def image_filename(self):
         return self.downloaded_images[self.img_post_page_num]
 
     def filepath(self):
-        return "".join([self.large_dir, self.image_filename()])
+        return ''.join([self.large_dir, self.image_filename()])
 
     def next_img_url(self):
         return self.page_urls[self.img_post_page_num + 1]
@@ -76,7 +76,7 @@ class UserJson:
     def update(self, raw, page_num):
         self.raw = raw
         self.next_url = self.raw['next_url']
-        page = self.raw["user_previews"]
+        page = self.raw['user_previews']
 
         ids = list(map(self._user_id, page))
         self.ids_cache.update({page_num: ids})
@@ -111,12 +111,12 @@ class UserJson:
 
     @staticmethod
     def _user_id(json):
-        return json["user"]["id"]
+        return json['user']['id']
 
     @staticmethod
     def _user_name(json):
-        return json["user"]["name"]
+        return json['user']['name']
 
     @staticmethod
     def _user_profile_pic(json):
-        return json["user"]["profile_image_urls"]["medium"]
+        return json['user']['profile_image_urls']['medium']

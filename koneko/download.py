@@ -8,7 +8,7 @@ import cytoolz
 from koneko import api, pure, utils
 
 
-@pure.spinner("")
+@pure.spinner('')
 def async_download_spinner(download_path, urls, rename_images=False,
                            file_names=None, pbar=None):
     """Batch download and rename, with spinner. For mode 2; multi-image posts"""
@@ -51,8 +51,8 @@ def downloadr(url, img_name, new_file_name=None, pbar=None):
     # print(f"{img_name} done!")
     if new_file_name:
         # This character break renames
-        if "/" in new_file_name:
-            new_file_name = new_file_name.replace("/", "")
+        if '/' in new_file_name:
+            new_file_name = new_file_name.replace('/', '')
         os.rename(img_name, new_file_name)
 
 
@@ -70,13 +70,13 @@ def download_page(current_page_illusts, download_path, pbar=None):
 
 
 # - Wrappers around the core functions for downloading one image
-@pure.spinner("")
+@pure.spinner('')
 def download_core(large_dir, url, filename, try_make_dir=True):
     """Downloads one url, intended for single images only"""
     if try_make_dir:
         os.makedirs(large_dir, exist_ok=True)
     if not Path(filename).is_file():
-        print("   Downloading illustration...", flush=True, end="\r")
+        print('   Downloading illustration...', flush=True, end='\r')
         with pure.cd(large_dir):
             downloadr(url, filename, None)
 
@@ -97,20 +97,20 @@ def download_image_verified(image_id=None, post_json=None, png=False, **kwargs):
             image_id=image_id, post_json=post_json, png=png
         )
     else:
-        url = kwargs["url"]
-        filename = kwargs["filename"]
-        filepath = kwargs["filepath"]
+        url = kwargs['url']
+        filename = kwargs['filename']
+        filepath = kwargs['filepath']
 
-    download_path = Path("~/Downloads").expanduser()
+    download_path = Path('~/Downloads').expanduser()
     download_core(download_path, url, filename, try_make_dir=False)
 
     verified = utils.verify_full_download(filepath)
     if not verified:
         download_image_verified(url=url, png=True)
     else:
-        print(f"Image downloaded at {filepath}\n")
+        print(f'Image downloaded at {filepath}\n')
 
-@pure.spinner("Getting full image details... ")
+@pure.spinner('Getting full image details... ')
 def full_img_details(png=False, post_json=None, image_id=None):
     """
     All in one function that gets the full-resolution url, filename, and

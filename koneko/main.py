@@ -22,22 +22,22 @@ from tqdm import tqdm
 
 from koneko import ui, api, cli, pure, utils, prompt, download, data
 
-KONEKODIR = Path("~/.local/share/koneko/cache").expanduser()
+KONEKODIR = Path('~/.local/share/koneko/cache').expanduser()
 
 def main(start=True):
     """Read config file, start login, process any cli arguments, go to main loop"""
-    os.system("clear")
+    os.system('clear')
     credentials, your_id = utils.config()
-    if not Path("~/.local/share/koneko").expanduser().exists():
-        print("Please wait, downloading welcome image (this will only occur once)...")
-        baseurl = "https://raw.githubusercontent.com/twenty5151/koneko/master/pics/"
-        basedir = Path("~/.local/share/koneko/pics").expanduser()
+    if not Path('~/.local/share/koneko').expanduser().exists():
+        print('Please wait, downloading welcome image (this will only occur once)...')
+        baseurl = 'https://raw.githubusercontent.com/twenty5151/koneko/master/pics/'
+        basedir = Path('~/.local/share/koneko/pics').expanduser()
 
         basedir.mkdir(parents=True)
-        for pic in ("71471144_p0.png", "79494300_p0.png"):
-            os.system(f"curl -s {baseurl}{pic} -o {basedir}{pic}")
+        for pic in ('71471144_p0.png', '79494300_p0.png'):
+            os.system(f'curl -s {baseurl}{pic} -o {basedir}{pic}')
 
-        os.system("clear")
+        os.system('clear')
 
     api.myapi.add_credentials(credentials)
     if start:
@@ -70,46 +70,46 @@ def main_loop(prompted, main_command, user_input, your_id=None, start=True):
         if prompted and not user_input:
             main_command = utils.begin_prompt(printmessage)
 
-        if main_command == "1":
+        if main_command == '1':
             ArtistModeLoop(prompted, user_input).start(start)
 
-        elif main_command == "2":
+        elif main_command == '2':
             ViewPostModeLoop(prompted, user_input).start(start)
 
-        elif main_command == "3":
+        elif main_command == '3':
             if your_id and not user_input: # your_id stored in config file
-                ans = input("Do you want to use the Pixiv ID saved in your config?\n")
-                if ans in {"y", ""}:
+                ans = input('Do you want to use the Pixiv ID saved in your config?\n')
+                if ans in {'y', ''}:
                     FollowingUserModeLoop(prompted, your_id).start(start)
 
             # If your_id not stored, or if ans is no, or if id provided, via cli
             FollowingUserModeLoop(prompted, user_input).start(start)
 
-        elif main_command == "4":
+        elif main_command == '4':
             SearchUsersModeLoop(prompted, user_input).start(start)
 
-        elif main_command == "5":
+        elif main_command == '5':
             IllustFollowModeLoop().start(start)
 
-        elif main_command == "?":
+        elif main_command == '?':
             utils.info_screen_loop()
 
-        elif main_command == "m":
+        elif main_command == 'm':
             utils.show_man_loop()
 
-        elif main_command == "c":
+        elif main_command == 'c':
             utils.clear_cache_loop()
 
-        elif main_command == "q":
-            answer = input("Are you sure you want to exit? [y/N]:\n")
-            if answer == "y" or not answer:
+        elif main_command == 'q':
+            answer = input('Are you sure you want to exit? [y/N]:\n')
+            if answer == 'y' or not answer:
                 sys.exit(0)
             else:
                 printmessage = False
                 continue
 
         else:
-            print("\nInvalid command!")
+            print('\nInvalid command!')
             printmessage = False
             continue
 
@@ -137,7 +137,7 @@ class Loop(ABC):
                 self._prompt_url_id()
                 self._process_url_or_input()
                 self._validate_input()
-                os.system("clear")
+                os.system('clear')
 
             if start:
                 api.myapi.await_login()
@@ -149,7 +149,7 @@ class Loop(ABC):
         raise NotImplementedError
 
     def _process_url_or_input(self):
-        if "pixiv" in self._url_or_id:
+        if 'pixiv' in self._url_or_id:
             self._user_input = pure.split_backslash_last(self._url_or_id)
         else:
             self._user_input = self._url_or_id
@@ -158,7 +158,7 @@ class Loop(ABC):
         try:
             int(self._user_input)
         except ValueError:
-            print("Invalid image ID! Returning to main...")
+            print('Invalid image ID! Returning to main...')
             # If ctrl+c pressed before a mode is selected, thread will never join
             # Get it to join first so that modes still work
             api.myapi.await_login()
@@ -191,15 +191,15 @@ class ViewPostModeLoop(Loop):
     before proceeding
     """
     def _prompt_url_id(self):
-        self._url_or_id = input("Enter pixiv post url or ID:\n")
+        self._url_or_id = input('Enter pixiv post url or ID:\n')
 
     def _process_url_or_input(self):
         """Overriding base class to account for 'illust_id' cases"""
-        if "illust_id" in self._url_or_id:
-            reg = re.findall(r"&illust_id.*", self._url_or_id)
-            self._user_input = reg[0].split("=")[-1]
+        if 'illust_id' in self._url_or_id:
+            reg = re.findall(r'&illust_id.*', self._url_or_id)
+            self._user_input = reg[0].split('=')[-1]
 
-        elif "pixiv" in self._url_or_id:
+        elif 'pixiv' in self._url_or_id:
             self._user_input = pure.split_backslash_last(self._url_or_id)
         else:
             self._user_input = self._url_or_id
@@ -214,7 +214,7 @@ class SearchUsersModeLoop(Loop):
     before proceeding
     """
     def _prompt_url_id(self):
-        self._url_or_id = input("Enter search string:\n")
+        self._url_or_id = input('Enter search string:\n')
 
     def _process_url_or_input(self):
         """the 'url or id' name doesn't really apply; accepts all strings"""
@@ -240,7 +240,7 @@ class FollowingUserModeLoop(Loop):
     skipped
     """
     def _prompt_url_id(self):
-        self._url_or_id = input("Enter your pixiv ID or url: ")
+        self._url_or_id = input('Enter your pixiv ID or url: ')
 
     def _go_to_mode(self):
         self.mode = ui.FollowingUsers(self._user_input)
@@ -312,9 +312,9 @@ class GalleryLikeMode(ABC):
 
         elif (not self.data.titles[0] in sorted(os.listdir(self._download_path))[0]
               and self._current_page_num == 1):
-            print("Cache is outdated, reloading...")
+            print('Cache is outdated, reloading...')
             # Remove old images
-            os.system(f"rm -r {self._download_path}") # shutil.rmtree is better
+            os.system(f'rm -r {self._download_path}') # shutil.rmtree is better
             self._download_pbar()
             self._show = True
 
@@ -327,7 +327,7 @@ class GalleryLikeMode(ABC):
 class ArtistGalleryMode(GalleryLikeMode):
     def __init__(self, artist_user_id, current_page_num=1, gdata=None):
         self._artist_user_id = artist_user_id
-        self._download_path = f"{KONEKODIR}/{artist_user_id}/{current_page_num}/"
+        self._download_path = f'{KONEKODIR}/{artist_user_id}/{current_page_num}/'
         super().__init__(current_page_num, gdata)
 
     def _pixivrequest(self):
@@ -346,7 +346,7 @@ class ArtistGalleryMode(GalleryLikeMode):
 
 class IllustFollowMode(GalleryLikeMode):
     def __init__(self, current_page_num=1, gdata=None):
-        self._download_path = f"{KONEKODIR}/illustfollow/{current_page_num}/"
+        self._download_path = f'{KONEKODIR}/illustfollow/{current_page_num}/'
         super().__init__(current_page_num, gdata)
 
     def _pixivrequest(self):
@@ -364,17 +364,17 @@ def view_post_mode(image_id):
     If it is a multi-image post, download the next image
     Else or otherwise, open image prompt
     """
-    print("Fetching illust details...")
+    print('Fetching illust details...')
     try:
-        post_json = api.myapi.protected_illust_detail(image_id)["illust"]
+        post_json = api.myapi.protected_illust_detail(image_id)['illust']
     except KeyError:
-        print("Work has been deleted or the ID does not exist!")
+        print('Work has been deleted or the ID does not exist!')
         sys.exit(1)
 
     idata = data.ImageJson(post_json, image_id)
 
     download.download_core(idata.large_dir, idata.url, idata.filename)
-    utils.display_image_vp(f"{idata.large_dir}{idata.filename}")
+    utils.display_image_vp(f'{idata.large_dir}{idata.filename}')
 
     # Download the next page for multi-image posts
     if idata.number_of_pages != 1:
@@ -384,5 +384,5 @@ def view_post_mode(image_id):
     image = ui.Image(image_id, idata, 1, True)
     prompt.image_prompt(image)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
