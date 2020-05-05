@@ -20,9 +20,8 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from koneko import ui, api, cli, pure, utils, prompt, download, data
+from koneko import KONEKODIR, ui, api, cli, data, pure, utils, prompt, download
 
-KONEKODIR = Path('~/.local/share/koneko/cache').expanduser()
 
 def main(start=True):
     """Read config file, start login, process any cli arguments, go to main loop"""

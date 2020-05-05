@@ -7,9 +7,19 @@ from pathlib import Path
 import funcy
 from tqdm import tqdm
 
-from koneko import api, main, pure, lscat, utils, colors, prompt, download, data
+from koneko import (
+    KONEKODIR,
+    api,
+    data,
+    main,
+    pure,
+    lscat,
+    utils,
+    colors,
+    prompt,
+    download
+)
 
-KONEKODIR = Path('~/.local/share/koneko/cache').expanduser()
 
 class LastPageException(ValueError):
     pass
