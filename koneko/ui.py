@@ -7,18 +7,8 @@ from pathlib import Path
 import funcy
 from tqdm import tqdm
 
-from koneko import (
-    KONEKODIR,
-    api,
-    data,
-    main,
-    pure,
-    lscat,
-    utils,
-    colors,
-    prompt,
-    download
-)
+from koneko import (KONEKODIR, api, data, main, pure, lscat, utils, colors,
+                    prompt, download)
 
 
 class LastPageException(ValueError):
