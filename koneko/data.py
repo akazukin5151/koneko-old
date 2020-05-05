@@ -2,10 +2,8 @@
 TODO: The ui classes would never need to interact directly with the api
 as they should focus on responding to user input and print/display.
 """
-from pathlib import Path
-from koneko import pure
+from koneko import KONEKODIR, pure
 
-KONEKODIR = Path('~/.local/share/koneko/cache').expanduser()
 
 class GalleryJson:
     def __init__(self, raw):

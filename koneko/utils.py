@@ -7,9 +7,7 @@ from configparser import ConfigParser
 
 import pixcat
 
-from koneko import main, pure, lscat
-
-KONEKODIR = Path('~/.local/share/koneko/pics').expanduser()
+from koneko import KONEKODIR, main, pure, lscat
 
 
 def verify_full_download(filepath):
@@ -61,7 +59,12 @@ def begin_prompt(printmessage=True):
         for message in messages:
             print(' ' * 27, message)
 
-    pixcat.Image(KONEKODIR / '71471144_p0.png').thumbnail(550).show(align='left', y=0)
+    pixcat.Image(
+        KONEKODIR.parent / 'pics' / '71471144_p0.png'
+    ).thumbnail(550).show(
+        align='left', y=0
+    )
+
     command = input('Enter a command: ')
     return command
 
@@ -130,7 +133,11 @@ def info_screen_loop():
     for message in messages:
         print(' ' * 26, message)
 
-    pixcat.Image(KONEKODIR / '79494300_p0.png').thumbnail(750).show(align='left', y=0)
+    pixcat.Image(
+        KONEKODIR.parent / 'pics' / '79494300_p0.png'
+    ).thumbnail(750).show(
+        align='left', y=0
+    )
 
     while True:
         help_command = input('\nEnter any key to return: ')
