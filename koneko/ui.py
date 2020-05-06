@@ -23,7 +23,7 @@ class AbstractGallery(ABC):
         # Defined in child classes
         self._main_path: str
 
-        pure.print_multiple_imgs(self.data.current_page_illusts)
+        pure.print_multiple_imgs(self.data.current_illusts())
         print(f'Page {self._current_page_num}')
         # Make sure the following work:
         # Gallery -> next page -> image prompt -> back -> prev page
@@ -104,7 +104,6 @@ class AbstractGallery(ABC):
     def previous_page(self):
         if self._current_page_num > 1:
             self._current_page_num -= 1
-            self.data.update_current_illusts(self._current_page_num)
 
             download_path = (
                 f'{self._main_path}/{self._current_page_num}/'

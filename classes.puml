@@ -109,10 +109,10 @@ abstract class lscat.View <<(A, red)>>{
     +{abstract}render()
 }
 class lscat.Card {
-    + render()
+    +render()
 }
 class lscat.Gallery {
-    + render()
+    +render()
 }
 
 lscat.View <-right- lscat.Card: inherits
@@ -145,6 +145,48 @@ package prompt {
     ui.Image .down..image_prompt
 }
 
+
+class data.GalleryJson {
+    + raw
+    + all_pages_cache
+    + titles
+    +current_page()
+    +current_illusts()
+    +post_json()
+    +image_id()
+    +cached_pages()
+    +next_url()
+}
+class data.ImageJson {
+    + url
+    + filename
+    + artist_illust_id
+    + img_post_page_num
+    + number_of_pages
+    + page_urls
+    + large_dir
+    + downloaded_images
+    +image_filename()
+    +filepath()
+    +next_img_url()
+    +current_url()
+}
+class data.UserJson {
+    + ids_cache
+    + names_cache
+    + raw
+    + next_url
+    + profile_pic_urls
+    + image_urls
+    +artist_user_id()
+    +names()
+    +all_urls()
+    +all_names()
+    +splitpoint()
+}
+
+data.GalleryJson *-up- ui.AbstractGallery: composes data
+data.ImageJson *-up- ui.Image: composes data
+data.UserJson *-up- ui.Users: composes data
+
 @enduml
-
-
