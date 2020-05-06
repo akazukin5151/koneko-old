@@ -15,14 +15,14 @@ from koneko.pure import cd
 
 # - Pure functions
 def is_image(myfile):
-    if fnmatch.fnmatch(myfile, "*.jpg") or fnmatch.fnmatch(myfile, "*.png"):
+    if fnmatch.fnmatch(myfile, '*.jpg') or fnmatch.fnmatch(myfile, '*.png'):
         return True
     return False
 
 
 def filter_jpg(path):
     with cd(path):
-        return sorted(filter(is_image, os.listdir(".")))
+        return sorted(filter(is_image, os.listdir('.')))
 
 
 @cytoolz.curry
@@ -31,7 +31,7 @@ def xcoord(image_number, number_of_columns, width, increment=2):
 
 
 def number_prefix(myfile):
-    return int(myfile.split("_")[0])
+    return int(myfile.split('_')[0])
 
 
 # Impure functions
@@ -41,7 +41,7 @@ def display_page(page, rowspaces, cols, left_shifts, path):
         for (index, space) in enumerate(rowspaces):
             for col in cols:
                 Image(page[index][col]).thumbnail(310).show(
-                    align="left", x=left_shifts[col], y=space
+                    align='left', x=left_shifts[col], y=space
                 )
 
 
@@ -123,13 +123,13 @@ class Gallery(View):
 
     @funcy.ignore(IndexError)
     def render(self):
-        os.system("clear")
+        os.system('clear')
         for (i, page) in enumerate(self._pages_list):
-            print("\n" * self._page_spaces[i])  # Scroll to new 'page'
+            print('\n' * self._page_spaces[i])  # Scroll to new 'page'
             display_page(page, self._rowspaces, self._cols, self._left_shifts,
                          self._path)
 
-        print(" " * 8, 1, " " * 15, 2, " " * 15, 3, " " * 15, 4, " " * 15, 5, "\n")
+        print(' ' * 8, 1, ' ' * 15, 2, ' ' * 15, 3, ' ' * 15, 4, ' ' * 15, 5, '\n')
 
 
 class Card(View):
@@ -171,12 +171,12 @@ class Card(View):
             cytoolz.partition_all(3, sorted(os.listdir(self._preview_paths)))
         )
 
-        os.system("clear")
+        os.system('clear')
         for (i, page) in enumerate(self._pages_list):
             # Print the message (artist name) first
-            print("\n" * 2)
-            print(" " * 18, self._messages[i])
-            print("\n" * self._page_spaces[i])  # Scroll to new 'page'
+            print('\n' * 2)
+            print(' ' * 18, self._messages[i])
+            print('\n' * self._page_spaces[i])  # Scroll to new 'page'
 
             # Display artist profile pic
             display_page(page, self._rowspaces, self._cols, self._left_shifts,
@@ -187,5 +187,5 @@ class Card(View):
                 display_page(((self._preview_images[i][j],),), self._rowspaces,
                              self._cols, coord, self._preview_paths)
 
-if __name__ == "__main__":
-    Gallery("/tmp/koneko/2232374/1/")
+if __name__ == '__main__':
+    Gallery('/tmp/koneko/2232374/1/')

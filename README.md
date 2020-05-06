@@ -106,7 +106,7 @@ For more details refer to the [manual](#manual).
 
 ## Structure and maintenence
 
-* APIHandler can be instantiated in api.py and modules should refer to that instance
+* Fix bug where posts with multiple images indicator is not shown after going to the next page
 * Re-write AbstractGallery in the style and form of Users (and merging GalleryLikeMode(s) into it). Might be even possible to pull out a more abstract core.
 
 # FAQ
@@ -155,6 +155,8 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 * Edit the files on your fork
 * Submit a pull request
 * If you want to, you can create an issue first. Ask any questions by opening a new issue.
+* If you're encountering/fixing a bug and you're stuck, try clearing the cache.
+* When testing your edit, don't forget to uninstall the pip version and do `python setup.py develop`.
 
 **NOTE:** running `koneko.py` with python or executing it will fail with an import error (circular import). Python imports are a mess, just use `python setup.py develop` when you want to test a change.
 
