@@ -1,11 +1,11 @@
-"""Stores json data from the api. Acts as a frontend to access data in a single line
-TODO: The ui classes would never need to interact directly with the api
-as they should focus on responding to user input and print/display.
+"""Stores json data from the api. Acts as frontend to access data in a single line.
+Functionally pure, no side effects (but stores state)
 """
 from koneko import KONEKODIR, pure
 
 
 class GalleryJson:
+    """Stores data for gallery modes (mode 1 and 5)"""
     def __init__(self, raw):
         self.raw = raw
         self.all_pages_cache = {'1': self.raw}
@@ -36,6 +36,7 @@ class GalleryJson:
 
 
 class ImageJson:
+    """Stores data for image view (mode 2)"""
     def __init__(self, raw, image_id):
         self._raw = raw
         self.url = pure.url_given_size(self._raw, 'large')
@@ -67,6 +68,7 @@ class ImageJson:
 
 
 class UserJson:
+    """Stores data for user views (modes 3 and 4)"""
     def __init__(self, raw, page_num):
         self.ids_cache, self.names_cache = {}, {}
         self.update(raw, page_num)
