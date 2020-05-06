@@ -7,7 +7,7 @@ from configparser import ConfigParser
 
 import pixcat
 
-from koneko import KONEKODIR, main, pure, lscat
+from koneko import __version__, KONEKODIR, main, pure, lscat
 
 
 def verify_full_download(filepath):
@@ -43,7 +43,7 @@ def display_image_vp(filepath):
 def begin_prompt(printmessage=True):
     messages = (
         '',
-        'Welcome to koneko v0.4\n',
+        f'Welcome to koneko v{__version__}\n',
         'Select an action:',
         '1. View artist illustrations',
         '2. Open pixiv post',
@@ -114,13 +114,14 @@ def info_screen_loop():
     os.system('clear')
     messages = (
         '',
-        'koneko こねこ version 0.4 beta\n',
+        f'koneko こねこ version {__version__} beta\n',
         "Browse pixiv in the terminal using kitty's icat to display",
         'images with images embedded in the terminal\n',
         "1. View an artist's illustrations",
         '2. View a post (support multiple images)',
         '3. View artists you followed',
-        '4. Search for artists and browse their works.\n',
+        '4. Search for artists and browse their works.',
+        '5. View latest illustrations from artist you follow.\n',
         'Thank you for using koneko!',
         'Please star, report bugs and contribute in:',
         'https://github.com/twenty5151/koneko',

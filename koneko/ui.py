@@ -7,6 +7,7 @@ from pathlib import Path
 import funcy
 from tqdm import tqdm
 
+# TODO: remove direct dependency on api and download (and data as well?)
 from koneko import (KONEKODIR, api, data, main, pure, lscat, utils, colors,
                     prompt, download)
 
