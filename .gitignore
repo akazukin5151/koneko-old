@@ -1,6 +1,4 @@
 __pycache__/
-.mypy_cache/
-.coverage
 build/
 dist/
 *egg-info/

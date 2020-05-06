@@ -33,7 +33,7 @@ class APIHandler:
         Logins to pixiv in the background, using credentials from config file.
         """
         api = AppPixivAPI()
-        api.login(self._credentials["Username"], self._credentials["Password"])
+        api.login(self._credentials['Username'], self._credentials['Password'])
         self.api_queue.put(api)
 
 
@@ -44,13 +44,13 @@ class APIHandler:
         return self.api.parse_qs(next_url)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
+    @pure.spinner('')
     def artist_gallery_parse_next(self, **kwargs):
         """Mode 1, feed in next page"""
         return self.api.user_illusts(**kwargs)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
+    @pure.spinner('')
     def artist_gallery_request(self, artist_user_id):
         """Mode 1, normal usage"""
         return self.api.user_illusts(artist_user_id)
@@ -71,7 +71,7 @@ class APIHandler:
         return self.api.user_following(user_id, restrict=publicity, offset=offset)
 
     @funcy.retry(tries=3, errors=(ConnectionError, PixivError))
-    @pure.spinner("")
+    @pure.spinner('')
     def illust_follow_request(self, **kwargs):
         """Mode 5
         **kwargs can be **parse_page (for _prefetch_next_page), but also contain
@@ -84,3 +84,5 @@ class APIHandler:
     def protected_download(self, url):
         """Protect api download function with funcy.retry so it doesn't crash"""
         self.api.download(url)
+
+myapi = APIHandler()

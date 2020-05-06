@@ -13,7 +13,7 @@ os.system("cp -r ./pics/ ~/.local/share/koneko/")
 
 setup(
     name="koneko",
-    version="0.4",
+    version="0.5",
     description="Browse pixiv in the terminal",
     long_description=README,
     long_description_content_type="text/markdown",
