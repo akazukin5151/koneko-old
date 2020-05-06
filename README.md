@@ -152,11 +152,12 @@ You might have problems with image positioning with lscat.py. I wrote it to fit 
 
 # Contributing
 * Fork it
-* Edit the files on your fork
-* Submit a pull request
+* Make a new branch with `git checkout -b myfeature` (a git pre-commit hook might prevent your git client from commiting to master, but github might let you. It doesn't matter which branch you edit, the pre-commit hook is just for me)
+* Edit the files on your fork and branch
+* Submit a pull request to master
 * If you want to, you can create an issue first. Ask any questions by opening a new issue.
-* If you're encountering/fixing a bug and you're stuck, try clearing the cache.
-* When testing your edit, don't forget to uninstall the pip version and do `python setup.py develop`.
+* If you're encountering/fixing a bug and you're stuck, try clearing the cache. For example, a bug might have downloaded to the wrong folder, but after fixing the bug, you need to clear the cache, otherwise it would not download anything and display the wrong contents.
+* When testing your edit, don't forget to uninstall the pip version and do `python setup.py develop` (totally didn't happen to me).
 
 **NOTE:** running `koneko.py` with python or executing it will fail with an import error (circular import). Python imports are a mess, just use `python setup.py develop` when you want to test a change.
 
@@ -185,6 +186,7 @@ conda env list                  # make sure you're in the correct environment...
 conda install -n koneko pip     # and make sure pip is installed...
 which pip                       # and pip is in your conda directory
 
+# Or use manual installation instructions below
 pip install koneko
 
 # Use anywhere:
@@ -204,9 +206,9 @@ git clone -b master https://github.com/twenty5151/koneko.git
 # Use the dev branch for latest features, fixes, and instability:
 git clone -b dev https://github.com/twenty5151/koneko.git
 
+cd koneko
 # Manually install without PyPI; for general usage
 # Both will correctly copy the required pictures
-cd koneko
 pip install .
 # or
 python setup.py install
@@ -231,7 +233,9 @@ curl -e 'https://www.pixiv.net' "https://i.pximg.net/img-original/img/2019/12/21
 ```
 
 ## Upload to PyPI
-```
+Bump version info in `__init__.py`, `setup.py`, and `README.md`
+
+```sh
 python setup.py sdist bdist_wheel
 twine upload dist/*
 pip install koneko --upgrade
