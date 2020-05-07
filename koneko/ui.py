@@ -90,6 +90,7 @@ class AbstractGallery(ABC):
             print('This is the last page!')
         else:
             self._current_page_num += 1
+            pure.print_multiple_imgs(self.data.current_illusts(self._current_page_num))
             print(f'Page {self._current_page_num}')
             print('Enter a gallery command:\n')
 
@@ -109,6 +110,7 @@ class AbstractGallery(ABC):
                 f'{self._main_path}/{self._current_page_num}/'
             )
             utils.show_artist_illusts(download_path)
+            pure.print_multiple_imgs(self.data.current_illusts(self._current_page_num))
             print(f'Page {self._current_page_num}')
             print('Enter a gallery command:\n')
 
