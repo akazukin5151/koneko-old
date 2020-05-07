@@ -106,7 +106,6 @@ For more details refer to the [manual](#manual).
 
 ## Structure and maintenence
 
-* Fix bug where posts with multiple images indicator is not shown after going to the next page
 * Re-write AbstractGallery in the style and form of Users (and merging GalleryLikeMode(s) into it). Might be even possible to pull out a more abstract core.
 
 # FAQ
