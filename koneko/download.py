@@ -4,6 +4,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 import cytoolz
+from tqdm import tqdm
 
 from koneko import api, pure, utils
 
@@ -68,6 +69,10 @@ def download_page(current_page_illusts, download_path, pbar=None):
         download_path, urls, rename_images=True, file_names=titles, pbar=pbar
     )
 
+def download_page_pbar(current_illusts, download_path):
+    pbar = tqdm(total=len(current_illusts), smoothing=0)
+    download_page(current_illusts, download_path, pbar=pbar)
+    pbar.close()
 
 # - Wrappers around the core functions for downloading one image
 @pure.spinner('')

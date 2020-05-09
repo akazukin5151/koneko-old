@@ -15,13 +15,18 @@ class LastPageException(ValueError):
     pass
 
 class AbstractGallery(ABC):
-    def __init__(self, gdata, current_page_num):
+    def __init__(self, current_page_num):
         self._current_page_num = current_page_num
-        self.data = gdata
+        #self.data = gdata
+        self._show = True
         # Defined in self.view_image
         self._selected_image_num: int
         # Defined in child classes
         self._main_path: str
+        self._download_path = self._main_path + str(self._current_page_num)
+
+
+        self.start()
 
         pure.print_multiple_imgs(self.data.current_illusts())
         print(f'Page {self._current_page_num}')
@@ -31,6 +36,44 @@ class AbstractGallery(ABC):
             # Prefetch the next page on first gallery load
             with funcy.suppress(LastPageException):
                 self._prefetch_next_page()
+
+    def start(self):
+        """
+        If artist_user_id dir exists, show immediately (without checking
+        for contents!)
+        Else, fetch current_page json and proceed download -> show -> prompt
+        """
+        if Path(self._download_path).is_dir():
+            try:
+                utils.show_artist_illusts(self._download_path)
+            except IndexError: # Folder exists but no files
+                Path(self._download_path).rmdir()
+                self._show = True
+            else:
+                self._show = False
+        else:
+            self._show = True
+
+        #if not self.data:
+        current_page = self._pixivrequest_r()
+        self.data = data.GalleryJson(current_page)
+        self._init_download()
+        if self._show:
+            utils.show_artist_illusts(self._download_path)
+
+    def _init_download(self):
+        if not Path(self._download_path).is_dir():
+            download.download_page_pbar(self.data.current_illusts(),
+                                        self._download_path)
+
+        elif (not self.data.titles[0] in sorted(os.listdir(self._download_path))[0]
+              and self._current_page_num == 1):
+            print('Cache is outdated, reloading...')
+            # Remove old images
+            os.system(f'rm -r {self._download_path}') # shutil.rmtree is better
+            download.download_page_pbar(self.data.current_illusts(),
+                                        self._download_path)
+            self._show = True
 
     def open_link_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -121,6 +164,10 @@ class AbstractGallery(ABC):
     def _pixivrequest(self, **kwargs):
         raise NotImplementedError
 
+    @abstractmethod
+    def _pixivrequest_r(self):
+        raise NotImplementedError
+
     def _prefetch_next_page(self):
         # TODO: move this somewhere else
         # print("   Prefetching next page...", flush=True, end="\r")
@@ -194,19 +241,22 @@ class ArtistGallery(AbstractGallery):
         o25   --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
-    def __init__(self, gdata, current_page_num, artist_user_id, **kwargs):
+    def __init__(self, current_page_num, artist_user_id, **kwargs):
         self._main_path = f'{KONEKODIR}/{artist_user_id}/'
         self._artist_user_id = artist_user_id
         self._kwargs = kwargs
-        super().__init__(gdata, current_page_num)
+        super().__init__(current_page_num)
 
     def _pixivrequest(self, **kwargs):
         return api.myapi.artist_gallery_parse_next(**kwargs)
 
+    def _pixivrequest_r(self):
+        return api.myapi.artist_gallery_request(self._artist_user_id)
+
     def _back(self):
         # After user 'back's from image prompt, start mode again
-        main.ArtistGalleryMode(self._artist_user_id, self._current_page_num,
-                               self.data)
+        self.__init__(self._current_page_num, self._artist_user_id)
+        prompt.gallery_like_prompt(self)
 
     def handle_prompt(self, keyseqs, gallery_command, selected_image_num,
                       first_num, second_num):
@@ -270,12 +320,15 @@ class IllustFollowGallery(AbstractGallery):
         o25   --->  Download the image on column 2, row 5 (index starts at 1)
 
     """
-    def __init__(self, gdata, current_page_num):
+    def __init__(self, current_page_num):
         self._main_path = f'{KONEKODIR}/illustfollow/'
-        super().__init__(gdata, current_page_num)
+        super().__init__(current_page_num)
 
     def _pixivrequest(self, **kwargs):
         return api.myapi.illust_follow_request(**kwargs)
+
+    def _pixivrequest_r(self):
+        return api.myapi.illust_follow_request(restrict='private') # Publicity
 
     def go_artist_gallery_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -290,7 +343,8 @@ class IllustFollowGallery(AbstractGallery):
         post_json = self.data.post_json(self._current_page_num, selected_image_num)
 
         artist_user_id = post_json['user']['id']
-        main.ArtistGalleryMode(artist_user_id)
+        mode = ArtistGallery(1, artist_user_id)
+        prompt.gallery_like_prompt(mode)
         # Gallery prompt ends, user presses back
         self._back()
 
@@ -451,7 +505,8 @@ class Image:
         if self._firstmode or force:
             # Came from view post mode, don't know current page num
             # Defaults to page 1
-            main.ArtistGalleryMode(self.data.artist_user_id, self._current_page_num)
+            mode = ArtistGallery(self._current_page_num, self.data.artist_user_id)
+            prompt.gallery_like_prompt(mode)
             # After backing
             main.main(start=False)
         # Else: image prompt and class ends, goes back to previous mode
@@ -602,7 +657,8 @@ class Users(ABC):
         except IndexError:
             print('Invalid number!')
         else:
-            main.ArtistGalleryMode(artist_user_id)
+            mode = ArtistGallery(1, artist_user_id)
+            prompt.gallery_like_prompt(mode)
             # After backing from gallery
             self._show_page()
             prompt.user_prompt(self)
