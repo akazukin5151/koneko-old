@@ -62,6 +62,7 @@ class AbstractGallery(ABC):
             utils.show_artist_illusts(self._download_path)
 
     def _init_download(self):
+        # TODO: move to download.py?
         if not Path(self._download_path).is_dir():
             download.download_page_pbar(self.data.current_illusts(),
                                         self._download_path)
@@ -166,6 +167,7 @@ class AbstractGallery(ABC):
 
     @abstractmethod
     def _pixivrequest_r(self):
+        # TODO remove duplicate
         raise NotImplementedError
 
     def _prefetch_next_page(self):
@@ -213,7 +215,7 @@ class ArtistGallery(AbstractGallery):
     """
     Artist Gallery commands: (No need to press enter)
         Using coordinates, where {digit1} is the row and {digit2} is the column
-        {digit1}{digit2}   -- display the image on row digit1 and column digit2
+        {digit1}{digit2}   -- display the image on column digit1 and row digit2
         o{digit1}{digit2}  -- open pixiv image/post in browser
         d{digit1}{digit2}  -- download image in large resolution
 
@@ -290,7 +292,7 @@ class IllustFollowGallery(AbstractGallery):
     """
     Illust Follow Gallery commands: (No need to press enter)
         Using coordinates, where {digit1} is the row and {digit2} is the column
-        {digit1}{digit2}   -- display the image on row digit1 and column digit2
+        {digit1}{digit2}   -- display the image on column digit1 and row digit2
         o{digit1}{digit2}  -- open pixiv image/post in browser
         d{digit1}{digit2}  -- download image in large resolution
         a{digit1}{digit2}  -- view illusts by the artist of the selected image
@@ -515,12 +517,13 @@ class Image:
 class Users(ABC):
     """
     User view commands (No need to press enter):
-        n -- view next page
-        p -- view previous page
-        r -- delete all cached images, re-download and reload view
-        h -- show keybindings
-        m -- show this manual
-        q -- quit (with confirmation)
+        {digit1}{digit2}   -- display artist illusts on column digit1 and row digit2
+        n                  -- view next page
+        p                  -- view previous page
+        r                  -- delete all cached images, re-download and reload view
+        h                  -- show keybindings
+        m                  -- show this manual
+        q                  -- quit (with confirmation)
 
     """
 
