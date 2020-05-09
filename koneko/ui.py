@@ -55,7 +55,7 @@ class AbstractGallery(ABC):
             self._show = True
 
         #if not self.data:
-        current_page = self._pixivrequest_r()
+        current_page = self._pixivrequest()
         self.data = data.GalleryJson(current_page)
         self._init_download()
         if self._show:
@@ -165,11 +165,6 @@ class AbstractGallery(ABC):
     def _pixivrequest(self, **kwargs):
         raise NotImplementedError
 
-    @abstractmethod
-    def _pixivrequest_r(self):
-        # TODO remove duplicate
-        raise NotImplementedError
-
     def _prefetch_next_page(self):
         # TODO: move this somewhere else
         # print("   Prefetching next page...", flush=True, end="\r")
@@ -250,10 +245,10 @@ class ArtistGallery(AbstractGallery):
         super().__init__(current_page_num)
 
     def _pixivrequest(self, **kwargs):
-        return api.myapi.artist_gallery_parse_next(**kwargs)
-
-    def _pixivrequest_r(self):
-        return api.myapi.artist_gallery_request(self._artist_user_id)
+        if kwargs:
+            return api.myapi.artist_gallery_parse_next(**kwargs) # Parse next
+        else:
+            return api.myapi.artist_gallery_request(self._artist_user_id)
 
     def _back(self):
         # After user 'back's from image prompt, start mode again
@@ -327,10 +322,10 @@ class IllustFollowGallery(AbstractGallery):
         super().__init__(current_page_num)
 
     def _pixivrequest(self, **kwargs):
-        return api.myapi.illust_follow_request(**kwargs)
-
-    def _pixivrequest_r(self):
-        return api.myapi.illust_follow_request(restrict='private') # Publicity
+        if kwargs:
+            return api.myapi.illust_follow_request(**kwargs) # Parse next
+        else:
+            return api.myapi.illust_follow_request(restrict='private') # Publicity
 
     def go_artist_gallery_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
