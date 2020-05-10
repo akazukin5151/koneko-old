@@ -372,6 +372,8 @@ def display_image(post_json, artist_user_id, number_prefix, current_page_num):
     """
     Opens image given by the number (medium-res), downloads large-res and
     then display that.
+    Alternative to main.view_post_mode(). It does its own stuff before calling
+    the Image class for the prompt.
 
     Parameters
     ----------

@@ -171,7 +171,7 @@ Flowchart of modes and their connections:
 
 Simplified UML diagram of the classes:
 
-![UML](http://plantuml.com:80/plantuml/png/bLVRJjmm47tFL-InR4a-e488XDIg5PKgLUrBLKKcCRi69xPiXosY_7jzJJos0_HjFPdZCsSydl5UI8M4caTQLOeeYkiHaQdbZrM5RgGIg5TrJv6KzJLZl3uxUtTvMWiyd9oVFrLr_VufU3tRVTwTLCzLvG2NGX6flh81MwXnru1wr0RtSqKum6TAPwa-CahPyKqm5zBVPc37gKduFjHaEc11b0Hklmva6F3qkocoHQ1C_oT4AHQFr-GU6_Si5GL1BY8FjA2WPkzicz8BZaauCsallSKJb2AQy1_LSRJ7EYfhu08_47m4DiRnr54otNSzOsAGkNsQns0qIQGC3HqPzHO98laOmIofjGQBmCOphDOwEg1feBZZWeqSr9DH72VKwBqwhVj7DAs2S_G2ZdFyqXPxrY7Bq_da9oBpxv7Ed3-h6r2kKN54nGTBURUDw3KDarYwwx79bPPNH5Mw1hjDMC9NAaAFBIVy1M9FkerSkCETU8KUf2jBRfJ6c3a1bJb15JQ2x0zgwIld6_67AlwfBy8tziQ-o6xkiBxnxiPgK6UTreeszwbOmpMyYQ4wQtkbeScs26YoJOBDCZ5JZ1wmkv6mywQQecHdSjisbGENnY58gqBIN2R9jFyXiP3_CLA-OoJwmzjHK5UPTcEoD2MoUA0inmQtXUUtUaMx9Ixv95Yyqlw_zYgZDfnaUIgO0-UR3NhDqSgttZKeAL9TSewKHPxbPE-sEM0lAYH_jq6PDB4qdrJsIBMcS4iPNGULmDE0HLHi3dY5n11gRCCbj8xSguh9NMTfedsZT057fnDi7bTUE8HTQnnRiE6I37CDqm6oQsUURWi1UGj-7LFgsqqpywY79d5amoBlkbbNhv8xb27IFVFn2L-Ccvtz3J0GtNeWUL2fyAYcNixGfYCu2k06_V93gIgE-dipOjnpnjUh7qgp5k3VETQyQ38DFFeMOyA32SBIMl1LcZZ7-xZd9Tp53KE7RO73yp971gHGICKNoQPb5WXqzB_qHzi5PTUZ_k07H6t_6actw6UXRonieC56R7aiJqKxrUuqKJ2ukCZILIt7u0X1Tvu5ZTg6ZTiA155h9__hbb0yeJ64wtk-YqRJUJCPzsxGSlyw3q-0URpH1yPkNI3X5M2SD4LOKoIqOI0YUM9W_yYGiSGGK11brXof0n1fud52GH8Bsarb0UbaW0TakA1bFTAGqELrmqmq7ITzBC_5lHfy3cqfhmTcUSB2r8e1n6lW83abYZCo-JyoMVtjz1ri2dSWQfa6KoK5iC2igUYyP6pnJQUVzQqkzF2n__x_0G00)
+![UML](http://plantuml.com:80/plantuml/png/bLVRJjmm47ttL-GHjYGVW1028RLgrKgLglQbgYAJc8t1YItROOie_rvV4u_ZfVHjCpdZcJENu-oLqbZgUMG8QQePgKPCfqOy8OHlbPQuqrN7i5BLPyv5TN5nSdrMITAVNbu-ewfwznnHB-wSarFqWf1tk9QQAls5zyIvMhXng4PZy3zN3-_maR5PwVUSCNvuavjFwK_TyyDKP_7EApeDH5Aj0EpdGFkUJB_gOhJ4AQS_q-OwM3vWneXysXJ3v3QHtxeLU4zCViuW97cav01iN92fPNHwQ3lEPQ-szcaUez4cpJZkMpgQ8pAFx6NYve8wQxH8Of7nQUtRWAUUaLP8FWhGFylObJJXUtDMTKzuMWbllHVdjC2l7R7dBNPnshr7PIItxnEUs_Xm37PXE78ovrLdFBWYoayMAer3ubmWipcYD2B_E64TjzUTizoX6sXIBUb-qCkONnu97Plymyp9L_x6DUMtzyGiX1zeuzGwqDfmEsx55bTmK6FpAZVnqEGs29hS3l5PPMP6y2Fn0mk58EUKr6j3jsboEl3H0Y8r58lcAqcd_NT5fFeFXVj6iEo6jtj1NkMmHuIkBWLB9sTf6pmMzcz59QTbaArGBgXS7jTLjcnZ9ykYQHikZkhNMgCrtheka5B2kWHEc2N8Sh5tnsD0CIWKVtSaPAOYUJsPwh1kxE2MAhhgk2HJJsGoRDxn1ii-pjWHI9IEBGgbmRsorCcvIRa0qFC4XsUQvQZl6Wjim85BCUmQ5aHnrymYFndwe8HtFOj42O4RW47SDYf20dSFLjtyHHDA5VHmDcJ23UJCov1PxKZUfJxnAeDk-GqG2fI1qtFynGzFyJhiVHi0U5aahCSQnr9yKdnQP4ZYG_XbNhe5L6s7ko5eK-K-4fL_w6PfXWNkRhHHT-SibxWJr7iJA1fyNdHPQ1UZzm61CCoI9HFhydO4GTO657xTKKOcFCPqWzpuR4ouOARZtcky2DzDyVQPnrlJC7xd4uaNa0MP4F6POMaCFPNPxKR2_QPIYZ6XICe-2wm7GDBcuuc28XQusya2r6aF6sHZGSlQqbZGvMBbDfjMq2wbv_DU3Q66RfJNXhauyS7EYdL8dm502KQru7GAdvYR-TkP7QmBEv2ij_L1sG0iRivK12yLMx2vy3eikZAwP_y7_GK0)
 
 ## Conda environment
 
@@ -318,10 +318,13 @@ Image view commands (No need to press enter):
 
 ```
 User view commands (No need to press enter):
-    n -- view next page
-    p -- view previous page
-    h -- show this help
-    q -- quit (with confirmation)
+    {digit1}{digit2}   -- display artist illusts on column digit1 and row digit2
+    n                  -- view next page
+    p                  -- view previous page
+    r                  -- delete all cached images, re-download and reload view
+    h                  -- show keybindings
+    m                  -- show this manual
+    q                  -- quit (with confirmation)
 ```
 
 ```

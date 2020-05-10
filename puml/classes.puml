@@ -17,16 +17,6 @@ class IllustFollowModeLoop {
 Loop <|-down- ArtistModeLoop: inherits
 Loop <|-down[hidden]- IllustFollowModeLoop: inherits
 
-
-abstract class GalleryLikeMode <<(A, red)>>{
-    +start()
-}
-class ArtistGalleryMode {
-    + gallery
-}
-class IllustFollowMode {
-    + gallery
-}
 abstract class ui.AbstractGallery <<(A, red)>>{
     +next_page()
     +preview_page()
@@ -47,17 +37,13 @@ class ui.IllustFollowGallery <<(C, cyan)>>{
     +go_artist_gallery_num()
     +handle_prompt()
 }
-GalleryLikeMode <-down- ArtistGalleryMode: inherits
-ArtistModeLoop*-down- ArtistGalleryMode: composes mode
+ArtistModeLoop*-down- ui.ArtistGallery: composes mode
 
-GalleryLikeMode <-down- IllustFollowMode: inherits
-IllustFollowModeLoop*-down- IllustFollowMode: composes mode
+IllustFollowModeLoop*-down- ui.IllustFollowGallery: composes mode
 
 ui.AbstractGallery <-down- ui.IllustFollowGallery: inherits
-IllustFollowMode*-down-- ui.IllustFollowGallery: composes gallery
 
 ui.AbstractGallery <-down- ui.ArtistGallery: inherits
-ArtistGalleryMode*-down-- ui.ArtistGallery: composes gallery
 
 ui.ArtistGallery -right[hidden]-> ui.IllustFollowGallery
 
@@ -119,18 +105,8 @@ lscat.View <-right- lscat.Card: inherits
 lscat.View <-down- lscat.Gallery: inherits
 
 ui.Users*.down. lscat.Card: composes view
-GalleryLikeMode*.up lscat.Gallery: composes view
 ui.AbstractGallery*.up lscat.Gallery: composes view
 
-ui.AbstractGallery --up[hidden]-> GalleryLikeMode
-IllustFollowMode -right[hidden]-> ArtistGalleryMode
-ui.SearchUsers -right[hidden]-> IllustFollowMode
-
-GalleryLikeMode -down[hidden]-> ui.IllustFollowGallery
-GalleryLikeMode -down[hidden]-> ui.ArtistGallery
-
-ui.Users -right[hidden]-> GalleryLikeMode
-lscat.Card -up[hidden]-> GalleryLikeMode
 lscat.Card -up[hidden]-> lscat.Gallery
 lscat.Card --up[hidden]-> ui.AbstractGallery
 
