@@ -204,6 +204,7 @@ def user_prompt(user_class):
     """
     keyseqs = []
     seq_num = 0
+    sequenceable_keys = 'i'
     with TERM.cbreak():
         while True:
             print('Enter a user view command:')
@@ -221,6 +222,11 @@ def user_prompt(user_class):
                 break
 
             # Wait for the rest of the sequence
+            elif user_prompt_command in sequenceable_keys:
+                keyseqs.append(user_prompt_command)
+                print(keyseqs)
+                seq_num += 1
+
             elif user_prompt_command.isdigit():
                 keyseqs.append(user_prompt_command)
                 print(keyseqs)
@@ -247,11 +253,11 @@ def user_prompt(user_class):
 
             elif user_prompt_command == 'h':
                 print(''.join([
-                    "view ", colors.blue_n, "th artist's illusts ",
+                    colors.i, "view nth artist's illusts",
                     colors.n, 'ext page; ',
                     colors.p, 'revious page; ',
-                    colors.r, 'eload and re-download all;\n',
-                    colors.q, 'uit (with confirmation);',
+                    colors.r, 'eload and re-download all; ',
+                    colors.q, 'uit (with confirmation);\n',
                     'view ', colors.m, 'anual\n'
                 ]))
 
