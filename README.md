@@ -204,6 +204,7 @@ conda install -n koneko pip     # and make sure pip is installed...
 which pip                       # and pip is in your conda directory
 
 # Or use manual installation instructions below
+# If you're using a separate conda env, you probably want to make some edits
 pip install koneko
 
 # Use anywhere:
@@ -214,6 +215,9 @@ conda remove --name koneko --all
 ```
 
 ## Manual installation
+
+Note: if you want to make some edits, you should install it in a conda environment. See above
+
 ```sh
 # Use the latest stable version (recommended)
 # Make sure the version number is the latest
