@@ -1,15 +1,19 @@
 @startuml
 title Gallery modes (mode 1 and 5)
 
+actor User
+
 == Mode selection ==
 User -> ui ++: Mode 1 or 5
 ui --> User: Ask for user id (mode 1 only)
 User --> ui: Pixiv id
 ui -> api ++: JSON request
 return JSON response
-create gdata
+database gdata
 ui -> gdata: Stores response
 ui -> download: Download images
+activate download
+deactivate download
 ui --> User: Displays images, print info
 group prefetching
     ui -> gdata ++: current_illusts()
@@ -22,6 +26,8 @@ group prefetching
     return JSON response
     ui -> gdata: Update all_pages_cache
     ui -> download: Download page
+    activate download
+    deactivate download
 end
 return
 |||
@@ -38,6 +44,8 @@ User -> ui ++: Download image
 ui -> gdata ++: post_json
 return post_json
 ui -> download: download_image_verified()
+activate download
+deactivate download
 return
 |||
 
@@ -65,6 +73,7 @@ return Restarts mode
 User -> ui ++: View image
 ui -> gdata ++: post_json
 return post_json
+database idata
 create idata
 ui -> idata: Stores response
 return display_image(), print info

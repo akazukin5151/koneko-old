@@ -2,14 +2,17 @@
 title Image Mode
 
 == Mode selection ==
+actor User
 User -> ui ++: Mode 2
 ui -> User: Ask for user id
 User -> ui: Pixiv id
 ui -> api ++: JSON request
 return JSON response
-create idata
+database idata
 ui -> idata: Stores response
 ui -> download: Download images
+activate download
+deactivate download
 return Displays image, prints info
 |||
 
@@ -21,17 +24,23 @@ return Opened {link}!
 == Download image ==
 User -> ui ++: Download image
 ui -> download: download_image_verified()
+activate download
+deactivate download
 return
 |||
 
 == Next image ==
 User -> ui ++: next_page()
 ui -> download: async_download_spinner()
+activate download
+deactivate download
 ui --> User: Displays image, prints info
 group Prefetch next image
     ui -> idata ++: next_img_url
     return next_img_url
     ui -> download: async_download_spinner()
+    activate download
+    deactivate download
     ui -> idata: Update downloaded_images
 end
 return
