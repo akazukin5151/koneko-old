@@ -1,5 +1,5 @@
 @startuml
-title Artist Gallery Mode
+title Gallery modes (mode 1 and 5)
 
 == Mode selection ==
 User -> ui ++: Mode 1 or 5
