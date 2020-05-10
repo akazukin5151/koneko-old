@@ -17,7 +17,7 @@ class LastPageException(ValueError):
 class AbstractGallery(ABC):
     def __init__(self, current_page_num):
         self._current_page_num = current_page_num
-        #self.data = gdata
+        self.data: 'data.GalleryJson'
         self._show = True
         # Defined in self.view_image
         self._selected_image_num: int
@@ -25,23 +25,13 @@ class AbstractGallery(ABC):
         self._main_path: str
         self._download_path = self._main_path + str(self._current_page_num)
 
-
         self.start()
-
-        pure.print_multiple_imgs(self.data.current_illusts())
-        print(f'Page {self._current_page_num}')
-        # Make sure the following work:
-        # Gallery -> next page -> image prompt -> back -> prev page
-        if len(self.data.all_pages_cache) == 1:
-            # Prefetch the next page on first gallery load
-            with funcy.suppress(LastPageException):
-                self._prefetch_next_page()
 
     def start(self):
         """
         If artist_user_id dir exists, show immediately (without checking
         for contents!)
-        Else, fetch current_page json and proceed download -> show -> prompt
+        Else, fetch current_page json and proceed download -> show -> prefetch
         """
         if Path(self._download_path).is_dir():
             try:
@@ -54,27 +44,24 @@ class AbstractGallery(ABC):
         else:
             self._show = True
 
-        #if not self.data:
         current_page = self._pixivrequest()
         self.data = data.GalleryJson(current_page)
-        self._init_download()
+        download.init_download(self._download_path, self.data,
+                               self._current_page_num, download.download_page_pbar,
+                               self.data.current_illusts(), self._download_path)
+
         if self._show:
             utils.show_artist_illusts(self._download_path)
 
-    def _init_download(self):
-        # TODO: move to download.py?
-        if not Path(self._download_path).is_dir():
-            download.download_page_pbar(self.data.current_illusts(),
-                                        self._download_path)
+        pure.print_multiple_imgs(self.data.current_illusts())
+        print(f'Page {self._current_page_num}')
+        # Make sure the following work:
+        # Gallery -> next page -> image prompt -> back -> prev page
+        if len(self.data.all_pages_cache) == 1:
+            # Prefetch the next page on first gallery load
+            with funcy.suppress(LastPageException):
+                self._prefetch_next_page()
 
-        elif (not self.data.titles[0] in sorted(os.listdir(self._download_path))[0]
-              and self._current_page_num == 1):
-            print('Cache is outdated, reloading...')
-            # Remove old images
-            os.system(f'rm -r {self._download_path}') # shutil.rmtree is better
-            download.download_page_pbar(self.data.current_illusts(),
-                                        self._download_path)
-            self._show = True
 
     def open_link_coords(self, first_num, second_num):
         selected_image_num = pure.find_number_map(int(first_num), int(second_num))
@@ -538,7 +525,7 @@ class Users(ABC):
         # because it needs to print the right message
         # Which means parsing is needed first
         self._parse_and_download()
-        if self._show:
+        if self._show: # Is always true for now
             self._show_page()
         self._prefetch_next_page()
 
@@ -550,37 +537,10 @@ class Users(ABC):
         self._parse_user_infos()
         preview_path = f'{self._main_path}/{self._input}/{self._page_num}/previews/'
 
-        # Similar to logic in GalleryLikeMode (_init_download())...
-        if not Path(self.download_path).is_dir():
-            self._download_pbar(preview_path)
-
-        elif not (self.data.all_names(self._page_num)[0]
-                  in sorted(os.listdir(self.download_path))[0]):
-
-            print('Cache is outdated, reloading...')
-            # Remove old images
-            os.system(f'rm -r {self.download_path}') # shutil.rmtree is better
-            self._download_pbar(preview_path)
-            self._show = True
-
-    def _download_pbar(self, preview_path):
-        pbar = tqdm(total=len(self.data.all_urls()), smoothing=0)
-        download.async_download_core(
-            preview_path,
-            self.data.all_urls(),
-            rename_images=True,
-            file_names=self.data.all_names(self._page_num),
-            pbar=pbar
-        )
-        pbar.close()
-
-        # Move artist profile pics to their correct dir
-        to_move = sorted(os.listdir(preview_path))[:self.data.splitpoint()]
-        with pure.cd(self.download_path):
-            [os.rename(f'{self.download_path}/previews/{pic}',
-                       f'{self.download_path}/{pic}')
-             for pic in to_move]
-
+        download.init_download(self.download_path, self.data,
+                               self._page_num, download.user_download,
+                               self.data, preview_path, self.download_path,
+                               self._page_num)
 
     @abstractmethod
     def _pixivrequest(self):
