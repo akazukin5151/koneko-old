@@ -10,7 +10,7 @@ return JSON response
 create idata
 ui -> idata: Stores response
 ui -> download: Download images
-return Prints info
+return Displays image, prints info
 |||
 
 == Open image ==
@@ -27,7 +27,7 @@ return
 == Next image ==
 User -> ui ++: next_page()
 ui -> download: async_download_spinner()
-ui --> User: Display image
+ui --> User: Displays image, prints info
 group Prefetch next image
     ui -> idata ++: next_img_url
     return next_img_url
@@ -39,7 +39,7 @@ return
 
 == Previous page ==
 User -> ui ++: previous_page()
-return Print info
+return Displays image, prints info
 |||
 
 @enduml

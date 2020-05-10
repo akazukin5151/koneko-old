@@ -10,6 +10,7 @@ return JSON response
 create gdata
 ui -> gdata: Stores response
 ui -> download: Download images
+ui --> User: Displays images, print info
 group prefetching
     ui -> gdata ++: current_illusts()
     return current_illusts()
@@ -22,7 +23,7 @@ group prefetching
     ui -> gdata: Update all_pages_cache
     ui -> download: Download page
 end
-return Prints info
+return
 |||
 
 == Open image ==
@@ -42,14 +43,14 @@ return
 
 == Next page ==
 User -> ui ++: Next Page
-ui --> User: Prints info
+ui --> User: Displays images, prints info
 ui -> ui: prefetching
 return
 |||
 
 == Previous page ==
 User -> ui ++: previous_page()
-return Print info
+return Displays images, prints info
 |||
 
 == Reload ==
@@ -64,9 +65,9 @@ return Restarts mode
 User -> ui ++: View image
 ui -> gdata ++: post_json
 return post_json
-ui -> idata **
-ui --> User: display_image()
-return Prints info
+create idata
+ui -> idata: Stores response
+return display_image(), print info
 |||
 
 
